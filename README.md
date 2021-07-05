@@ -21,5 +21,5 @@ make
 
 ## License
 
-This is free software, published under the [FreeSurfer software license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense). Please [register at the FreeSurfer website to obtain a free license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License) when using this library. A copy of the license comes with libfs, in the file [LICENSE](./LICENSE).
+This is free software, published under the [FreeSurfer software license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense) ([copy in this repo](./LICENSE)). Please [register at the FreeSurfer website to obtain a free license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License) when using this library.
 
