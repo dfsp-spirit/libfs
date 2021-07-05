@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# CMake stuff
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CMakeFiles/
+
+# Generated binaries
+LibfsTests
+
