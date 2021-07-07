@@ -33,7 +33,7 @@ Note that the only thing that's being built is the test binary.
 
 Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place.
 
-See the [examples directory](./examples/) for some programs which use the library. Compilation instructions are at the top of each source file.
+See the [examples directory](./examples/) for some programs which use the library. Compilation instructions for g++ 9.3 are at the top of each source file, they should be easy to adapt to your favorite C++ compiler.
 
 
 ## License
