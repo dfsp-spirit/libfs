@@ -2,7 +2,7 @@
 // Demo program that reads per-vertex data from a curv file.
 // To compile this:
 // 
-//    g++ -I../../include/ read_curv.cpp -o read_curv
+//    g++ -std=c++2a -I../../include/ read_curv.cpp -o read_curv
 //
 
 #include "libfs.h"
@@ -18,5 +18,6 @@ int main(int argc, char** argv) {
     }
     std::cout << "Reading input curv file '" << curv_fname << "'.\n";
     std::cout << "2 times 5 is " << fs::twotimes(5.0) << ".\n";
+    std::cout << "System endianness is: " << (fs::is_bigendian() ? "big" : "little") << ".\n";
     exit(0);
 }
