@@ -11,6 +11,10 @@
 
 
 namespace fs {
+  const int MRI_UCHAR = 0; // MRI data types
+    const int MRI_INT = 1;
+    const int MRI_FLOAT = 3; 
+    const int MRI_SHORT = 4;
 
   int fread3(std::istream& infile);
   float freadf4(std::istream& infile);
@@ -91,13 +95,13 @@ namespace fs {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
     mgh->header = mgh_header;
-    if(mgh->header.dtype == 1) {
+    if(mgh->header.dtype == MRI_INT) {
       std::vector<int32_t> data = read_mgh_data_int(&mgh_header, filename);
       mgh->data.data_mri_int = data;
-    } else if(mgh->header.dtype == 0) {
+    } else if(mgh->header.dtype == MRI_UCHAR) {
       std::vector<uint8_t> data = read_mgh_data_uchar(&mgh_header, filename);
       mgh->data.data_mri_uchar = data;
-    } else if(mgh->header.dtype == 3) {
+    } else if(mgh->header.dtype == MRI_FLOAT) {
       std::vector<float> data = read_mgh_data_float(&mgh_header, filename);
       mgh->data.data_mri_float = data;
     } else {      
@@ -110,12 +114,7 @@ namespace fs {
   }
 
   void read_mgh_header(MghHeader* mgh_header, std::string filename) {
-    const int MGH_VERSION = 1;
-
-    const int MRI_UCHAR = 0; // MRI data types
-    const int MRI_INT = 1;
-    const int MRI_FLOAT = 3; 
-    const int MRI_SHORT = 4;
+    const int MGH_VERSION = 1;    
 
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
