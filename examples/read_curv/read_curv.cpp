@@ -4,6 +4,10 @@
 // 
 //    g++ -std=c++2a -I../../include/ read_curv.cpp -o read_curv
 //
+// or:
+//
+//    clang++ -std=c++2a -I../../include/ read_curv.cpp -o read_curv
+//
 
 #include "libfs.h"
 
