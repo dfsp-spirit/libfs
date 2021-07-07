@@ -37,7 +37,7 @@ See the [examples directory](./examples/).
 
 This is free software, published under the [FreeSurfer software license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense) ([copy in this repo](./LICENSE)). 
 
-Please [register at the FreeSurfer website to obtain a free license file](https://surfer.nmr.mgh.harvard.edu/fswiki/License) when using this library. This is not required or used in any way by this library, and most likely you have already done this when you want to use fslib, but it helps the FreeSurfer developers.
+Please [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/fswiki/License) to obtain a free license file for FreeSurfer when using this library. This is not required and the file is not used or checked in any way by this library, and most likely you have already done this when you want to use fslib, but it helps the FreeSurfer developers.
 
 Note that this library is not a part of FreeSurfer, and it is in no way endorsed by the FreeSurfer developers.
 
