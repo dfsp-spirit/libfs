@@ -15,6 +15,47 @@ namespace fs {
   float freadf4(std::istream& infile);
   int freadi32(std::istream& infile);
   uint8_t freadu8(std::istream& infile);
+  std::string freadstringzero(std::istream& stream);
+  std::string freadstringnewline(std::istream& stream);
+
+  class Mesh {
+    public:
+      std::vector<float> vertices;
+      std::vector<int> faces;
+  };
+
+  void read_fssurface(Mesh* surface, std::string filename) {
+    const int SURF_TRIS_MAGIC = 16777214;
+    std::ifstream infile;
+    infile.open(filename, std::ios_base::in | std::ios::binary);
+    if(infile.is_open()) {
+      int magic = fread3(infile);
+      if(magic != SURF_TRIS_MAGIC) {
+        std::cerr << "Magic did not match: expected " << SURF_TRIS_MAGIC << ", found " << magic << ".\n";
+      }
+      //std::string created_line = freadstringzero(infile);
+      std::string created_line = freadstringnewline(infile);
+      std::string comment_line = freadstringnewline(infile);
+      int num_verts = freadi32(infile);
+      int num_faces = freadi32(infile);      
+      std::cout << "Read surface file with " << num_verts << " vertices, " << num_faces << " faces.\n";
+      std::vector<float> vdata;
+      for(int i=0; i<num_verts; i++) {
+        vdata.push_back(freadf4(infile));
+      }
+      std::vector<int> fdata;
+      for(int i=0; i<num_faces; i++) {
+        fdata.push_back(freadi32(infile));
+      }
+      infile.close();
+      surface->vertices = vdata;
+      surface->faces = fdata;
+    } else {
+      std::cerr << "Unable to open surface file '" << filename << "'.\n";
+      exit(0);
+    }
+
+  }
 
   float twotimes(const float in) {
     return(in*2.0);    
@@ -121,6 +162,20 @@ namespace fs {
       f = swap_endian<_Float32>(f);
     }
     return(f);
+  }
+
+  // Read a C-style zero-terminated ASCII string from a stream.
+  std::string freadstringzero(std::istream &stream) {
+    std::string s;
+    std::getline(stream, s, '\0');
+    return s;
+  }
+
+  // Read a '\n'-terminated ASCII string from a stream.
+  std::string freadstringnewline(std::istream &stream) {
+    std::string s;
+    std::getline(stream, s, '\n');
+    return s;
   }
 
 
