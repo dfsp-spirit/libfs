@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <vector>
 #include <fstream>
+#include <cassert>
 
 
 
@@ -14,15 +15,180 @@ namespace fs {
   int fread3(std::istream& infile);
   float freadf4(std::istream& infile);
   int freadi32(std::istream& infile);
+  int freadi16(std::istream& infile);
   uint8_t freadu8(std::istream& infile);
   std::string freadstringzero(std::istream& stream);
   std::string freadstringnewline(std::istream& stream);
+  
 
   class Mesh {
     public:
       std::vector<float> vertices;
       std::vector<int> faces;
   };
+
+  // https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
+  struct Array4D {
+    Array4D(int d1, int d2, int d3, int d4) :
+      d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
+  
+    float& at(int i1, int i2, int i3, int i4)
+    {
+      return data[getIndex(i1, i2, i3, i4)];
+    }
+  
+    int getIndex(int i1, int i2, int i3, int i4)
+    {
+      assert(i1 >= 0 && i1 < d1);
+      assert(i2 >= 0 && i2 < d2);
+      assert(i3 >= 0 && i3 < d3);
+      assert(i4 >= 0 && i4 < d4);
+      return (((i1*d2 + i2)*d3 + i3)*d4 + i4);
+    }
+  
+    int d1;
+    int d2;
+    int d3;
+    int d4;
+    std::vector<float> data;
+  };
+
+  struct MghHeader {
+    int32_t dim1length;
+    int32_t dim2length;
+    int32_t dim3length;
+    int32_t dim4length;
+
+    int32_t dtype;
+    int32_t dof;
+    int16_t ras_good_flag;
+
+    float xsize;
+    float ysize;
+    float zsize;
+
+    // TODO: add RAS part of header
+  };
+
+  struct MghData {
+    std::vector<int32_t> data_mri_int;
+    std::vector<uint8_t> data_mri_uchar;    
+  };
+
+  struct Mgh {
+    MghHeader header;
+    MghData data;    
+  };
+
+  void read_mgh_header(MghHeader* mgh_header, std::string filename);
+  std::vector<int32_t> read_mgh_data_int(MghHeader*, std::string);
+  std::vector<uint8_t> read_mgh_data_uchar(MghHeader*, std::string);
+
+  void read_mgh(Mgh* mgh, std::string filename) {
+    MghHeader mgh_header;
+    read_mgh_header(&mgh_header, filename);
+    mgh->header = mgh_header;
+    if(mgh->header.dtype == 1) {
+      std::vector<int32_t> data = read_mgh_data_int(&mgh_header, filename);
+      mgh->data.data_mri_int = data;
+    } else if(mgh->header.dtype == 0) {
+      std::vector<uint8_t> data = read_mgh_data_uchar(&mgh_header, filename);
+      mgh->data.data_mri_uchar = data;
+
+    } else {
+      std::cout << "Not reading MGH data, data type " << mgh->header.dtype << " not supported yet.\n";
+    }
+  }
+
+  void read_mgh_header(MghHeader* mgh_header, std::string filename) {
+    const int MGH_VERSION = 1;
+
+    const int MRI_UCHAR = 0; // MRI data types
+    const int MRI_INT = 1;
+    const int MRI_FLOAT = 3; 
+    const int MRI_SHORT = 4;
+
+    std::ifstream infile;
+    infile.open(filename, std::ios_base::in | std::ios::binary);
+    if(infile.is_open()) {
+      int format_version = freadi32(infile);
+      if(format_version != MGH_VERSION) {
+        std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
+      }
+      mgh_header->dim1length = freadi32(infile);
+      mgh_header->dim2length = freadi32(infile);
+      mgh_header->dim3length = freadi32(infile);
+      mgh_header->dim4length = freadi32(infile);
+
+      mgh_header->dtype = freadi32(infile);
+      mgh_header->dof = freadi32(infile);
+
+      int unused_header_space_size_left = 256;  // in bytes
+      mgh_header->ras_good_flag = freadi16(infile);
+      unused_header_space_size_left -= 2; // for the ras_good_flag
+
+      // TODO: read the RAS part of the header here
+      //if(ras_good_flag == 1) {
+      //  mgh_header->xsize = freadf4(infile);
+      //  mgh_header->ysize = freadf4(infile);
+      //  mmgh_headergh->zsize = freadf4(infile);
+      //  ...
+      //  unused_header_space_size_left -= 60;
+      //}
+      //infile.seekg(unused_header_space_size_left, infile.cur);  // skip rest of header.
+
+      infile.close();
+    } else {
+      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
+      exit(0);
+    }
+  }
+
+  // Read MRI_INT data from MGH file
+  std::vector<int32_t> read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
+    std::ifstream infile;
+    infile.open(filename, std::ios_base::in | std::ios::binary);
+    if(mgh_header->dtype != 1) {
+      std::cerr << "Expected MRI data type 1, but found " << mgh_header->dtype << ".\n";
+    }
+    if(infile.is_open()) {
+      infile.seekg(284, infile.beg); // skip to end of header and beginning of data
+
+      int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
+      std::vector<int32_t> data;
+      for(int i=0; i<num_values; i++) {
+        data.push_back(freadi32(infile));
+      }
+      infile.close();
+      return(data);
+    } else {
+      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
+      exit(0);
+    }
+  }
+
+  // Read MRI_UCHAR data from MGH file
+  std::vector<uint8_t> read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
+    std::ifstream infile;
+    infile.open(filename, std::ios_base::in | std::ios::binary);
+    if(mgh_header->dtype != 0) {
+      std::cerr << "Expected MRI data type 0, but found " << mgh_header->dtype << ".\n";
+    }
+    if(infile.is_open()) {
+      infile.seekg(284, infile.beg); // skip to end of header and beginning of data
+
+      int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
+      std::vector<uint8_t> data;
+      for(int i=0; i<num_values; i++) {
+        data.push_back(freadu8(infile));
+      }
+      infile.close();
+      return(data);
+    } else {
+      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
+      exit(0);
+    }
+  }
 
   void read_fssurface(Mesh* surface, std::string filename) {
     const int SURF_TRIS_MAGIC = 16777214;
@@ -33,7 +199,6 @@ namespace fs {
       if(magic != SURF_TRIS_MAGIC) {
         std::cerr << "Magic did not match: expected " << SURF_TRIS_MAGIC << ", found " << magic << ".\n";
       }
-      //std::string created_line = freadstringzero(infile);
       std::string created_line = freadstringnewline(infile);
       std::string comment_line = freadstringnewline(infile);
       int num_verts = freadi32(infile);
@@ -54,7 +219,6 @@ namespace fs {
       std::cerr << "Unable to open surface file '" << filename << "'.\n";
       exit(0);
     }
-
   }
 
   float twotimes(const float in) {
@@ -130,16 +294,27 @@ namespace fs {
     return(i);
   }
 
+
+  // Read a single big endian 16 bit integer from a stream.
+  int freadi16(std::istream& infile) {
+    int16_t i;
+    infile.read(reinterpret_cast<char*>(&i), sizeof(i));
+    if(! is_bigendian()) {
+      i = swap_endian<std::int16_t>(i);
+    }
+    return(i);
+  }
+
   // Read a single big endian uint8 from a stream. UNTESTED.
   uint8_t freadu8(std::istream& infile) {
     uint8_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
-    std::cout << "Read raw uint8_t " << (unsigned int)i << ".\n";
+    //std::cout << "Read raw uint8_t " << (unsigned int)i << ".\n";
     
     if(! is_bigendian()) {
       i = swap_endian<std::uint8_t>(i);
     }
-    std::cout << " -Produced int " << (int)i << "\n";
+    //std::cout << " -Produced int " << (int)i << "\n";
     return(i);
   }
 
