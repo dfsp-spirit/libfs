@@ -31,7 +31,20 @@ Note that the only thing that's being built is the test binary.
 
 ## Usage Examples
 
-Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place.
+Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place. Then use the functions:
+
+```
+#include "libfs.h"
+#include <string>
+#include <vector>
+
+int main(int argc, char** argv) {
+    std::string curv_fname = "lh.thickness";
+    std::vector<float> data = fs::read_curv(curv_fname);
+    std::cout << "Received " << data.size() << " per-vertex values.\n"; 
+    exit(0);
+}
+```
 
 See the [examples directory](./examples/) for some programs which use the library. Compilation instructions for g++ 9.3 are at the top of each source file, it should be easy to adapt them for your favorite C++ compiler.
 
