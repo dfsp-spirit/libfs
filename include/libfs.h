@@ -19,6 +19,7 @@ namespace fs {
     return(in*2.0);    
   }
 
+  // Determine the endianness of the system.
   int is_bigendian() {
     if constexpr (!(std::endian::native == std::endian::big || std::endian::native == std::endian::little)) {
       std::cerr << "Mixed endian systems not supported\n.";
@@ -28,6 +29,7 @@ namespace fs {
     return(is_be);
   }
 
+  // Read a FreeSurfer curv format file. WIP.
   std::vector<float> read_curv(std::string filename) {
     const int CURV_MAGIC = 16777215;
     std::ifstream infile;
@@ -51,7 +53,7 @@ namespace fs {
     return(v);
   }
   
-
+  // Swap endianness of a value.
   template <typename T>
   T swap_endian(T u) {
       static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -70,7 +72,7 @@ namespace fs {
       return(dest.u);
   }
 
-  // Read 
+  // Read a single big endian 32 bit integer from a stream.
   int freadi32(std::istream& infile) {
     int32_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -80,6 +82,7 @@ namespace fs {
     return(i);
   }
 
+  // Read a single big endian uint8 from a stream. UNTESTED.
   uint8_t freadu8(std::istream& infile) {
     uint8_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -92,7 +95,7 @@ namespace fs {
     return(i);
   }
 
-  // Read a big endian bytes as a single integer from file.
+  // Read 3 big endian bytes as a single integer from a stream.
   int fread3(std::istream& infile) {
     uint32_t i;
     infile.read(reinterpret_cast<char*>(&i), 3);
