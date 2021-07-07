@@ -47,7 +47,7 @@ TEST_CASE( "Reading the demo MGH file works" ) {
         uint8_t min_entry = *std::min_element(mgh.data.data_mri_uchar.begin(), mgh.data.data_mri_uchar.end());
         uint8_t max_entry = *std::max_element(mgh.data.data_mri_uchar.begin(), mgh.data.data_mri_uchar.end());    
         REQUIRE(min_entry == 0);
-        REQUIRE(max_entry == 128);
+        REQUIRE(max_entry == 156);
     }
 
     SECTION("The sum of the values is as expected") {
