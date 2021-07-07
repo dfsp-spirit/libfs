@@ -2,6 +2,13 @@
 A header-only, zero-dependency, C++20 library for accessing FreeSurfer neuroimaging file formats.
 
 
+## Features
+
+* read FreeSurfer per-vertex data from binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
+* read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
+* read FreeSurfer 4D volume files (3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh`). Note that MGZ is not supported yet.
+
+
 ## Running the tests
 
 If you have not cloned yet:
