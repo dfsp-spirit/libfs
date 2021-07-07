@@ -1,5 +1,9 @@
 
-
+// Demo program that reads per-vertex data from a curv file.
+// To compile this:
+// 
+//    g++ -I../../include/ read_curv.cpp -o read_curv
+//
 
 #include "libfs.h"
 
