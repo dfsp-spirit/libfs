@@ -5,16 +5,8 @@ set(SOURCE_FILES src/main.cpp src/libfs_tests.cpp include/libfs.h)
 include_directories( include third_party )
 add_executable(LibfsTests ${SOURCE_FILES})
 
-if(USE_CPP14)
-    set_property(TARGET LibfsTests PROPERTY CXX_STANDARD 14)
-    message(STATUS "Enabled C++14")
-elseif(USE_CPP17)
-    set_property(TARGET LibfsTests PROPERTY CXX_STANDARD 17)
-    message(STATUS "Enabled C++17")
-else(USE_CPP11)
-    set_property(TARGET LibfsTests PROPERTY CXX_STANDARD 11)
-    message(STATUS "Enabled C++11")
-endif()
+set_property(TARGET LibfsTests PROPERTY CXX_STANDARD 20)
+
 
 set_property(TARGET LibfsTests PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET LibfsTests PROPERTY CXX_EXTENSIONS OFF)
