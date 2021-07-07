@@ -72,7 +72,8 @@ namespace fs {
 
   struct MghData {
     std::vector<int32_t> data_mri_int;
-    std::vector<uint8_t> data_mri_uchar;    
+    std::vector<uint8_t> data_mri_uchar;
+    std::vector<float> data_mri_float;
   };
 
   struct Mgh {
@@ -83,6 +84,7 @@ namespace fs {
   void read_mgh_header(MghHeader* mgh_header, std::string filename);
   std::vector<int32_t> read_mgh_data_int(MghHeader*, std::string);
   std::vector<uint8_t> read_mgh_data_uchar(MghHeader*, std::string);
+  std::vector<float> read_mgh_data_float(MghHeader*, std::string);
 
   void read_mgh(Mgh* mgh, std::string filename) {
     MghHeader mgh_header;
@@ -94,7 +96,9 @@ namespace fs {
     } else if(mgh->header.dtype == 0) {
       std::vector<uint8_t> data = read_mgh_data_uchar(&mgh_header, filename);
       mgh->data.data_mri_uchar = data;
-
+    } else if(mgh->header.dtype == 3) {
+      std::vector<float> data = read_mgh_data_float(&mgh_header, filename);
+      mgh->data.data_mri_float = data;
     } else {
       std::cout << "Not reading MGH data, data type " << mgh->header.dtype << " not supported yet.\n";
     }
@@ -158,6 +162,29 @@ namespace fs {
       std::vector<int32_t> data;
       for(int i=0; i<num_values; i++) {
         data.push_back(freadi32(infile));
+      }
+      infile.close();
+      return(data);
+    } else {
+      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
+      exit(0);
+    }
+  }
+
+  // Read MRI_FLOAT data from MGH file
+  std::vector<float> read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
+    std::ifstream infile;
+    infile.open(filename, std::ios_base::in | std::ios::binary);
+    if(mgh_header->dtype != 3) {
+      std::cerr << "Expected MRI data type 3, but found " << mgh_header->dtype << ".\n";
+    }
+    if(infile.is_open()) {
+      infile.seekg(284, infile.beg); // skip to end of header and beginning of data
+
+      int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
+      std::vector<float> data;
+      for(int i=0; i<num_values; i++) {
+        data.push_back(freadf4(infile));
       }
       infile.close();
       return(data);
