@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 
 TEST_CASE( "Reading the demo curv file works" ) {
@@ -49,8 +50,9 @@ TEST_CASE( "Reading the demo MGH file works" ) {
         REQUIRE(max_entry == 128);
     }
 
-    SECTION("Some values are as expected") {
-        REQUIRE(mgh.data.data_mri_uchar[0] == 0);
+    SECTION("The sum of the values is as expected") {
+        int dsum = std::accumulate(mgh.data.data_mri_uchar.begin(), mgh.data.data_mri_uchar.end(), 0);
+        REQUIRE(dsum == 121035479);
     }
 
 }
