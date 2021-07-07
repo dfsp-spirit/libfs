@@ -33,7 +33,7 @@ Note that the only thing that's being built is the test binary.
 
 Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place. Then use the functions:
 
-```
+```cpp
 #include "libfs.h"
 #include <string>
 #include <vector>
