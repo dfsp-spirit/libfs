@@ -6,15 +6,6 @@
 #include <iterator>
 
 
-TEST_CASE( "The sample twotimes function works" ) {
-
-    SECTION( "The twotimes works with float input" ) {
-        float res = fs::twotimes(5.0);
-        REQUIRE( res >= 9.0);
-    }
-
-}
-
 TEST_CASE( "Reading the demo curv file works" ) {
 
     std::vector<float> data = fs::read_curv("examples/read_curv/lh.thickness");

@@ -265,10 +265,6 @@ namespace fs {
     }
   }
 
-  float twotimes(const float in) {
-    return(in*2.0);    
-  }
-
   // Determine the endianness of the system.
   int is_bigendian() {
     if constexpr (!(std::endian::native == std::endian::big || std::endian::native == std::endian::little)) {
