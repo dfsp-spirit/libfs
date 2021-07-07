@@ -66,8 +66,8 @@ namespace fs {
     float xsize;
     float ysize;
     float zsize;
-
-    // TODO: add RAS part of header
+    std::vector<float> Mdc;
+    std::vector<float> Pxyz_c;
   };
 
   struct MghData {
@@ -131,15 +131,24 @@ namespace fs {
       mgh_header->ras_good_flag = freadi16(infile);
       unused_header_space_size_left -= 2; // for the ras_good_flag
 
-      // TODO: read the RAS part of the header here
-      //if(ras_good_flag == 1) {
-      //  mgh_header->xsize = freadf4(infile);
-      //  mgh_header->ysize = freadf4(infile);
-      //  mmgh_headergh->zsize = freadf4(infile);
-      //  ...
-      //  unused_header_space_size_left -= 60;
-      //}
+      // Read the RAS part of the header.
+      if(mgh_header->ras_good_flag == 1) {
+        mgh_header->xsize = freadf4(infile);
+        mgh_header->ysize = freadf4(infile);
+        mgh_header->zsize = freadf4(infile);
+
+        for(int i=0; i<9; i++) {
+          mgh_header->Mdc.push_back(freadf4(infile));
+        }
+        for(int i=0; i<3; i++) {
+          mgh_header->Pxyz_c.push_back(freadf4(infile));
+        }
+        unused_header_space_size_left -= 60;
+      }
+      // TODO: MGH files may contain an optional footer after the data with some metadata that we could read.
       //infile.seekg(unused_header_space_size_left, infile.cur);  // skip rest of header.
+      // skip past data
+      // check if something left in file and read footer if existant
 
       infile.close();
     } else {
