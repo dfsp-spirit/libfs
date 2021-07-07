@@ -19,6 +19,7 @@ namespace fs {
   uint8_t freadu8(std::istream& infile);
   std::string freadstringzero(std::istream& stream);
   std::string freadstringnewline(std::istream& stream);
+  bool ends_with(std::string const &fullString, std::string const &ending);
   
 
   class Mesh {
@@ -99,8 +100,12 @@ namespace fs {
     } else if(mgh->header.dtype == 3) {
       std::vector<float> data = read_mgh_data_float(&mgh_header, filename);
       mgh->data.data_mri_float = data;
-    } else {
-      std::cout << "Not reading MGH data, data type " << mgh->header.dtype << " not supported yet.\n";
+    } else {      
+      std::cout << "Not reading MGH data from file '" << filename << "', data type " << mgh->header.dtype << " not supported yet.\n";
+      if(ends_with(filename, ".mgz")) {
+        std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported yet.\n";  
+      }
+      exit(1);
     }
   }
 
@@ -116,8 +121,12 @@ namespace fs {
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(infile.is_open()) {
       int format_version = freadi32(infile);
-      if(format_version != MGH_VERSION) {
+      if(format_version != MGH_VERSION) {        
         std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
+        if(ends_with(filename, ".mgz")) {
+          std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported yet.\n";  
+        }
+        exit(1);
       }
       mgh_header->dim1length = freadi32(infile);
       mgh_header->dim2length = freadi32(infile);
@@ -388,6 +397,17 @@ namespace fs {
     std::getline(stream, s, '\n');
     return s;
   }
+
+  // Check whether a string ends with the given suffix.
+  // https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c
+  bool ends_with (std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
 
 
 }
