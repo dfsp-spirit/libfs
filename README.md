@@ -6,7 +6,9 @@ A header-only, zero-dependency, C++20 library for accessing FreeSurfer neuroimag
 
 * read FreeSurfer per-vertex data from binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
 * read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
-* read FreeSurfer 4D volume files (3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh`). Note that MGZ is not supported yet.
+* read FreeSurfer 4D volume files (3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh`). 
+ 
+Note that the MGZ format is not supported yet, but you can extract it (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
 
 ## Running the tests
