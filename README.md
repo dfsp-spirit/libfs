@@ -27,6 +27,7 @@ cmake .
 make
 ./LibFsTests
 ```
+Note that the only thing that's being built is the test binary.
 
 ## Usage Examples
 
