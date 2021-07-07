@@ -1,5 +1,7 @@
 
+namespace fs {
 
-float twotimes(float in) {
-  return(in*2.0);
+  float twotimes(float in) {
+    return(in*2.0);
+  }
 }

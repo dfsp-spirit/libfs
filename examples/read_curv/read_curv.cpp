@@ -9,9 +9,7 @@
 
 #include <string>
 #include <iostream>
-#include <unistd.h>
 
-using namespace std;
 
 int main(int argc, char** argv) {
     std::string curv_fname = "lh.thickness";
@@ -19,6 +17,6 @@ int main(int argc, char** argv) {
         curv_fname = argv[1];
     }
     std::cout << "Reading input curv file '" << curv_fname << "'.\n";
-    std::cout << "2 times 5 is " << twotimes(5.0) << ".\n";
+    std::cout << "2 times 5 is " << fs::twotimes(5.0) << ".\n";
     exit(0);
 }
