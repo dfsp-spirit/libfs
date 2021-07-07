@@ -12,6 +12,7 @@
 namespace fs {
 
   int fread3(std::istream& infile);
+  float freadf4(std::istream& infile);
   int freadi32(std::istream& infile);
   uint8_t freadu8(std::istream& infile);
 
@@ -43,14 +44,20 @@ namespace fs {
       int num_faces = freadi32(infile);
       int num_values_per_vertex = freadi32(infile);
       std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
+      if(num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
+        std::cerr << "Curv file must contain exactly 1 value per vertex, found " << num_values_per_vertex << ".\n";  
+      }
+      std::vector<float> data;
+      for(int i=0; i<num_verts; i++) {
+        data.push_back(freadf4(infile));
+      }
       infile.close();
+      return(data);
     } else {
-      std::cerr << "Unable to open file.";
+      std::cerr << "Unable to open curvature file '" << filename << "'.\n";
       exit(0);
     }
-    std::vector<float> v;
-    v.push_back(1.34f);
-    return(v);
+    
   }
   
   // Swap endianness of a value.
@@ -104,6 +111,16 @@ namespace fs {
     }
     i = ((i >> 8) & 0xffffff);
     return(i);
+  }
+
+  // Read big endian 4 byte float from a stream.
+  float freadf4(std::istream& infile) {
+    _Float32 f;
+    infile.read(reinterpret_cast<char*>(&f), sizeof(f));
+    if(! is_bigendian()) {
+      f = swap_endian<_Float32>(f);
+    }
+    return(f);
   }
 
 
