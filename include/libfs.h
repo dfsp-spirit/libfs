@@ -94,17 +94,13 @@ namespace fs {
 
   // Read a big endian bytes as a single integer from file.
   int fread3(std::istream& infile) {
-    //uint *buffer= new uint[3];
     uint32_t i;
     infile.read(reinterpret_cast<char*>(&i), 3);
-    unsigned int is;
     if(! is_bigendian()) {
-      is = (unsigned int)swap_endian<std::uint32_t>(i);
-    } else {
-      is = (unsigned int)i;
+      i = swap_endian<std::uint32_t>(i);
     }
-    int v = ((is >> 8) & 0xffffff);
-    return(v);
+    i = ((i >> 8) & 0xffffff);
+    return(i);
   }
 
 
