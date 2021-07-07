@@ -1,5 +1,5 @@
 
-#include "libfs.hpp"
+#include "libfs.h"
 #include "catch.hpp"
 
 TEST_CASE( "test function" ) {
