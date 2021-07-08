@@ -1,3 +1,4 @@
+#pragma once
 
 #include <iostream>
 #include <climits>
@@ -417,6 +418,37 @@ namespace fs {
     return(f);
   }
 
+  // Write big endian 4 byte float to a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  void fwritef4(std::ostream& os, _Float32 f) {
+    if(! is_bigendian()) {
+      f = swap_endian<_Float32>(f);
+    }
+    os.write( reinterpret_cast<const char*>( &f ), sizeof(f));
+  }
+
+  // Write big endian 32 bit integer to a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  void fwritei32(std::ostream& os, int32_t i) {
+    if(! is_bigendian()) {
+      i = swap_endian<int32_t>(i);
+    }
+    os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
+  }
+
+  // Write big endian 24 bit integer to a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  void fwritei3(std::ostream& os, int32_t i) {
+    uint32_t v = (uint32_t)(i << 8);
+    if(! is_bigendian()) {
+      v = swap_endian<uint32_t>(v);
+    }
+    os.write( reinterpret_cast<const char*>( &v ), 3);
+  }
+
   // Read a C-style zero-terminated ASCII string from a stream.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
@@ -445,7 +477,22 @@ namespace fs {
     } else {
         return false;
     }
-}
+  }
+
+  // Write curv data to a stream. The stream must be open.
+  void swrite_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
+    const int CURV_MAGIC = 16777215;
+    fwritei32(os, CURV_MAGIC);
+    fwritei32(os, curv_data.size());
+    fwritei32(os, num_faces);
+    for(int i=0; i<curv_data.size(), i++) {
+      fwritef4(os, curv_data[i]);
+    }
+  }
+
+  void write_curv(std::string filename, std::vector<float> curv_data, int32_t num_faces = 100000) {
+    
+  }
 
 
 
