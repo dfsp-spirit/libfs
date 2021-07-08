@@ -69,7 +69,7 @@ namespace fs {
   // Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
   template<class T> 
   struct Array4D {
-    Array4D(int d1, int d2, int d3, int d4) :
+    Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) :
       d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
 
     Array4D(MghHeader *mgh_header) :
@@ -78,12 +78,12 @@ namespace fs {
     Array4D(Mgh *mgh) : // This does NOT init the data atm.
       d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
   
-    T& at(int i1, int i2, int i3, int i4)
+    T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4)
     {
       return data[getIndex(i1, i2, i3, i4)];
     }
   
-    int getIndex(int i1, int i2, int i3, int i4)
+    unsigned int getIndex(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4)
     {
       assert(i1 >= 0 && i1 < d1);
       assert(i2 >= 0 && i2 < d2);
@@ -92,10 +92,10 @@ namespace fs {
       return (((i1*d2 + i2)*d3 + i3)*d4 + i4);
     }
   
-    int d1;
-    int d2;
-    int d3;
-    int d4;
+    unsigned int d1;
+    unsigned int d2;
+    unsigned int d3;
+    unsigned int d4;
     std::vector<T> data;
   };
 
