@@ -38,7 +38,7 @@ Makefile
 CMakeFiles/
 
 # Generated binaries
-LibfsTests
+run_libfs_tests
 examples/read_curv/read_curv
 examples/read_mgh/read_mgh
 examples/read_surf/read_surf

@@ -28,7 +28,7 @@ Then build and run the tests:
 ```
 cmake .
 make
-./LibFsTests
+./run_libfs_tests
 ```
 Note that the only thing that's being built is the test binary.
 
