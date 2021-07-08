@@ -9,9 +9,12 @@ A header-only, zero-dependency, C++11 library for accessing [FreeSurfer](https:/
 * read FreeSurfer 4D volume files (3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh`). 
 
 
-Supported data types for the MGH format include `MRI_INT` (32 bit signed int), `MRI_FLOAT` (32 bit signed float) and `MRI_UCHAR` (8 bit unsigned int).
+Supported data types for the MGH format include:
+* `MRI_INT` (32 bit signed int)
+* `MRI_FLOAT` (32 bit signed float) and
+* `MRI_UCHAR` (8 bit unsigned int).
  
-Note that the MGZ format is not supported yet, but you can extract it (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
+Note that the MGZ format is not supported yet, but you can extract it manually (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
 
 ## Running the tests
