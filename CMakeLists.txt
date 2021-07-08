@@ -5,7 +5,7 @@ set(SOURCE_FILES src/main.cpp src/libfs_tests.cpp include/libfs.h)
 include_directories( include third_party )
 add_executable(LibfsTests ${SOURCE_FILES})
 
-set_property(TARGET LibfsTests PROPERTY CXX_STANDARD 20)
+set_property(TARGET LibfsTests PROPERTY CXX_STANDARD 11)
 
 
 set_property(TARGET LibfsTests PROPERTY CXX_STANDARD_REQUIRED ON)
