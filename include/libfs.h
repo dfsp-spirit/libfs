@@ -25,41 +25,14 @@ namespace fs {
   std::string freadstringzero(std::istream& stream);
   std::string freadstringnewline(std::istream& stream);
   bool ends_with(std::string const &fullString, std::string const &ending);
+  struct MghHeader;
   
   // Models a triangular mesh, used for brain surface meshes. This is a vertex-indexed representation.
   class Mesh {
     public:
       std::vector<float> vertices;
       std::vector<int> faces;
-  };
-
-  // A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
-  // Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
-  template<class T> 
-  struct Array4D {
-    Array4D(int d1, int d2, int d3, int d4) :
-      d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
-  
-    T& at(int i1, int i2, int i3, int i4)
-    {
-      return data[getIndex(i1, i2, i3, i4)];
-    }
-  
-    int getIndex(int i1, int i2, int i3, int i4)
-    {
-      assert(i1 >= 0 && i1 < d1);
-      assert(i2 >= 0 && i2 < d2);
-      assert(i3 >= 0 && i3 < d3);
-      assert(i4 >= 0 && i4 < d4);
-      return (((i1*d2 + i2)*d3 + i3)*d4 + i4);
-    }
-  
-    int d1;
-    int d2;
-    int d3;
-    int d4;
-    std::vector<T> data;
-  };
+  };  
 
   // Models the header of an MGH file.
   struct MghHeader {
@@ -90,6 +63,40 @@ namespace fs {
   struct Mgh {
     MghHeader header;
     MghData data;    
+  };
+
+  // A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
+  // Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
+  template<class T> 
+  struct Array4D {
+    Array4D(int d1, int d2, int d3, int d4) :
+      d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
+
+    Array4D(MghHeader *mgh_header) :
+      d1(mgh_header->dim1length), d2(mgh_header->dim2length), d3(mgh_header->dim3length), d4(mgh_header->dim4length), data(d1*d2*d3*d4) {}
+
+    Array4D(Mgh *mgh) : // This does NOT init the data atm.
+      d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
+  
+    T& at(int i1, int i2, int i3, int i4)
+    {
+      return data[getIndex(i1, i2, i3, i4)];
+    }
+  
+    int getIndex(int i1, int i2, int i3, int i4)
+    {
+      assert(i1 >= 0 && i1 < d1);
+      assert(i2 >= 0 && i2 < d2);
+      assert(i3 >= 0 && i3 < d3);
+      assert(i4 >= 0 && i4 < d4);
+      return (((i1*d2 + i2)*d3 + i3)*d4 + i4);
+    }
+  
+    int d1;
+    int d2;
+    int d3;
+    int d4;
+    std::vector<T> data;
   };
 
   // More declarations, should also go to separate header.
