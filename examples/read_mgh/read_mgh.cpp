@@ -24,10 +24,7 @@ int main(int argc, char** argv) {
     std::cout << "The RAS part of the header is valid: " << (mgh.header.ras_good_flag ? "yes" : "no" ) << ".\n";
 
     // Optional: Put the data into an Array4D for more convenient access to the voxel indices.
-    fs::Array4D<uint8_t> ar(&mgh);
-    // or: fs::Array4D<uint8_t> ar(&mgh.header);
-    // or: fs::Array4D<uint8_t> ar(mgh.header.dim1length, mgh.header.dim2length, mgh.header.dim3length, mgh.header.dim4length);
-
+    fs::Array4D<uint8_t> ar(&mgh.header);
     ar.data = mgh.data.data_mri_uchar;
     std::cout << "The value at voxel (99,99,99,0) is: " << (unsigned int)ar.at(99,99,99,0) << ".\n";
 
