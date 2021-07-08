@@ -39,4 +39,8 @@ CMakeFiles/
 
 # Generated binaries
 LibfsTests
+examples/read_curv/read_curv
+examples/read_mgh/read_mgh
+examples/read_surf/read_surf
+
 
