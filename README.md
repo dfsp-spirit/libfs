@@ -47,6 +47,7 @@ Just download the file [include/libfs.h](./include/libfs.h) and drop it whereeve
 
 ```cpp
 #include "libfs.h"
+#include <iostream>
 #include <string>
 #include <vector>
 
