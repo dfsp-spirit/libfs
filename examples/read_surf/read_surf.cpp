@@ -1,8 +1,8 @@
 
 // Demo program that reads brain mesh from a surf file.
-// To compile this:
+// To compile this with g++ 9.3:
 // 
-//    g++ -std=c++2a -I../../include/ read_surf.cpp -o read_surf
+//    g++ -I../../include/ read_surf.cpp -o read_surf
 //
 
 #include "libfs.h"

@@ -1,12 +1,12 @@
 
 // Demo program that reads per-vertex data from a curv file.
-// To compile this:
+// To compile this witg g++ 9.3:
 // 
-//    g++ -std=c++2a -I../../include/ read_curv.cpp -o read_curv
+//    g++ -I../../include/ read_curv.cpp -o read_curv
 //
-// or:
+// or with clang 10:
 //
-//    clang++ -std=c++2a -I../../include/ read_curv.cpp -o read_curv
+//    clang++ -I../../include/ read_curv.cpp -o read_curv
 //
 
 #include "libfs.h"

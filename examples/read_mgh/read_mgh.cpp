@@ -1,8 +1,8 @@
 
 // Demo program that reads a FreeSurfer 4D volume from an MGH file.
-// To compile this:
+// To compile this with g++ 9.3:
 // 
-//    g++ -std=c++2a -I../../include/ read_mgh.cpp -o read_mgh
+//    g++ -I../../include/ read_mgh.cpp -o read_mgh
 //
 
 #include "libfs.h"

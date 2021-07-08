@@ -1,5 +1,5 @@
 # libfs
-A header-only, zero-dependency, C++20 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
+A header-only, zero-dependency, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
 
 
 ## Features
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 }
 ```
 
-See the [examples directory](./examples/) for some programs which use the library. Compilation instructions for g++ 9.3 are at the top of each source file, it should be easy to adapt them for your favorite C++ compiler.
+See the [examples directory](./examples/) for some programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). Compilation instructions for g++ 9.3 and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler.
 
 
 ## License
