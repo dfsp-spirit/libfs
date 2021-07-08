@@ -22,5 +22,11 @@ int main(int argc, char** argv) {
     std::cout << "Received MGH with size " << mgh.header.dim1length << "*" << mgh.header.dim2length <<  "*" <<  mgh.header.dim3length << "*" << mgh.header.dim4length << " voxels.\n"; 
     std::cout << "The data type is " << mgh.header.dtype << " and the length of mgh.data.data_mri_uchar is " << mgh.data.data_mri_uchar.size() << ".\n";
     std::cout << "The RAS part of the header is valid: " << (mgh.header.ras_good_flag ? "yes" : "no" ) << ".\n";
+
+    // Put the data into an Array4D
+    fs::Array4D<uint8_t> ar(mgh.header.dim1length, mgh.header.dim2length, mgh.header.dim3length, mgh.header.dim4length);
+    ar.data = mgh.data.data_mri_uchar;
+    std::cout << "The value at voxel (99,99,99,0) is: " << (unsigned int)ar.at(99,99,99,0) << ".\n";
+
     exit(0);
 }

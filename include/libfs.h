@@ -36,11 +36,12 @@ namespace fs {
 
   // A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
   // https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
+  template<class T> 
   struct Array4D {
     Array4D(int d1, int d2, int d3, int d4) :
       d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
   
-    float& at(int i1, int i2, int i3, int i4)
+    T& at(int i1, int i2, int i3, int i4)
     {
       return data[getIndex(i1, i2, i3, i4)];
     }
@@ -58,7 +59,7 @@ namespace fs {
     int d2;
     int d3;
     int d4;
-    std::vector<float> data;
+    std::vector<T> data;
   };
 
   // Models the header of an MGH file.
