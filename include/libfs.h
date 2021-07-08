@@ -1,5 +1,4 @@
 
-#include <bit> // C++20, for std::endian
 #include <iostream>
 #include <climits>
 #include <stdio.h>
