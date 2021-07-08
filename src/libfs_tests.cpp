@@ -33,7 +33,7 @@ TEST_CASE( "Reading the demo curv file works" ) {
 TEST_CASE( "Reading the demo MGH file works" ) {
 
     fs::Mgh mgh;
-    fs8::read_mgh(&mgh, "examples/read_mgh/brain.mgh");
+    fs::read_mgh(&mgh, "examples/read_mgh/brain.mgh");
 
     SECTION("The MRI_DTYPE is correct" ) {        
         REQUIRE( mgh.header.dtype == fs::MRI_UCHAR);

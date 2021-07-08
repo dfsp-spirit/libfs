@@ -282,16 +282,14 @@ namespace fs {
     }
   }
 
+  
   // Determine the endianness of the system.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  int is_bigendian() {
-    if constexpr (!(std::endian::native == std::endian::big || std::endian::native == std::endian::little)) {
-      std::cerr << "Mixed endian systems not supported\n.";
-      exit(1);
-    }
-    const int is_be = std::endian::native == std::endian::big;
-    return(is_be);
+  bool is_bigendian() {
+    short int number = 0x1;
+    char *numPtr = (char*)&number;
+    return (numPtr[0] != 1);
   }
 
   // Read per-vertex brain morphometry data from a FreeSurfer curv format file.
@@ -306,6 +304,7 @@ namespace fs {
       }
       int num_verts = freadi32(infile);
       int num_faces = freadi32(infile);
+      (void)num_faces; // The num_faces it unused but needs to be read, we perform a no-op here to aviodi a compiler warning about an 'unused variable'.
       int num_values_per_vertex = freadi32(infile);
       //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
       if(num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
