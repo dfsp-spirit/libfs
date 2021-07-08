@@ -20,7 +20,7 @@ Note that the MGZ format is not supported yet, but you can extract it manually (
 
 Next TODOs:
 
-* Add support for reading label files, so we can properly mask non-cortical areas (based on files like ``$SUBJECTS_DIR/label/lh.cortex.label`).
+* Add support for reading label files, so we can properly mask non-cortical areas (based on files like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * Add support for writing data in curv and/or MGH format, so we can save results directly in formats that can be used for further processing in FreeSurfer (e.g., mapped to standard space).
 
 ## Running the tests
