@@ -54,5 +54,24 @@ TEST_CASE( "Reading the demo MGH file works" ) {
         int dsum = std::accumulate(mgh.data.data_mri_uchar.begin(), mgh.data.data_mri_uchar.end(), 0);
         REQUIRE(dsum == 121035479);
     }
+}
+
+
+TEST_CASE( "Reading the demo surface file works" ) {
+
+    fs::Mesh surface;
+    fs::read_fssurface(&surface, "examples/read_surf/lh.white");
+
+    SECTION("The number of vertices and faces is correct" ) {        
+        REQUIRE( surface.vertices.size() == 149244 * 3);
+        REQUIRE( surface.faces.size() == 298484 * 3);
+    }
+
+    SECTION("The range of vertex indices is correct" ) {
+        int min_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
+        int max_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+        REQUIRE(min_entry == 0);
+        REQUIRE(max_entry == 149243);
+    }
 
 }

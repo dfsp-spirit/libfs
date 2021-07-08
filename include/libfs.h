@@ -266,18 +266,19 @@ namespace fs {
       int magic = fread3(infile);
       if(magic != SURF_TRIS_MAGIC) {
         std::cerr << "Magic did not match: expected " << SURF_TRIS_MAGIC << ", found " << magic << ".\n";
+        exit(1);
       }
       std::string created_line = freadstringnewline(infile);
       std::string comment_line = freadstringnewline(infile);
       int num_verts = freadi32(infile);
       int num_faces = freadi32(infile);      
-      std::cout << "Read surface file with " << num_verts << " vertices, " << num_faces << " faces.\n";
+      //std::cout << "Read surface file with " << num_verts << " vertices, " << num_faces << " faces.\n";
       std::vector<float> vdata;
-      for(int i=0; i<num_verts; i++) {
+      for(int i=0; i<(num_verts*3); i++) {
         vdata.push_back(freadf4(infile));
       }
       std::vector<int> fdata;
-      for(int i=0; i<num_faces; i++) {
+      for(int i=0; i<(num_faces*3); i++) {
         fdata.push_back(freadi32(infile));
       }
       infile.close();
