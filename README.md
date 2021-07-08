@@ -10,9 +10,9 @@ A header-only, zero-dependency, C++11 library for accessing [FreeSurfer](https:/
 
 
 Supported data types for the MGH format include:
-* `MRI_INT` (32 bit signed int)
-* `MRI_FLOAT` (32 bit signed float) and
-* `MRI_UCHAR` (8 bit unsigned int).
+* `MRI_INT`: 32 bit signed int
+* `MRI_FLOAT`: 32 bit signed float and
+* `MRI_UCHAR`: 8 bit unsigned int.
  
 Note that the MGZ format is not supported yet, but you can extract it manually (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
