@@ -22,8 +22,7 @@ int main(int argc, char** argv) {
     if(argc == 2) {
         curv_fname = argv[1];
     }
-    std::cout << "Reading input curv file '" << curv_fname << "'.\n";
-    std::cout << "2 times 5 is " << fs::twotimes(5.0) << ".\n";
+    std::cout << "Reading input curv file '" << curv_fname << "'.\n";    
     std::cout << "System endianness is: " << (fs::is_bigendian() ? "big" : "little") << ".\n";
     std::vector<float> data = fs::read_curv(curv_fname);
     float min_entry = *std::min_element(data.begin(), data.end());
