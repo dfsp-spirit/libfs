@@ -67,11 +67,20 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE( surface.faces.size() == 298484 * 3);
     }
 
-    SECTION("The range of vertex indices is correct" ) {
-        int min_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
-        int max_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+    SECTION("The range of vertex indices in the faces is correct" ) {
+        int min_entry = *std::min_element(surface.faces.begin(), surface.faces.end()); // could use minmax for single call
+        int max_entry = *std::max_element(surface.faces.begin(), surface.faces.end());    
         REQUIRE(min_entry == 0);
         REQUIRE(max_entry == 149243);
     }
+
+    SECTION("The range of vertex coordinates is correct" ) {
+        float min_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
+        float max_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+        REQUIRE(min_entry == Approx(-108.6204));
+        REQUIRE(max_entry == Approx(106.1743));
+    }
+
+    
 
 }
