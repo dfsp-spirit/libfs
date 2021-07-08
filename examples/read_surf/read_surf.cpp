@@ -10,8 +10,6 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include <algorithm>
-#include <iterator>
 
 int main(int argc, char** argv) {
     std::string surface_fname = "lh.white";
