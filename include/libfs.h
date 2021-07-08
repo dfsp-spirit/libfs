@@ -11,11 +11,13 @@
 
 
 namespace fs {
-  const int MRI_UCHAR = 0; // MRI data types
-    const int MRI_INT = 1;
-    const int MRI_FLOAT = 3; 
-    const int MRI_SHORT = 4;
+  
+  const int MRI_UCHAR = 0; // MRI data types, used by the MGH functions.
+  const int MRI_INT = 1;
+  const int MRI_FLOAT = 3; 
+  const int MRI_SHORT = 4;
 
+  // Declarations, show go to a header.
   int fread3(std::istream& infile);
   float freadf4(std::istream& infile);
   int freadi32(std::istream& infile);
@@ -25,13 +27,14 @@ namespace fs {
   std::string freadstringnewline(std::istream& stream);
   bool ends_with(std::string const &fullString, std::string const &ending);
   
-
+  // Models a triangular mesh, used for brain surface meshes. This is a vertex-indexed representation.
   class Mesh {
     public:
       std::vector<float> vertices;
       std::vector<int> faces;
   };
 
+  // A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
   // https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
   struct Array4D {
     Array4D(int d1, int d2, int d3, int d4) :
@@ -58,6 +61,7 @@ namespace fs {
     std::vector<float> data;
   };
 
+  // Models the header of an MGH file.
   struct MghHeader {
     int32_t dim1length;
     int32_t dim2length;
@@ -75,22 +79,27 @@ namespace fs {
     std::vector<float> Pxyz_c;
   };
 
+  // Models the data of an MGH file. Currently these are 1D vectors, but one can compute the 4D array using the dimXlength fields of the respective MghHeader.
   struct MghData {
     std::vector<int32_t> data_mri_int;
     std::vector<uint8_t> data_mri_uchar;
     std::vector<float> data_mri_float;
   };
 
+  // Models a whole MGH file.
   struct Mgh {
     MghHeader header;
     MghData data;    
   };
 
+  // More declarations, should also go to separate header.
   void read_mgh_header(MghHeader* mgh_header, std::string filename);
   std::vector<int32_t> read_mgh_data_int(MghHeader*, std::string);
   std::vector<uint8_t> read_mgh_data_uchar(MghHeader*, std::string);
   std::vector<float> read_mgh_data_float(MghHeader*, std::string);
 
+
+  // Read a FreeSurfer volume file in MGH format into the given Mgh struct.
   void read_mgh(Mgh* mgh, std::string filename) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
@@ -113,6 +122,7 @@ namespace fs {
     }
   }
 
+  // Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
   void read_mgh_header(MghHeader* mgh_header, std::string filename) {
     const int MGH_VERSION = 1;    
 
@@ -166,6 +176,8 @@ namespace fs {
   }
 
   // Read MRI_INT data from MGH file
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<int32_t> read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -189,6 +201,8 @@ namespace fs {
   }
 
   // Read MRI_FLOAT data from MGH file
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<float> read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -212,6 +226,8 @@ namespace fs {
   }
 
   // Read MRI_UCHAR data from MGH file
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<uint8_t> read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -234,6 +250,7 @@ namespace fs {
     }
   }
 
+  // Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
   void read_fssurface(Mesh* surface, std::string filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream infile;
@@ -266,6 +283,8 @@ namespace fs {
   }
 
   // Determine the endianness of the system.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int is_bigendian() {
     if constexpr (!(std::endian::native == std::endian::big || std::endian::native == std::endian::little)) {
       std::cerr << "Mixed endian systems not supported\n.";
@@ -275,7 +294,7 @@ namespace fs {
     return(is_be);
   }
 
-  // Read a FreeSurfer curv format file. WIP.
+  // Read per-vertex brain morphometry data from a FreeSurfer curv format file.
   std::vector<float> read_curv(std::string filename) {
     const int CURV_MAGIC = 16777215;
     std::ifstream infile;
@@ -288,7 +307,7 @@ namespace fs {
       int num_verts = freadi32(infile);
       int num_faces = freadi32(infile);
       int num_values_per_vertex = freadi32(infile);
-      std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
+      //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
       if(num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
         std::cerr << "Curv file must contain exactly 1 value per vertex, found " << num_values_per_vertex << ".\n";  
       }
@@ -306,6 +325,8 @@ namespace fs {
   }
   
   // Swap endianness of a value.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
   T swap_endian(T u) {
       static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -325,6 +346,8 @@ namespace fs {
   }
 
   // Read a single big endian 32 bit integer from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int freadi32(std::istream& infile) {
     int32_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -336,6 +359,8 @@ namespace fs {
 
 
   // Read a single big endian 16 bit integer from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int freadi16(std::istream& infile) {
     int16_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -345,7 +370,9 @@ namespace fs {
     return(i);
   }
 
-  // Read a single big endian uint8 from a stream. UNTESTED.
+  // Read a single big endian uint8 from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   uint8_t freadu8(std::istream& infile) {
     uint8_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -359,6 +386,8 @@ namespace fs {
   }
 
   // Read 3 big endian bytes as a single integer from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int fread3(std::istream& infile) {
     uint32_t i;
     infile.read(reinterpret_cast<char*>(&i), 3);
@@ -370,6 +399,8 @@ namespace fs {
   }
 
   // Read big endian 4 byte float from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   float freadf4(std::istream& infile) {
     _Float32 f;
     infile.read(reinterpret_cast<char*>(&f), sizeof(f));
@@ -380,6 +411,8 @@ namespace fs {
   }
 
   // Read a C-style zero-terminated ASCII string from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::string freadstringzero(std::istream &stream) {
     std::string s;
     std::getline(stream, s, '\0');
@@ -387,6 +420,8 @@ namespace fs {
   }
 
   // Read a '\n'-terminated ASCII string from a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::string freadstringnewline(std::istream &stream) {
     std::string s;
     std::getline(stream, s, '\n');
@@ -394,6 +429,8 @@ namespace fs {
   }
 
   // Check whether a string ends with the given suffix.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   // https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c
   bool ends_with (std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
