@@ -438,6 +438,26 @@ namespace fs {
     os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
   }
 
+  // Write big endian 8 bit unsigned integer to a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  void fwriteu8(std::ostream& os, uint8_t i) {
+    if(! is_bigendian()) {
+      i = swap_endian<uint8_t>(i);
+    }
+    os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
+  }
+
+  // Write big endian 16 bit integer to a stream.
+  //
+  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  void fwritei16(std::ostream& os, int16_t i) {
+    if(! is_bigendian()) {
+      i = swap_endian<int16_t>(i);
+    }
+    os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
+  }
+
   // Write big endian 24 bit integer to a stream, extracted from the first 3 bytes of an unsigned 32 bit integer.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
@@ -515,11 +535,74 @@ namespace fs {
     }
   }
 
+  // Write MGH data to a stream. The stream must be open.
+  void swrite_mgh(std::ostream& os, const Mgh& mgh) {
+    fwritei32(os, 1); // MGH file format version
+    fwritei32(os, mgh.header.dim1length);
+    fwritei32(os, mgh.header.dim2length);
+    fwritei32(os, mgh.header.dim3length);
+    fwritei32(os, mgh.header.dim4length);
+
+    fwritei32(os, mgh.header.dtype);
+    fwritei32(os, mgh.header.dof);
+
+    size_t unused_header_space_size_left = 256;  // in bytes
+    fwritei16(os, mgh.header.ras_good_flag);
+    unused_header_space_size_left -= 2;
+    // TODO: write RAS part of of header here
+    for(size_t i=0; i<unused_header_space_size_left; i++) {
+      fwriteu8(os, 0);
+    }
+
+    // Write data
+    size_t num_values = mgh.header.dim1length * mgh.header.dim2length * mgh.header.dim3length * mgh.header.dim4length;
+    if(mgh.header.dtype == MRI_INT) {
+      if(mgh.data.data_mri_int.size() != num_values) {
+        std::cerr << "Detected mismatch of MRI_INT data size and MGH header dim length values.\n";
+        exit(1);
+      }
+      for(size_t i=0; i<num_values; i++) {
+        fwritei32(os, mgh.data.data_mri_int[i]);
+      }
+    } else if(mgh.header.dtype == MRI_FLOAT) {
+      if(mgh.data.data_mri_float.size() != num_values) {
+        std::cerr << "Detected mismatch of MRI_FLOAT data size and MGH header dim length values.\n";
+        exit(1);
+      }
+      for(size_t i=0; i<num_values; i++) {
+        fwritef4(os, mgh.data.data_mri_float[i]);
+      }
+    } else if(mgh.header.dtype == MRI_UCHAR) {
+      if(mgh.data.data_mri_uchar.size() != num_values) {
+        std::cerr << "Detected mismatch of MRI_UCHAR data size and MGH header dim length values.\n";
+        exit(1);
+      }
+      for(size_t i=0; i<num_values; i++) {
+        fwriteu8(os, mgh.data.data_mri_uchar[i]);
+      }
+    } else {
+      std::cerr << "Unsupported MRI data type " << mgh.header.dtype << ", cannot write MGH data.\n";
+      exit(1);
+    }
+    
+  }
+
+  // Write MGH data to a file.
+  //
+  // See also: swrite_mgh to write to a stream.
+  void write_mgh(std::string filename, const Mgh& mgh) {
+    std::ofstream ofs;
+    ofs.open(filename, std::ofstream::out | std::ofstream::binary);
+    if(ofs.is_open()) {
+      swrite_mgh(ofs, mgh);
+      ofs.close();
+    } else {
+      std::cerr << "Unable to open MGH file '" << filename << "' for writing.\n";
+      exit(1);
+    }
+  }
+
 
 
 }
-
-
-
-
 

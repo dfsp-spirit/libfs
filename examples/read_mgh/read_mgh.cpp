@@ -28,5 +28,21 @@ int main(int argc, char** argv) {
     ar.data = mgh.data.data_mri_uchar;
     std::cout << "The value at voxel (99,99,99,0) is: " << (unsigned int)ar.at(99,99,99,0) << ".\n";
 
+
+    std::cout << "=== Writing and re-reading ===.\n";
+
+    // Write and re-read
+    std::string write_filename = "tmp.brain.mgh";
+    fs::write_mgh(write_filename, mgh);
+    fs::Mgh mgh2;
+    fs::read_mgh(&mgh2, write_filename);
+    std::cout << "Received MGH with size " << mgh2.header.dim1length << "*" << mgh2.header.dim2length <<  "*" <<  mgh2.header.dim3length << "*" << mgh2.header.dim4length << " voxels.\n"; 
+    std::cout << "The data type is " << mgh2.header.dtype << " and the length of mgh.data.data_mri_uchar is " << mgh2.data.data_mri_uchar.size() << ".\n";
+    std::cout << "The RAS part of the header is valid: " << (mgh2.header.ras_good_flag ? "yes" : "no" ) << ".\n";
+    // Optional: Put the data into an Array4D for more convenient access to the voxel indices.
+    fs::Array4D<uint8_t> ar2(&mgh2.header);
+    ar2.data = mgh2.data.data_mri_uchar;
+    std::cout << "The value at voxel (99,99,99,0) is: " << (unsigned int)ar2.at(99,99,99,0) << ".\n";
+
     exit(0);
 }
