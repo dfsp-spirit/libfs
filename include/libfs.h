@@ -669,6 +669,9 @@ namespace fs {
       } else {
         std::cout << "Ok, expected and received " << num_entries_header << " label entries.\n";
       }
+      if(label->vertex.size() != num_entries || label->coord_x.size() != num_entries || label->coord_y.size() != num_entries || label->coord_z.size() != num_entries || label->value.size() != num_entries) {
+        std::cerr << "Expected " << num_entries << " entries in all Label vectors, but some did not match.\n";
+      }
     } else {
       std::cerr << "Could not open label file for reading.\n";
       exit(1);
