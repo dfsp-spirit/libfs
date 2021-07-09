@@ -64,11 +64,9 @@ See the [examples directory](./examples/) for some programs which use the librar
 Compilation instructions for g++ 9.3 and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler. If you prefer to build with cmake, have a look at the [CMakeLists.txt file](./CMakeLists.txt) we use to build the unit tests.
 
 
-## License
+## Author and Getting help
 
-This is free software, published under the [FreeSurfer software license](https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense) ([copy in this repo](./LICENSE)). 
-
-Please [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/fswiki/License) to obtain a free license file for FreeSurfer when using this library. This is not required and the file is not used or checked in any way by this library, but it helps the FreeSurfer developers. Most likely you have already done this if you want to use `fslib` in your programs.
+The `libfs` library was written by [Tim Schäfer](http://rcmd.org/ts).
 
 Note that this library is **not** a part of FreeSurfer, and it is **in no way** endorsed by the FreeSurfer developers. Please do not contact them regarding this library, especially not for support. Open [an issue](https://github.com/dfsp-spirit/libfs/issues) in this repo instead.
 
