@@ -653,7 +653,7 @@ namespace fs {
               std::cerr << "Could not parse line " << (line_idx+1) << " of label file, invalid file.\n";
               exit(1);
             }
-            std::cout << "Line " << (line_idx+1) << ": vertex=" << vertex << ", x=" << x << ", y=" << y << ", z=" << z << ", value=" << value << ".\n";
+            //std::cout << "Line " << (line_idx+1) << ": vertex=" << vertex << ", x=" << x << ", y=" << y << ", z=" << z << ", value=" << value << ".\n";
             label->vertex.push_back(vertex);
             label->coord_x.push_back(x);
             label->coord_y.push_back(y);
@@ -666,8 +666,6 @@ namespace fs {
       if(num_entries != num_entries_header) {
         std::cerr << "Expected " << num_entries_header << " entries from label file header, but found " << num_entries << " in file, invalid label file.\n";
         exit(1);
-      } else {
-        std::cout << "Ok, expected and received " << num_entries_header << " label entries.\n";
       }
       if(label->vertex.size() != num_entries || label->coord_x.size() != num_entries || label->coord_y.size() != num_entries || label->coord_z.size() != num_entries || label->value.size() != num_entries) {
         std::cerr << "Expected " << num_entries << " entries in all Label vectors, but some did not match.\n";
