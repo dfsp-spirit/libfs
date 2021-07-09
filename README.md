@@ -26,6 +26,8 @@ Next TODOs:
 
 ## Running the tests
 
+You need git, cmake and some C++ compiler. Under Debian-based Linux distributions `sudo apt-get install build-essential cmake git` should do it.
+
 If you have not cloned yet:
 
 ```
