@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     }
     std::cout << "Reading input label file '" << label_fname << "'.\n";
     fs::Label label;
-    fs::read_label(label_fname, &label);
+    fs::read_label(&label, label_fname);
     float min_entry = *std::min_element(label.value.begin(), label.value.end());
     float max_entry = *std::max_element(label.value.begin(), label.value.end());
     if(label.value.size() > 0) {

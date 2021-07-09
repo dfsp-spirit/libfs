@@ -80,7 +80,25 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE(min_entry == Approx(-108.6204));
         REQUIRE(max_entry == Approx(106.1743));
     }
-
-    
-
 }
+
+
+TEST_CASE( "Reading the demo label file works" ) {
+
+    fs::Label label;
+    fs::read_label(&label, "examples/read_label/lh.cortex.label");
+
+    SECTION("The number of vertices in the label is correct" ) {        
+        REQUIRE( label.vertex.size() == 140891);
+    }
+
+    SECTION("The number of vertices, coordinates and values in the label are identical and correct" ) {        
+        int num_entries = 140891;
+        REQUIRE( label.vertex.size() == num_entries);
+        REQUIRE( label.coord_x.size() == num_entries);
+        REQUIRE( label.coord_y.size() == num_entries);
+        REQUIRE( label.coord_z.size() == num_entries);
+        REQUIRE( label.value.size() == num_entries);
+    }
+}
+

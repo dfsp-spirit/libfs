@@ -629,7 +629,7 @@ namespace fs {
   };
 
   // Read a FreeSurfer ASCII label file.
-  void read_label(std::string filename, Label* label) {
+  void read_label(Label* label, std::string filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
       std::string line;
