@@ -87,18 +87,30 @@ TEST_CASE( "Reading the demo label file works" ) {
 
     fs::Label label;
     fs::read_label(&label, "examples/read_label/lh.cortex.label");
+    const size_t surface_num_vertices = 149244;
+    const size_t label_num_entries = 140891;
 
     SECTION("The number of vertices in the label is correct" ) {        
-        REQUIRE( label.vertex.size() == 140891);
+        REQUIRE( label.vertex.size() == label_num_entries);
     }
 
     SECTION("The number of vertices, coordinates and values in the label are identical and correct" ) {        
-        int num_entries = 140891;
-        REQUIRE( label.vertex.size() == num_entries);
-        REQUIRE( label.coord_x.size() == num_entries);
-        REQUIRE( label.coord_y.size() == num_entries);
-        REQUIRE( label.coord_z.size() == num_entries);
-        REQUIRE( label.value.size() == num_entries);
+        REQUIRE( label.vertex.size() == label_num_entries);
+        REQUIRE( label.coord_x.size() == label_num_entries);
+        REQUIRE( label.coord_y.size() == label_num_entries);
+        REQUIRE( label.coord_z.size() == label_num_entries);
+        REQUIRE( label.value.size() == label_num_entries);
+    }
+
+    SECTION("One can compute whether the vertices of the surface are part of the label." ) {
+        std::vector<bool> vert_in = label.vert_in_label(surface_num_vertices);
+        int num_in = 0;
+        for(size_t i=0; i<vert_in.size(); i++) {
+            if(vert_in[i]) {
+                num_in++;
+            }
+        }
+        REQUIRE( num_in == label_num_entries);
     }
 }
 
