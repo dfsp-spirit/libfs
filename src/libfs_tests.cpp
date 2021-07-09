@@ -60,7 +60,7 @@ TEST_CASE( "Reading the demo MGH file works" ) {
 TEST_CASE( "Reading the demo surface file works" ) {
 
     fs::Mesh surface;
-    fs::read_fssurface(&surface, "examples/read_surf/lh.white");
+    fs::read_surf(&surface, "examples/read_surf/lh.white");
 
     SECTION("The number of vertices and faces is correct" ) {        
         REQUIRE( surface.vertices.size() == 149244 * 3);

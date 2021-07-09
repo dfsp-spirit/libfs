@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
     }
     std::cout << "Reading input surface file '" << surface_fname << "'.\n";
     fs::Mesh surface;
-    fs::read_fssurface(&surface, surface_fname);
+    fs::read_surf(&surface, surface_fname);
     std::cout << "Received surface with " << surface.vertices.size() << " vertices and " << surface.faces.size()  << " faces.\n"; 
     exit(0);
 }

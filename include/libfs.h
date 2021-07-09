@@ -260,7 +260,7 @@ namespace fs {
   }
 
   // Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
-  void read_fssurface(Mesh* surface, std::string filename) {
+  void read_surf(Mesh* surface, std::string filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
