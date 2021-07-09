@@ -34,6 +34,16 @@ namespace fs {
     public:
       std::vector<float> vertices;
       std::vector<int> faces;
+      std::string to_obj() {
+        std::stringstream objs;
+        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {
+          objs << "v " << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
+        }
+        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) {
+          objs << "f " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
+        }        
+        return(objs.str());
+      }
   };  
 
   // Models the header of an MGH file.
