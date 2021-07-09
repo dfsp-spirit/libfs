@@ -6,7 +6,7 @@ A header-only, zero-dependency, C++11 library for accessing [FreeSurfer](https:/
 
 * read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
 * read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
-* read FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`). 
+* read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`). 
 
 
 Supported data types for the MGH format include:
@@ -21,7 +21,8 @@ Note that the MGZ format is not supported yet, but you can extract it manually (
 Next TODOs:
 
 * Add support for reading label files, so we can properly mask non-cortical areas (based on files like `$SUBJECTS_DIR/label/lh.cortex.label`).
-* Add support for writing data in curv and/or MGH format, so we can save results directly in formats that can be used for further processing in FreeSurfer (e.g., mapping native space per-vertex data to standard space).
+* Refactor `read_*` functions to have a version of each function that works on a stream, so its easy to support GZIPPED versions.
+* Refactoring: use more templates for `fwrite*` and `fread*` functions.
 
 ## Running the tests
 
