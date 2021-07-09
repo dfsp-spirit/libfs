@@ -315,7 +315,7 @@ namespace fs {
       int num_faces = freadi32(infile);
       (void)num_faces; // The num_faces it unused but needs to be read, we perform a no-op here to aviodi a compiler warning about an 'unused variable'.
       int num_values_per_vertex = freadi32(infile);
-      //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
+      std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
       if(num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
         std::cerr << "Curv file must contain exactly 1 value per vertex, found " << num_values_per_vertex << ".\n";  
       }
@@ -438,15 +438,24 @@ namespace fs {
     os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
   }
 
-  // Write big endian 24 bit integer to a stream.
+  // Write big endian 24 bit integer to a stream, extracted from the first 3 bytes of an unsigned 32 bit integer.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  void fwritei3(std::ostream& os, int32_t i) {
-    uint32_t v = (uint32_t)(i << 8);
+  void fwritei3(std::ostream& os, uint32_t i) {
+    unsigned char b1 = ( i >> 16) & 255;
+    unsigned char b2 = ( i >> 8) & 255;
+    unsigned char b3 =  i & 255;
+
     if(! is_bigendian()) {
-      v = swap_endian<uint32_t>(v);
+      b1 = swap_endian<unsigned char>(b1);
+      b2 = swap_endian<unsigned char>(b2);
+      b3 = swap_endian<unsigned char>(b3);
+      //std::cout << "Produced swapped BE values " << (int)b1 << "," << (int)b2 << "," << (int)b3 << ".\n";
     }
-    os.write( reinterpret_cast<const char*>( &v ), 3);
+    
+    os.write( reinterpret_cast<const char*>( &b1 ), sizeof(b1));
+    os.write( reinterpret_cast<const char*>( &b2 ), sizeof(b2));
+    os.write( reinterpret_cast<const char*>( &b3 ), sizeof(b3));
   }
 
   // Read a C-style zero-terminated ASCII string from a stream.
@@ -481,17 +490,24 @@ namespace fs {
 
   // Write curv data to a stream. The stream must be open.
   void swrite_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
-    const int CURV_MAGIC = 16777215;
-    fwritei32(os, CURV_MAGIC);
+    const uint32_t CURV_MAGIC = 16777215;
+    fwritei3(os, CURV_MAGIC);
     fwritei32(os, curv_data.size());
     fwritei32(os, num_faces);
-    for(int i=0; i<curv_data.size(), i++) {
+    fwritei32(os, 1);
+    for(size_t i=0; i<curv_data.size(); i++) {
       fwritef4(os, curv_data[i]);
     }
   }
 
+  // Write curv data to a file.
+  //
+  // See also: swrite_curv to write to a stream.
   void write_curv(std::string filename, std::vector<float> curv_data, int32_t num_faces = 100000) {
-    
+    std::ofstream ofs;
+    ofs.open(filename, std::ofstream::out | std::ofstream::binary);
+    swrite_curv(ofs, curv_data, num_faces);
+    ofs.close();    
   }
 
 

@@ -32,5 +32,22 @@ int main(int argc, char** argv) {
     } else {
         std::cout << "Received empty vector.\n";
     }
+
+
+    std::cout << "=== Writing and re-reading ===.\n";
+
+    // Write again.
+    std::string write_filename = "tmp.lh.thickness";
+    fs::write_curv(write_filename, data);
+    std::vector<float> data2 = fs::read_curv(write_filename);
+    float min_entry2 = *std::min_element(data2.begin(), data2.end());
+    float max_entry2 = *std::max_element(data2.begin(), data2.end());
+    if(data.size() > 0) {
+        std::cout << "Received " << data2.size() << " values in range " << min_entry2  << " to " << max_entry2 << ".\n"; 
+    } else {
+        std::cout << "Received empty vector.\n";
+    }
+
+
     exit(0);
 }
