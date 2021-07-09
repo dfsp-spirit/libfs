@@ -548,9 +548,25 @@ namespace fs {
 
     size_t unused_header_space_size_left = 256;  // in bytes
     fwritei16(os, mgh.header.ras_good_flag);
-    unused_header_space_size_left -= 2;
-    // TODO: write RAS part of of header here
-    for(size_t i=0; i<unused_header_space_size_left; i++) {
+    unused_header_space_size_left -= 2; // for RAS flag
+
+    // Write RAS part of of header if flag is 1.
+    if(mgh.header.ras_good_flag == 1) {
+      fwritef4(os, mgh.header.xsize);
+      fwritef4(os, mgh.header.ysize);
+      fwritef4(os, mgh.header.zsize);
+
+      for(int i=0; i<9; i++) {
+        fwritef4(os, mgh.header.Mdc[i]);
+      }
+      for(int i=0; i<3; i++) {
+        fwritef4(os, mgh.header.Pxyz_c[i]);
+      }
+
+      unused_header_space_size_left -= 60;
+    }
+    
+    for(size_t i=0; i<unused_header_space_size_left; i++) {  // Fill rest of header space.
       fwriteu8(os, 0);
     }
 
