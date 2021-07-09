@@ -4,7 +4,7 @@ A header-only, zero-dependency, C++11 library for accessing [FreeSurfer](https:/
 
 ## Features
 
-* read FreeSurfer per-vertex data from binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
+* read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
 * read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
 * read FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`). 
 
