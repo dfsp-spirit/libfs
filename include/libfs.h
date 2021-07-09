@@ -6,6 +6,7 @@
 #include <vector>
 #include <fstream>
 #include <cassert>
+#include <sstream>
 
 
 
@@ -565,7 +566,7 @@ namespace fs {
 
       unused_header_space_size_left -= 60;
     }
-    
+
     for(size_t i=0; i<unused_header_space_size_left; i++) {  // Fill rest of header space.
       fwriteu8(os, 0);
     }
@@ -618,7 +619,62 @@ namespace fs {
     }
   }
 
+  // Models a FreeSurfer label.
+  struct Label {
+    std::vector<int> vertex;
+    std::vector<float> coord_x;
+    std::vector<float> coord_y;
+    std::vector<float> coord_z;
+    std::vector<float> value;
+  };
+
+  // Read a FreeSurfer ASCII label file.
+  void read_label(std::string filename, Label* label) {
+    std::ifstream infile(filename);
+    if(infile.is_open()) {
+      std::string line;
+      int line_idx = -1;
+      size_t num_entries_header = 0;  // number of vertices/voxels according to header
+      size_t num_entries = 0;  // number of vertices/voxels for which the file contains label entries.
+      while (std::getline(infile, line)) {
+        line_idx += 1;
+        std::istringstream iss(line);
+        if(line_idx == 0) {
+          continue; // skip comment.
+        } else {
+          if(line_idx == 1) {
+            if (!(iss >> num_entries_header)) { 
+              std::cerr << "Could not parse entry count from label file, invalid file.\n";
+              exit(1);
+            } 
+          } else {
+            int vertex; float x, y, z, value;
+            if (!(iss >> vertex >> x >> y >> z >> value)) { 
+              std::cerr << "Could not parse line " << (line_idx+1) << " of label file, invalid file.\n";
+              exit(1);
+            }
+            label->vertex.push_back(vertex);
+            label->coord_x.push_back(x);
+            label->coord_y.push_back(y);
+            label->coord_z.push_back(z);
+            label->value.push_back(value);
+            num_entries++;
+          }
+        }        
+        // process pair (a,b)
+      }
+      if(num_entries != num_entries_header) {
+        std::cerr << "Expected " << num_entries_header << " entries from label file header, but found " << num_entries << " in file, invalid label file.\n";
+        exit(1);
+      } else {
+        std::cout << "Ok, expected and received " << num_entries_header << " label entries.\n";
+      }
+    } else {
+      std::cerr << "Could not open label file for reading.\n";
+      exit(1);
+    }
+  }
 
 
-}
+} // End namespace fs
 
