@@ -179,7 +179,7 @@ namespace fs {
       infile.close();
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(0);
+      exit(1);
     }
   }
 
@@ -204,7 +204,7 @@ namespace fs {
       return(data);
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(0);
+      exit(1);
     }
   }
 
@@ -229,7 +229,7 @@ namespace fs {
       return(data);
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(0);
+      exit(1);
     }
   }
 
@@ -254,7 +254,7 @@ namespace fs {
       return(data);
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(0);
+      exit(1);
     }
   }
 
@@ -287,7 +287,7 @@ namespace fs {
       surface->faces = fdata;
     } else {
       std::cerr << "Unable to open surface file '" << filename << "'.\n";
-      exit(0);
+      exit(1);
     }
   }
 
@@ -327,7 +327,7 @@ namespace fs {
       return(data);
     } else {
       std::cerr << "Unable to open curvature file '" << filename << "'.\n";
-      exit(0);
+      exit(1);
     }
     
   }
@@ -494,7 +494,7 @@ namespace fs {
     fwritei3(os, CURV_MAGIC);
     fwritei32(os, curv_data.size());
     fwritei32(os, num_faces);
-    fwritei32(os, 1);
+    fwritei32(os, 1); // Number of values per vertex.
     for(size_t i=0; i<curv_data.size(); i++) {
       fwritef4(os, curv_data[i]);
     }
@@ -506,8 +506,13 @@ namespace fs {
   void write_curv(std::string filename, std::vector<float> curv_data, int32_t num_faces = 100000) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
-    swrite_curv(ofs, curv_data, num_faces);
-    ofs.close();    
+    if(ofs.is_open()) {
+      swrite_curv(ofs, curv_data, num_faces);
+      ofs.close();
+    } else {
+      std::cerr << "Unable to open curvature file '" << filename << "' for writing.\n";
+      exit(1);
+    }
   }
 
 
