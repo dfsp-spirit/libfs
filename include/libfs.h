@@ -35,7 +35,7 @@ namespace fs {
       std::vector<float> vertices;
       std::vector<int> faces;
 
-      // Return string representing the mesh in Wavefront Object (.obj) format.
+      /// Return string representing the mesh in Wavefront Object (.obj) format.
       std::string to_obj() {
         std::stringstream objs;
         for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {
@@ -55,7 +55,7 @@ namespace fs {
         return(this->faces.size() / 3);
       }
 
-      // Return string representing the mesh in PLY format.
+      /// Return string representing the mesh in PLY format.
       std::string to_ply() {
         std::stringstream plys;
         plys << "ply\nformat ascii 1.0\n";
@@ -77,7 +77,7 @@ namespace fs {
       }
   };  
 
-  // Models the header of an MGH file.
+  /// Models the header of an MGH file.
   struct MghHeader {
     int32_t dim1length;
     int32_t dim2length;
@@ -95,21 +95,21 @@ namespace fs {
     std::vector<float> Pxyz_c;
   };
 
-  // Models the data of an MGH file. Currently these are 1D vectors, but one can compute the 4D array using the dimXlength fields of the respective MghHeader.
+  /// Models the data of an MGH file. Currently these are 1D vectors, but one can compute the 4D array using the dimXlength fields of the respective MghHeader.
   struct MghData {
     std::vector<int32_t> data_mri_int;
     std::vector<uint8_t> data_mri_uchar;
     std::vector<float> data_mri_float;
   };
 
-  // Models a whole MGH file.
+  /// Models a whole MGH file.
   struct Mgh {
     MghHeader header;
     MghData data;    
   };
 
-  // A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
-  // Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
+  /// A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
+  /// Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
   template<class T> 
   struct Array4D {
     Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) :
@@ -149,7 +149,7 @@ namespace fs {
   std::vector<float> read_mgh_data_float(MghHeader*, std::string);
 
 
-  // Read a FreeSurfer volume file in MGH format into the given Mgh struct.
+  /// Read a FreeSurfer volume file in MGH format into the given Mgh struct.
   void read_mgh(Mgh* mgh, std::string filename) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
@@ -172,7 +172,7 @@ namespace fs {
     }
   }
 
-  // Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
+  /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
   void read_mgh_header(MghHeader* mgh_header, std::string filename) {
     const int MGH_VERSION = 1;    
 
@@ -225,9 +225,9 @@ namespace fs {
     }
   }
 
-  // Read MRI_INT data from MGH file
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read MRI_INT data from MGH file
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<int32_t> read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -250,9 +250,9 @@ namespace fs {
     }
   }
 
-  // Read MRI_FLOAT data from MGH file
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read MRI_FLOAT data from MGH file
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<float> read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -275,9 +275,9 @@ namespace fs {
     }
   }
 
-  // Read MRI_UCHAR data from MGH file
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read MRI_UCHAR data from MGH file
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<uint8_t> read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -300,7 +300,7 @@ namespace fs {
     }
   }
 
-  // Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
+  /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
   void read_surf(Mesh* surface, std::string filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream infile;
@@ -334,16 +334,16 @@ namespace fs {
   }
 
   
-  // Determine the endianness of the system.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Determine the endianness of the system.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   bool is_bigendian() {
     short int number = 0x1;
     char *numPtr = (char*)&number;
     return (numPtr[0] != 1);
   }
 
-  // Read per-vertex brain morphometry data from a FreeSurfer curv format file.
+  /// Read per-vertex brain morphometry data from a FreeSurfer curv format file.
   std::vector<float> read_curv(std::string filename) {
     const int CURV_MAGIC = 16777215;
     std::ifstream infile;
@@ -374,9 +374,9 @@ namespace fs {
     
   }
   
-  // Swap endianness of a value.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Swap endianness of a value.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
   T swap_endian(T u) {
       static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -395,9 +395,9 @@ namespace fs {
       return(dest.u);
   }
 
-  // Read a single big endian 32 bit integer from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read a single big endian 32 bit integer from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int freadi32(std::istream& infile) {
     int32_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -408,9 +408,9 @@ namespace fs {
   }
 
 
-  // Read a single big endian 16 bit integer from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read a single big endian 16 bit integer from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int freadi16(std::istream& infile) {
     int16_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -420,9 +420,9 @@ namespace fs {
     return(i);
   }
 
-  // Read a single big endian uint8 from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read a single big endian uint8 from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   uint8_t freadu8(std::istream& infile) {
     uint8_t i;
     infile.read(reinterpret_cast<char*>(&i), sizeof(i));
@@ -520,28 +520,28 @@ namespace fs {
     os.write( reinterpret_cast<const char*>( &b3 ), sizeof(b3));
   }
 
-  // Read a C-style zero-terminated ASCII string from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read a C-style zero-terminated ASCII string from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::string freadstringzero(std::istream &stream) {
     std::string s;
     std::getline(stream, s, '\0');
     return s;
   }
 
-  // Read a '\n'-terminated ASCII string from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read a '\n'-terminated ASCII string from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::string freadstringnewline(std::istream &stream) {
     std::string s;
     std::getline(stream, s, '\n');
     return s;
   }
 
-  // Check whether a string ends with the given suffix.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  // https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c
+  /// Check whether a string ends with the given suffix.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c
   bool ends_with (std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
         return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
@@ -550,7 +550,7 @@ namespace fs {
     }
   }
 
-  // Write curv data to a stream. The stream must be open.
+  /// Write curv data to a stream. The stream must be open.
   void swrite_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
     const uint32_t CURV_MAGIC = 16777215;
     fwritei3(os, CURV_MAGIC);
@@ -562,9 +562,9 @@ namespace fs {
     }
   }
 
-  // Write curv data to a file.
-  //
-  // See also: swrite_curv to write to a stream.
+  /// Write curv data to a file.
+  ///
+  /// See also: swrite_curv to write to a stream.
   void write_curv(std::string filename, std::vector<float> curv_data, int32_t num_faces = 100000) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -577,7 +577,7 @@ namespace fs {
     }
   }
 
-  // Write MGH data to a stream. The stream must be open.
+  /// Write MGH data to a stream. The stream must be open.
   void swrite_mgh(std::ostream& os, const Mgh& mgh) {
     fwritei32(os, 1); // MGH file format version
     fwritei32(os, mgh.header.dim1length);
@@ -645,9 +645,9 @@ namespace fs {
     
   }
 
-  // Write MGH data to a file.
-  //
-  // See also: swrite_mgh to write to a stream.
+  /// Write MGH data to a file.
+  ///
+  /// See also: swrite_mgh to write to a stream.
   void write_mgh(std::string filename, const Mgh& mgh) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -660,7 +660,7 @@ namespace fs {
     }
   }
 
-  // Models a FreeSurfer label.
+  /// Models a FreeSurfer label.
   struct Label {
     std::vector<int> vertex;
     std::vector<float> coord_x;
@@ -684,7 +684,13 @@ namespace fs {
     }
   };
 
-  // Read a FreeSurfer ASCII label file.
+  /// Read a FreeSurfer ASCII label file.
+  ///
+  /// Examples:
+  ///
+  /// sf::Label label;
+  /// sf::read_label(&label, "subject1/label/lh.cortex.label");
+  /// size_t nv = label.vertex.size();
   void read_label(Label* label, std::string filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
