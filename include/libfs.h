@@ -148,6 +148,7 @@ namespace fs {
 
   // More declarations, should also go to separate header.
   void read_mgh_header(MghHeader* mgh_header, std::string filename);
+  template <typename T> std::vector<T> _read_mgh_data(MghHeader*, std::string);
   std::vector<int32_t> _read_mgh_data_int(MghHeader*, std::string);
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, std::string);
   std::vector<float> _read_mgh_data_float(MghHeader*, std::string);
@@ -233,18 +234,26 @@ namespace fs {
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
+    if(mgh_header->dtype != MRI_INT) {
+      std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
+    }
+    return(_read_mgh_data<int32_t>(mgh_header, filename));
+  }
+
+  /// Read arbitrary MGH data.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  template <typename T>
+  std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(mgh_header->dtype != 1) {
-      std::cerr << "Expected MRI data type 1, but found " << mgh_header->dtype << ".\n";
-    }
     if(infile.is_open()) {
       infile.seekg(284, infile.beg); // skip to end of header and beginning of data
 
       int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
-      std::vector<int32_t> data;
+      std::vector<T> data;
       for(int i=0; i<num_values; i++) {
-        data.push_back( _freadt<int32_t>(infile));
+        data.push_back( _freadt<T>(infile));
       }
       infile.close();
       return(data);
@@ -257,51 +266,21 @@ namespace fs {
   /// Read MRI_FLOAT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<float> _read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(mgh_header->dtype != 3) {
-      std::cerr << "Expected MRI data type 3, but found " << mgh_header->dtype << ".\n";
+  std::vector<_Float32> _read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
+    if(mgh_header->dtype != MRI_FLOAT) {
+      std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
     }
-    if(infile.is_open()) {
-      infile.seekg(284, infile.beg); // skip to end of header and beginning of data
-
-      int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
-      std::vector<float> data;
-      for(int i=0; i<num_values; i++) {
-        data.push_back( _freadt<_Float32>(infile));
-      }
-      infile.close();
-      return(data);
-    } else {
-      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(1);
-    }
+    return(_read_mgh_data<_Float32>(mgh_header, filename));
   }
 
   /// Read MRI_UCHAR data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(mgh_header->dtype != 0) {
-      std::cerr << "Expected MRI data type 0, but found " << mgh_header->dtype << ".\n";
+    if(mgh_header->dtype != MRI_UCHAR) {
+      std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
     }
-    if(infile.is_open()) {
-      infile.seekg(284, infile.beg); // skip to end of header and beginning of data
-
-      int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
-      std::vector<uint8_t> data;
-      for(int i=0; i<num_values; i++) {
-        data.push_back( _freadt<uint8_t>(infile));
-      }
-      infile.close();
-      return(data);
-    } else {
-      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(1);
-    }
+    return(_read_mgh_data<uint8_t>(mgh_header, filename));
   }
 
   /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
