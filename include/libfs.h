@@ -20,10 +20,7 @@ namespace fs {
 
   // Declarations, show go to a header.
   int _fread3(std::istream& infile);
-  float _freadf4(std::istream& infile);
-  int _freadi32(std::istream& infile);
-  int _freadi16(std::istream& infile);
-  uint8_t _freadu8(std::istream& infile);
+  template <typename T> T _freadt(std::istream& infile);
   std::string _freadstringzero(std::istream& stream);
   std::string _freadstringnewline(std::istream& stream);
   bool _ends_with(std::string const &fullString, std::string const &ending);
@@ -179,7 +176,7 @@ namespace fs {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(infile.is_open()) {
-      int format_version = _freadi32(infile);
+      int format_version = _freadt<int32_t>(infile);
       if(format_version != MGH_VERSION) {        
         std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
         if(_ends_with(filename, ".mgz")) {
@@ -187,29 +184,29 @@ namespace fs {
         }
         exit(1);
       }
-      mgh_header->dim1length = _freadi32(infile);
-      mgh_header->dim2length = _freadi32(infile);
-      mgh_header->dim3length = _freadi32(infile);
-      mgh_header->dim4length = _freadi32(infile);
+      mgh_header->dim1length =  _freadt<int32_t>(infile);
+      mgh_header->dim2length =  _freadt<int32_t>(infile);
+      mgh_header->dim3length =  _freadt<int32_t>(infile);
+      mgh_header->dim4length =  _freadt<int32_t>(infile);
 
-      mgh_header->dtype = _freadi32(infile);
-      mgh_header->dof = _freadi32(infile);
+      mgh_header->dtype =  _freadt<int32_t>(infile);
+      mgh_header->dof =  _freadt<int32_t>(infile);
 
       int unused_header_space_size_left = 256;  // in bytes
-      mgh_header->ras_good_flag = _freadi16(infile);
+      mgh_header->ras_good_flag =  _freadt<int16_t>(infile);
       unused_header_space_size_left -= 2; // for the ras_good_flag
 
       // Read the RAS part of the header.
       if(mgh_header->ras_good_flag == 1) {
-        mgh_header->xsize = _freadf4(infile);
-        mgh_header->ysize = _freadf4(infile);
-        mgh_header->zsize = _freadf4(infile);
+        mgh_header->xsize =  _freadt<_Float32>(infile);
+        mgh_header->ysize =  _freadt<_Float32>(infile);
+        mgh_header->zsize =  _freadt<_Float32>(infile);
 
         for(int i=0; i<9; i++) {
-          mgh_header->Mdc.push_back(_freadf4(infile));
+          mgh_header->Mdc.push_back( _freadt<_Float32>(infile));
         }
         for(int i=0; i<3; i++) {
-          mgh_header->Pxyz_c.push_back(_freadf4(infile));
+          mgh_header->Pxyz_c.push_back( _freadt<_Float32>(infile));
         }
         unused_header_space_size_left -= 60;
       }
@@ -240,7 +237,7 @@ namespace fs {
       int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
       std::vector<int32_t> data;
       for(int i=0; i<num_values; i++) {
-        data.push_back(_freadi32(infile));
+        data.push_back( _freadt<int32_t>(infile));
       }
       infile.close();
       return(data);
@@ -265,7 +262,7 @@ namespace fs {
       int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
       std::vector<float> data;
       for(int i=0; i<num_values; i++) {
-        data.push_back(_freadf4(infile));
+        data.push_back( _freadt<_Float32>(infile));
       }
       infile.close();
       return(data);
@@ -290,7 +287,7 @@ namespace fs {
       int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
       std::vector<uint8_t> data;
       for(int i=0; i<num_values; i++) {
-        data.push_back(_freadu8(infile));
+        data.push_back( _freadt<uint8_t>(infile));
       }
       infile.close();
       return(data);
@@ -313,16 +310,16 @@ namespace fs {
       }
       std::string created_line = _freadstringnewline(infile);
       std::string comment_line = _freadstringnewline(infile);
-      int num_verts = _freadi32(infile);
-      int num_faces = _freadi32(infile);      
+      int num_verts =  _freadt<int32_t>(infile);
+      int num_faces =  _freadt<int32_t>(infile);      
       //std::cout << "Read surface file with " << num_verts << " vertices, " << num_faces << " faces.\n";
       std::vector<float> vdata;
       for(int i=0; i<(num_verts*3); i++) {
-        vdata.push_back(_freadf4(infile));
+        vdata.push_back( _freadt<_Float32>(infile));
       }
       std::vector<int> fdata;
       for(int i=0; i<(num_faces*3); i++) {
-        fdata.push_back(_freadi32(infile));
+        fdata.push_back( _freadt<int32_t>(infile));
       }
       infile.close();
       surface->vertices = vdata;
@@ -353,17 +350,17 @@ namespace fs {
       if(magic != CURV_MAGIC) {
         std::cerr << "Magic did not match: expected " << CURV_MAGIC << ", found " << magic << ".\n";
       }
-      int num_verts = _freadi32(infile);
-      int num_faces = _freadi32(infile);
+      int num_verts =  _freadt<int32_t>(infile);
+      int num_faces =  _freadt<int32_t>(infile);
       (void)num_faces; // The num_faces it unused but needs to be read, we perform a no-op here to aviodi a compiler warning about an 'unused variable'.
-      int num_values_per_vertex = _freadi32(infile);
+      int num_values_per_vertex =  _freadt<int32_t>(infile);
       //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
       if(num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
         std::cerr << "Curv file must contain exactly 1 value per vertex, found " << num_values_per_vertex << ".\n";  
       }
       std::vector<float> data;
       for(int i=0; i<num_verts; i++) {
-        data.push_back(_freadf4(infile));
+        data.push_back( _freadt<_Float32>(infile));
       }
       infile.close();
       return(data);
@@ -396,53 +393,13 @@ namespace fs {
   }
 
   template <typename T>
-  T freadt(std::istream& infile) {
+  T _freadt(std::istream& infile) {
     T t;
     infile.read(reinterpret_cast<char*>(&t), sizeof(t));
     if(! _is_bigendian()) {
       t = _swap_endian<T>(t);
     }
     return(t);  
-  }
-
-  /// Read a single big endian 32 bit integer from a stream.
-  ///
-  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  int _freadi32(std::istream& infile) {
-    int32_t i;
-    infile.read(reinterpret_cast<char*>(&i), sizeof(i));
-    if(! _is_bigendian()) {
-      i = _swap_endian<std::int32_t>(i);
-    }
-    return(i);
-  }
-
-
-  /// Read a single big endian 16 bit integer from a stream.
-  ///
-  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  int _freadi16(std::istream& infile) {
-    int16_t i;
-    infile.read(reinterpret_cast<char*>(&i), sizeof(i));
-    if(! _is_bigendian()) {
-      i = _swap_endian<std::int16_t>(i);
-    }
-    return(i);
-  }
-
-  /// Read a single big endian uint8 from a stream.
-  ///
-  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  uint8_t _freadu8(std::istream& infile) {
-    uint8_t i;
-    infile.read(reinterpret_cast<char*>(&i), sizeof(i));
-    //std::cout << "Read raw uint8_t " << (unsigned int)i << ".\n";
-    
-    if(! _is_bigendian()) {
-      i = _swap_endian<std::uint8_t>(i);
-    }
-    //std::cout << " -Produced int " << (int)i << "\n";
-    return(i);
   }
 
   // Read 3 big endian bytes as a single integer from a stream.
@@ -456,18 +413,6 @@ namespace fs {
     }
     i = ((i >> 8) & 0xffffff);
     return(i);
-  }
-
-  // Read big endian 4 byte float from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  float _freadf4(std::istream& infile) {
-    _Float32 f;
-    infile.read(reinterpret_cast<char*>(&f), sizeof(f));
-    if(! _is_bigendian()) {
-      f = _swap_endian<_Float32>(f);
-    }
-    return(f);
   }
 
   // Write big endian 4 byte float to a stream.
