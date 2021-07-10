@@ -34,6 +34,8 @@ namespace fs {
     public:
       std::vector<float> vertices;
       std::vector<int> faces;
+
+      // Return string representing the mesh in Wavefront Object (.obj) format.
       std::string to_obj() {
         std::stringstream objs;
         for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {
@@ -43,6 +45,35 @@ namespace fs {
           objs << "f " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
         }        
         return(objs.str());
+      }
+
+      size_t num_vertices() {
+        return(this->vertices.size() / 3);
+      }
+
+      size_t num_faces() {
+        return(this->faces.size() / 3);
+      }
+
+      // Return string representing the mesh in PLY format.
+      std::string to_ply() {
+        std::stringstream plys;
+        plys << "ply\nformat ascii 1.0\n";
+        plys << "element vertex " << this->num_vertices() << "\n";
+        plys << "property float x\nproperty float y\nproperty float z\n";
+        plys << "element face " << this->num_faces() << "\n";
+        plys << "property list uchar int vertex_index\n";
+        plys << "end_header\n";
+        
+        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {
+          plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
+        }
+
+        const int num_vertices_per_face = 3;
+        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) {
+          plys << num_vertices_per_face << " " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
+        }        
+        return(plys.str());
       }
   };  
 
