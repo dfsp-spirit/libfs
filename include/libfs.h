@@ -415,6 +415,14 @@ namespace fs {
     return(i);
   }
 
+  template <typename T>
+  void _fwritet(std::ostream& os, T t) {
+    if(! _is_bigendian()) {
+      t = _swap_endian<T>(t);
+    }
+    os.write( reinterpret_cast<const char*>( &t ), sizeof(t));
+  }
+
   // Write big endian 4 byte float to a stream.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
