@@ -38,11 +38,11 @@ namespace fs {
       /// Return string representing the mesh in Wavefront Object (.obj) format.
       std::string to_obj() {
         std::stringstream objs;
-        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {
+        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) { // vertex coords
           objs << "v " << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
         }
-        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) {
-          objs << "f " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
+        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 1-based
+          objs << "f " << faces[fidx]+1 << " " << faces[fidx+1]+1 << " " << faces[fidx+2]+1 << "\n";
         }        
         return(objs.str());
       }
@@ -65,12 +65,12 @@ namespace fs {
         plys << "property list uchar int vertex_index\n";
         plys << "end_header\n";
         
-        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {
+        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
           plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
         }
 
         const int num_vertices_per_face = 3;
-        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) {
+        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 0-based
           plys << num_vertices_per_face << " " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
         }        
         return(plys.str());
