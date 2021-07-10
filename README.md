@@ -55,9 +55,7 @@ Internal functions in `libfs` are prefixed with an underscore. You should never 
 ### Roadmap
 
 Next TODOs:
-* add more tests for reading labels
-* Refactor `read_*` functions to have a version of each function that works on a stream, so its easy to support GZIPPED versions.
-* Refactoring: use more templates for `fwrite*` and `fread*` functions.
+* add support for reading brain parcellations from `.annot` files
 
 ### Running the tests
 
