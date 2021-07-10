@@ -25,7 +25,12 @@ namespace fs {
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
   
-  // Models a triangular mesh, used for brain surface meshes. This is a vertex-indexed representation.
+  /// Models a triangular mesh, used for brain surface meshes. This is a vertex-indexed representation.
+  ///
+  /// Represents a vertex-indexed mesh. The n vertices are stored as 3D point coordinates (x,y,z) in a vector
+  /// of length 3n, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
+  /// The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
+  /// making up the respective face. Vertex indices are 0-based.
   class Mesh {
     public:
       std::vector<float> vertices;
@@ -43,10 +48,12 @@ namespace fs {
         return(objs.str());
       }
 
+      /// Return the number of vertices in this mesh.
       size_t num_vertices() {
         return(this->vertices.size() / 3);
       }
 
+      /// Return the number of faces in this mesh.
       size_t num_faces() {
         return(this->faces.size() / 3);
       }
@@ -104,7 +111,8 @@ namespace fs {
     MghData data;    
   };
 
-  /// A simple 4D array datastructure. Needs to be templated. Useful for representing volume data.
+  /// A simple 4D array datastructure, useful for representing volume data.
+  ///
   /// Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
   template<class T> 
   struct Array4D {
@@ -117,13 +125,13 @@ namespace fs {
     Array4D(Mgh *mgh) : // This does NOT init the data atm.
       d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
   
-    T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4)
-    {
+    /// Get the value at the given 4D position.
+    T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) {
       return data[get_index(i1, i2, i3, i4)];
     }
   
-    unsigned int get_index(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4)
-    {
+    /// Get the index in the vector for the given 4D position.
+    unsigned int get_index(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) {
       assert(i1 >= 0 && i1 < d1);
       assert(i2 >= 0 && i2 < d2);
       assert(i3 >= 0 && i3 < d3);
@@ -297,6 +305,8 @@ namespace fs {
   }
 
   /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
+  ///
+  /// Returns a Mesh datastructure representing a vertex-indexed tri-mesh.
   void read_surf(Mesh* surface, std::string filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream infile;
