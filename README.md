@@ -21,6 +21,8 @@ Note that the MGZ format is not supported yet, but you can extract it manually (
 
 ## Usage 
 
+### Examples
+
 Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place. Then use the functions:
 
 ```cpp
@@ -39,7 +41,14 @@ int main(int argc, char** argv) {
 
 See the [examples directory](./examples/) for some programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). 
 
-Compilation instructions for g++ 9.3 and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler. If you prefer to build with cmake, have a look at the [CMakeLists.txt file](./CMakeLists.txt) we use to build the unit tests.
+### Building your programs
+
+Compilation instructions for g++ and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler. If you prefer to build with cmake, have a look at the [CMakeLists.txt file](./CMakeLists.txt) we use to build the unit tests.
+
+### Official API and Conventions
+
+Internal functions in `libfs` are prefixed with an underscore. You should never call these functions from client code, as they may change without notice between versions.
+
 
 ## Development
 
