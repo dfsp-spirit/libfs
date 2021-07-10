@@ -21,7 +21,6 @@ namespace fs {
   // Declarations, show go to a header.
   int _fread3(std::istream& infile);
   template <typename T> T _freadt(std::istream& infile);
-  std::string _freadstringzero(std::istream& stream);
   std::string _freadstringnewline(std::istream& stream);
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
@@ -423,26 +422,6 @@ namespace fs {
     os.write( reinterpret_cast<const char*>( &t ), sizeof(t));
   }
 
-  // Write big endian 4 byte float to a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  void _fwritef4(std::ostream& os, _Float32 f) {
-    if(! _is_bigendian()) {
-      f = _swap_endian<_Float32>(f);
-    }
-    os.write( reinterpret_cast<const char*>( &f ), sizeof(f));
-  }
-
-  // Write big endian 32 bit integer to a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  void _fwritei32(std::ostream& os, int32_t i) {
-    if(! _is_bigendian()) {
-      i = _swap_endian<int32_t>(i);
-    }
-    os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
-  }
-
   // Write big endian 8 bit unsigned integer to a stream.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
@@ -508,11 +487,11 @@ namespace fs {
   void swrite_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
     const uint32_t CURV_MAGIC = 16777215;
     _fwritei3(os, CURV_MAGIC);
-    _fwritei32(os, curv_data.size());
-    _fwritei32(os, num_faces);
-    _fwritei32(os, 1); // Number of values per vertex.
+     _fwritet<int32_t>(os, curv_data.size());
+     _fwritet<int32_t>(os, num_faces);
+     _fwritet<int32_t>(os, 1); // Number of values per vertex.
     for(size_t i=0; i<curv_data.size(); i++) {
-      _fwritef4(os, curv_data[i]);
+       _fwritet<_Float32>(os, curv_data[i]);
     }
   }
 
@@ -533,14 +512,14 @@ namespace fs {
 
   /// Write MGH data to a stream. The stream must be open.
   void swrite_mgh(std::ostream& os, const Mgh& mgh) {
-    _fwritei32(os, 1); // MGH file format version
-    _fwritei32(os, mgh.header.dim1length);
-    _fwritei32(os, mgh.header.dim2length);
-    _fwritei32(os, mgh.header.dim3length);
-    _fwritei32(os, mgh.header.dim4length);
+     _fwritet<int32_t>(os, 1); // MGH file format version
+     _fwritet<int32_t>(os, mgh.header.dim1length);
+     _fwritet<int32_t>(os, mgh.header.dim2length);
+     _fwritet<int32_t>(os, mgh.header.dim3length);
+     _fwritet<int32_t>(os, mgh.header.dim4length);
 
-    _fwritei32(os, mgh.header.dtype);
-    _fwritei32(os, mgh.header.dof);
+     _fwritet<int32_t>(os, mgh.header.dtype);
+     _fwritet<int32_t>(os, mgh.header.dof);
 
     size_t unused_header_space_size_left = 256;  // in bytes
     _fwritei16(os, mgh.header.ras_good_flag);
@@ -548,15 +527,15 @@ namespace fs {
 
     // Write RAS part of of header if flag is 1.
     if(mgh.header.ras_good_flag == 1) {
-      _fwritef4(os, mgh.header.xsize);
-      _fwritef4(os, mgh.header.ysize);
-      _fwritef4(os, mgh.header.zsize);
+       _fwritet<_Float32>(os, mgh.header.xsize);
+       _fwritet<_Float32>(os, mgh.header.ysize);
+       _fwritet<_Float32>(os, mgh.header.zsize);
 
       for(int i=0; i<9; i++) {
-        _fwritef4(os, mgh.header.Mdc[i]);
+         _fwritet<_Float32>(os, mgh.header.Mdc[i]);
       }
       for(int i=0; i<3; i++) {
-        _fwritef4(os, mgh.header.Pxyz_c[i]);
+         _fwritet<_Float32>(os, mgh.header.Pxyz_c[i]);
       }
 
       unused_header_space_size_left -= 60;
@@ -574,7 +553,7 @@ namespace fs {
         exit(1);
       }
       for(size_t i=0; i<num_values; i++) {
-        _fwritei32(os, mgh.data.data_mri_int[i]);
+         _fwritet<int32_t>(os, mgh.data.data_mri_int[i]);
       }
     } else if(mgh.header.dtype == MRI_FLOAT) {
       if(mgh.data.data_mri_float.size() != num_values) {
@@ -582,7 +561,7 @@ namespace fs {
         exit(1);
       }
       for(size_t i=0; i<num_values; i++) {
-        _fwritef4(os, mgh.data.data_mri_float[i]);
+         _fwritet<_Float32>(os, mgh.data.data_mri_float[i]);
       }
     } else if(mgh.header.dtype == MRI_UCHAR) {
       if(mgh.data.data_mri_uchar.size() != num_values) {
