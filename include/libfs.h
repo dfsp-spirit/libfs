@@ -144,9 +144,9 @@ namespace fs {
 
   // More declarations, should also go to separate header.
   void read_mgh_header(MghHeader* mgh_header, std::string filename);
-  std::vector<int32_t> read_mgh_data_int(MghHeader*, std::string);
-  std::vector<uint8_t> read_mgh_data_uchar(MghHeader*, std::string);
-  std::vector<float> read_mgh_data_float(MghHeader*, std::string);
+  std::vector<int32_t> _read_mgh_data_int(MghHeader*, std::string);
+  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, std::string);
+  std::vector<float> _read_mgh_data_float(MghHeader*, std::string);
 
 
   /// Read a FreeSurfer volume file in MGH format into the given Mgh struct.
@@ -155,13 +155,13 @@ namespace fs {
     read_mgh_header(&mgh_header, filename);
     mgh->header = mgh_header;
     if(mgh->header.dtype == MRI_INT) {
-      std::vector<int32_t> data = read_mgh_data_int(&mgh_header, filename);
+      std::vector<int32_t> data = _read_mgh_data_int(&mgh_header, filename);
       mgh->data.data_mri_int = data;
     } else if(mgh->header.dtype == MRI_UCHAR) {
-      std::vector<uint8_t> data = read_mgh_data_uchar(&mgh_header, filename);
+      std::vector<uint8_t> data = _read_mgh_data_uchar(&mgh_header, filename);
       mgh->data.data_mri_uchar = data;
     } else if(mgh->header.dtype == MRI_FLOAT) {
-      std::vector<float> data = read_mgh_data_float(&mgh_header, filename);
+      std::vector<float> data = _read_mgh_data_float(&mgh_header, filename);
       mgh->data.data_mri_float = data;
     } else {      
       std::cout << "Not reading MGH data from file '" << filename << "', data type " << mgh->header.dtype << " not supported yet.\n";
@@ -228,7 +228,7 @@ namespace fs {
   /// Read MRI_INT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<int32_t> read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
+  std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(mgh_header->dtype != 1) {
@@ -253,7 +253,7 @@ namespace fs {
   /// Read MRI_FLOAT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<float> read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
+  std::vector<float> _read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(mgh_header->dtype != 3) {
@@ -278,7 +278,7 @@ namespace fs {
   /// Read MRI_UCHAR data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<uint8_t> read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
+  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(mgh_header->dtype != 0) {
