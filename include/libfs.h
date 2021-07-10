@@ -391,6 +391,9 @@ namespace fs {
       return(dest.u);
   }
 
+  /// Read a big endian value from a file.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
   T _freadt(std::istream& infile) {
     T t;
@@ -401,9 +404,9 @@ namespace fs {
     return(t);  
   }
 
-  // Read 3 big endian bytes as a single integer from a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// Read 3 big endian bytes as a single integer from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   int _fread3(std::istream& infile) {
     uint32_t i;
     infile.read(reinterpret_cast<char*>(&i), 3);
@@ -414,6 +417,9 @@ namespace fs {
     return(i);
   }
 
+  /// Write a value to a file as big endian.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
   void _fwritet(std::ostream& os, T t) {
     if(! _is_bigendian()) {
