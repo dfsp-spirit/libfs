@@ -422,25 +422,6 @@ namespace fs {
     os.write( reinterpret_cast<const char*>( &t ), sizeof(t));
   }
 
-  // Write big endian 8 bit unsigned integer to a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  void _fwriteu8(std::ostream& os, uint8_t i) {
-    if(! _is_bigendian()) {
-      i = _swap_endian<uint8_t>(i);
-    }
-    os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
-  }
-
-  // Write big endian 16 bit integer to a stream.
-  //
-  // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  void _fwritei16(std::ostream& os, int16_t i) {
-    if(! _is_bigendian()) {
-      i = _swap_endian<int16_t>(i);
-    }
-    os.write( reinterpret_cast<const char*>( &i ), sizeof(i));
-  }
 
   // Write big endian 24 bit integer to a stream, extracted from the first 3 bytes of an unsigned 32 bit integer.
   //
@@ -522,7 +503,7 @@ namespace fs {
      _fwritet<int32_t>(os, mgh.header.dof);
 
     size_t unused_header_space_size_left = 256;  // in bytes
-    _fwritei16(os, mgh.header.ras_good_flag);
+     _fwritet<int16_t>(os, mgh.header.ras_good_flag);
     unused_header_space_size_left -= 2; // for RAS flag
 
     // Write RAS part of of header if flag is 1.
@@ -542,7 +523,7 @@ namespace fs {
     }
 
     for(size_t i=0; i<unused_header_space_size_left; i++) {  // Fill rest of header space.
-      _fwriteu8(os, 0);
+       _fwritet<uint8_t>(os, 0);
     }
 
     // Write data
@@ -569,7 +550,7 @@ namespace fs {
         exit(1);
       }
       for(size_t i=0; i<num_values; i++) {
-        _fwriteu8(os, mgh.data.data_mri_uchar[i]);
+         _fwritet<uint8_t>(os, mgh.data.data_mri_uchar[i]);
       }
     } else {
       std::cerr << "Unsupported MRI data type " << mgh.header.dtype << ", cannot write MGH data.\n";
