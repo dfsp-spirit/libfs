@@ -23,7 +23,6 @@ int main(int argc, char** argv) {
         curv_fname = argv[1];
     }
     std::cout << "Reading input curv file '" << curv_fname << "'.\n";    
-    std::cout << "System endianness is: " << (fs::is_bigendian() ? "big" : "little") << ".\n";
     std::vector<float> data = fs::read_curv(curv_fname);
     float min_entry = *std::min_element(data.begin(), data.end());
     float max_entry = *std::max_element(data.begin(), data.end());
