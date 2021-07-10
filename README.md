@@ -1,5 +1,5 @@
 # libfs
-A header-only, zero-dependency, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
+A portable, header-only, zero-dependency, mildly templated, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
 
 
 ## Features
