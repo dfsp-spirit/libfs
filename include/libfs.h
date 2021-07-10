@@ -475,15 +475,6 @@ namespace fs {
     os.write( reinterpret_cast<const char*>( &b3 ), sizeof(b3));
   }
 
-  /// Read a C-style zero-terminated ASCII string from a stream.
-  ///
-  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::string _freadstringzero(std::istream &stream) {
-    std::string s;
-    std::getline(stream, s, '\0');
-    return s;
-  }
-
   /// Read a '\n'-terminated ASCII string from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
