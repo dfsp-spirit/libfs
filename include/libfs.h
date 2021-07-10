@@ -13,12 +13,21 @@
 
 namespace fs {
   
-  const int MRI_UCHAR = 0; // MRI data types, used by the MGH functions.
+  // MRI data types, used by the MGH functions.
+  
+  /// MRI data type representing an 8 bit unsigned integer.
+  const int MRI_UCHAR = 0;
+
+  /// MRI data type representing a 32 bit signed integer.
   const int MRI_INT = 1;
-  const int MRI_FLOAT = 3; 
+
+  /// MRI data type representing a 32 bit float.
+  const int MRI_FLOAT = 3;
+
+  /// MRI data type representing a 16 bit signed integer.
   const int MRI_SHORT = 4;
 
-  // Declarations, show go to a header.
+  // Declarations, should go to a header file.
   int _fread3(std::istream& infile);
   template <typename T> T _freadt(std::istream& infile);
   std::string _freadstringnewline(std::istream& stream);
