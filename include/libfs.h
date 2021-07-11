@@ -9,12 +9,13 @@
 #include <sstream>
 
 
-
+/// @file
+/// 
 
 namespace fs {
   
   // MRI data types, used by the MGH functions.
-  
+
   /// MRI data type representing an 8 bit unsigned integer.
   const int MRI_UCHAR = 0;
 
