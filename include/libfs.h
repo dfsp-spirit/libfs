@@ -191,57 +191,46 @@ namespace fs {
     }
   }
 
-  /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
-  void read_mgh_header(MghHeader* mgh_header, std::string filename) {
+  /// Read a MGH header from a stream.
+  void sread_mgh_header(std::ifstream* infile, MghHeader* mgh_header) {
     const int MGH_VERSION = 1;    
 
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(infile.is_open()) {
-      int format_version = _freadt<int32_t>(infile);
-      if(format_version != MGH_VERSION) {        
-        std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
-        if(_ends_with(filename, ".mgz")) {
-          std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported yet.\n";  
-        }
-        exit(1);
-      }
-      mgh_header->dim1length =  _freadt<int32_t>(infile);
-      mgh_header->dim2length =  _freadt<int32_t>(infile);
-      mgh_header->dim3length =  _freadt<int32_t>(infile);
-      mgh_header->dim4length =  _freadt<int32_t>(infile);
-
-      mgh_header->dtype =  _freadt<int32_t>(infile);
-      mgh_header->dof =  _freadt<int32_t>(infile);
-
-      int unused_header_space_size_left = 256;  // in bytes
-      mgh_header->ras_good_flag =  _freadt<int16_t>(infile);
-      unused_header_space_size_left -= 2; // for the ras_good_flag
-
-      // Read the RAS part of the header.
-      if(mgh_header->ras_good_flag == 1) {
-        mgh_header->xsize =  _freadt<_Float32>(infile);
-        mgh_header->ysize =  _freadt<_Float32>(infile);
-        mgh_header->zsize =  _freadt<_Float32>(infile);
-
-        for(int i=0; i<9; i++) {
-          mgh_header->Mdc.push_back( _freadt<_Float32>(infile));
-        }
-        for(int i=0; i<3; i++) {
-          mgh_header->Pxyz_c.push_back( _freadt<_Float32>(infile));
-        }
-        unused_header_space_size_left -= 60;
-      }
-      // TODO: MGH files may contain an optional footer after the data with some metadata that we could read.
-      //infile.seekg(unused_header_space_size_left, infile.cur);  // skip rest of header.
-      // skip past data
-      // check if something left in file and read footer if existant
-
-      infile.close();
-    } else {
-      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
+    int format_version = _freadt<int32_t>(*infile);
+    if(format_version != MGH_VERSION) {        
+      std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
       exit(1);
     }
+    mgh_header->dim1length =  _freadt<int32_t>(*infile);
+    mgh_header->dim2length =  _freadt<int32_t>(*infile);
+    mgh_header->dim3length =  _freadt<int32_t>(*infile);
+    mgh_header->dim4length =  _freadt<int32_t>(*infile);
+
+    mgh_header->dtype =  _freadt<int32_t>(*infile);
+    mgh_header->dof =  _freadt<int32_t>(*infile);
+
+    int unused_header_space_size_left = 256;  // in bytes
+    mgh_header->ras_good_flag =  _freadt<int16_t>(*infile);
+    unused_header_space_size_left -= 2; // for the ras_good_flag
+
+    // Read the RAS part of the header.
+    if(mgh_header->ras_good_flag == 1) {
+      mgh_header->xsize =  _freadt<_Float32>(*infile);
+      mgh_header->ysize =  _freadt<_Float32>(*infile);
+      mgh_header->zsize =  _freadt<_Float32>(*infile);
+
+      for(int i=0; i<9; i++) {
+        mgh_header->Mdc.push_back( _freadt<_Float32>(*infile));
+      }
+      for(int i=0; i<3; i++) {
+        mgh_header->Pxyz_c.push_back( _freadt<_Float32>(*infile));
+      }
+      unused_header_space_size_left -= 60;
+    }
+    // TODO: MGH files may contain an optional footer after the data with some metadata that we could read.
+    //infile.seekg(unused_header_space_size_left, infile.cur);  // skip rest of header.
+    // skip past data
+    // check if something left in file and read footer if existant
+
   }
 
   /// Read MRI_INT data from MGH file
@@ -253,6 +242,21 @@ namespace fs {
     }
     return(_read_mgh_data<int32_t>(mgh_header, filename));
   }
+
+
+  /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
+  void read_mgh_header(MghHeader* mgh_header, std::string filename) {    
+    std::ifstream infile;
+    infile.open(filename, std::ios_base::in | std::ios::binary);
+    if(infile.is_open()) {
+      sread_mgh_header(&infile, mgh_header);
+      infile.close();
+    } else {
+      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
+      exit(1);
+    }
+  }
+
 
   /// Read arbitrary MGH data.
   ///
@@ -607,7 +611,7 @@ namespace fs {
     }
 
     // Return the number of entries (vertices/voxels) in this label.
-    const size_t num_entries() const {      
+    size_t num_entries() const {      
       size_t num_ent = this->vertex.size();
       if(this->coord_x.size() != num_ent || this->coord_y.size() != num_ent || this->coord_z.size() != num_ent || this->value.size() != num_ent || this->value.size() != num_ent) {
         std::cerr << "Inconsistent label: sizes of property vectors do not match.\n";
