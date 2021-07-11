@@ -616,59 +616,69 @@ namespace fs {
     }
   };
 
+
+  /// Read a FreeSurfer ASCII label from a stream.
+  ///
+  /// See also: read_label to read it from a label file instead.
+  void sread_label(std::ifstream* is, Label* label) {
+    std::string line;
+    int line_idx = -1;
+    size_t num_entries_header = 0;  // number of vertices/voxels according to header
+    size_t num_entries = 0;  // number of vertices/voxels for which the file contains label entries.
+    while (std::getline(*is, line)) {
+      line_idx += 1;
+      std::istringstream iss(line);
+      if(line_idx == 0) {
+        continue; // skip comment.
+      } else {
+        if(line_idx == 1) {
+          if (!(iss >> num_entries_header)) { 
+            std::cerr << "Could not parse entry count from label file, invalid file.\n";
+            exit(1);
+          } 
+        } else {
+          int vertex; float x, y, z, value;
+          if (!(iss >> vertex >> x >> y >> z >> value)) { 
+            std::cerr << "Could not parse line " << (line_idx+1) << " of label file, invalid file.\n";
+            exit(1);
+          }
+          //std::cout << "Line " << (line_idx+1) << ": vertex=" << vertex << ", x=" << x << ", y=" << y << ", z=" << z << ", value=" << value << ".\n";
+          label->vertex.push_back(vertex);
+          label->coord_x.push_back(x);
+          label->coord_y.push_back(y);
+          label->coord_z.push_back(z);
+          label->value.push_back(value);
+          num_entries++;
+        }
+      }        
+    }
+    if(num_entries != num_entries_header) {
+      std::cerr << "Expected " << num_entries_header << " entries from label file header, but found " << num_entries << " in file, invalid label file.\n";
+      exit(1);
+    }
+    if(label->vertex.size() != num_entries || label->coord_x.size() != num_entries || label->coord_y.size() != num_entries || label->coord_z.size() != num_entries || label->value.size() != num_entries) {
+      std::cerr << "Expected " << num_entries << " entries in all Label vectors, but some did not match.\n";
+    }
+  }
+
   /// Read a FreeSurfer ASCII label file.
   ///
   /// Examples:
   ///
   /// sf::Label label;
   /// sf::read_label(&label, "subject1/label/lh.cortex.label");
-  /// size_t nv = label.vertex.size();
+  /// size_t nv = label.num_entries();
   void read_label(Label* label, std::string filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
-      std::string line;
-      int line_idx = -1;
-      size_t num_entries_header = 0;  // number of vertices/voxels according to header
-      size_t num_entries = 0;  // number of vertices/voxels for which the file contains label entries.
-      while (std::getline(infile, line)) {
-        line_idx += 1;
-        std::istringstream iss(line);
-        if(line_idx == 0) {
-          continue; // skip comment.
-        } else {
-          if(line_idx == 1) {
-            if (!(iss >> num_entries_header)) { 
-              std::cerr << "Could not parse entry count from label file, invalid file.\n";
-              exit(1);
-            } 
-          } else {
-            int vertex; float x, y, z, value;
-            if (!(iss >> vertex >> x >> y >> z >> value)) { 
-              std::cerr << "Could not parse line " << (line_idx+1) << " of label file, invalid file.\n";
-              exit(1);
-            }
-            //std::cout << "Line " << (line_idx+1) << ": vertex=" << vertex << ", x=" << x << ", y=" << y << ", z=" << z << ", value=" << value << ".\n";
-            label->vertex.push_back(vertex);
-            label->coord_x.push_back(x);
-            label->coord_y.push_back(y);
-            label->coord_z.push_back(z);
-            label->value.push_back(value);
-            num_entries++;
-          }
-        }        
-      }
-      if(num_entries != num_entries_header) {
-        std::cerr << "Expected " << num_entries_header << " entries from label file header, but found " << num_entries << " in file, invalid label file.\n";
-        exit(1);
-      }
-      if(label->vertex.size() != num_entries || label->coord_x.size() != num_entries || label->coord_y.size() != num_entries || label->coord_z.size() != num_entries || label->value.size() != num_entries) {
-        std::cerr << "Expected " << num_entries << " entries in all Label vectors, but some did not match.\n";
-      }
+      sread_label(&infile, label);
+      infile.close();
     } else {
       std::cerr << "Could not open label file for reading.\n";
       exit(1);
     }
   }
+
 
   /// Write label data to a stream.
   ///
