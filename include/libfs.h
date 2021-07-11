@@ -587,7 +587,7 @@ namespace fs {
     std::vector<float> value;
 
     // Compute for each vertex of the surface whether it is inside the label.
-    std::vector<bool> vert_in_label(size_t surface_num_verts) {
+    std::vector<bool> vert_in_label(size_t surface_num_verts) const {
       if(surface_num_verts < this->vertex.size()) { // nonsense, so we warn (but don't exit, maybe the user really wants this).
         std::cerr << "Invalid number of vertices for surface, must be at least " << this->vertex.size() << "\n";
       }
@@ -599,6 +599,15 @@ namespace fs {
         is_in[this->vertex[i]] = true;
       }
       return(is_in);
+    }
+
+    // Return the number of entries (vertices/voxels) in this label.
+    const size_t num_entries() const {      
+      size_t num_ent = this->vertex.size();
+      if(this->coord_x.size() != num_ent || this->coord_y.size() != num_ent || this->coord_z.size() != num_ent || this->value.size() != num_ent || this->value.size() != num_ent) {
+        std::cerr << "Inconsistent label: sizes of property vectors do not match.\n";
+      }
+      return(num_ent);
     }
   };
 
@@ -655,6 +664,34 @@ namespace fs {
       exit(1);
     }
   }
+
+  /// Write label data to a stream.
+  ///
+  /// See also: write_label to write to a file.
+  void swrite_label(std::ostream& os, const Label& label) {
+    const size_t num_entries = label.num_entries();
+    os << "#!ascii label from subject anonymous\n" << num_entries << "\n";
+    for(size_t i=0; i<num_entries; i++) {
+      os << label.vertex[i] << " " << label.coord_x[i] << " " << label.coord_y[i] << " " << label.coord_z[i] << " " << label.value[i] << "\n";
+    }
+  }  
+
+
+  /// Write label data to a file.
+  ///
+  /// See also: swrite_label to write to a stream.
+  void write_label(std::string filename, const Label& label) {
+    std::ofstream ofs;
+    ofs.open(filename, std::ofstream::out);
+    if(ofs.is_open()) {
+      swrite_label(ofs, label);
+      ofs.close();
+    } else {
+      std::cerr << "Unable to open label file '" << filename << "' for writing.\n";
+      exit(1);
+    }
+  }
+
 
 
 } // End namespace fs

@@ -47,7 +47,14 @@ Compilation instructions for g++ and clang are at the top of each example source
 
 ### Official API and Conventions
 
-Internal functions in `libfs` are prefixed with an underscore. You should never call these functions from client code, as they may change without notice between versions.
+
+* Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug.
+* Function naming:
+  - Functions that read data from files are called `read_*`, e.g., `read_surf`, `read_curv`, `read_mgh`.
+  - Function that read data from streams are called `sread_*`, e.g., `sread_curv`.
+  - Functions that write data to files are called `write_*`, e.g., `write_curv`.
+  - Functions that write data to streams are called `swrite_*`, e.g., `swrite_curv`.
+
 
 
 ## Development
