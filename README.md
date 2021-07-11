@@ -41,12 +41,25 @@ int main(int argc, char** argv) {
 
 See the [examples directory](./examples/) for some programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). 
 
+
 ### Building your programs
 
 Compilation instructions for g++ and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler. If you prefer to build with cmake, have a look at the [CMakeLists.txt file](./CMakeLists.txt) we use to build the unit tests.
 
-### Official API and Conventions
 
+### Full API documentation
+
+If you have `doxygen` installed (`sudo apt install doxygen` under Debian-based Linux distros), you can generate the full API documentation like this:
+
+```
+cmake .
+make doc
+```
+
+The documentation will be built and can be found in `doc/doc_built/` afterwards. The recommended way to browse it is to open `doc/doc_built/html/index.html` with your favorite webbrowser.
+
+
+### Conventions
 
 * Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug.
 * Function naming:

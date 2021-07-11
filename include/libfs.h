@@ -35,12 +35,13 @@ namespace fs {
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
   
-  /// Models a triangular mesh, used for brain surface meshes. This is a vertex-indexed representation.
-  ///
-  /// Represents a vertex-indexed mesh. The n vertices are stored as 3D point coordinates (x,y,z) in a vector
-  /// of length 3n, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
-  /// The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
-  /// making up the respective face. Vertex indices are 0-based.
+  /**
+    * Models a triangular mesh, used for brain surface meshes.
+    * Represents a vertex-indexed mesh. The n vertices are stored as 3D point coordinates (x,y,z) in a vector
+    * of length 3n, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
+    * The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
+    * making up the respective face. Vertex indices are 0-based.
+    */
   class Mesh {
     public:
       std::vector<float> vertices;
@@ -127,8 +128,6 @@ namespace fs {
   };
 
   /// A simple 4D array datastructure, useful for representing volume data.
-  ///
-  /// Based on https://stackoverflow.com/questions/33113403/store-a-4d-array-in-a-vector
   template<class T> 
   struct Array4D {
     Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) :
