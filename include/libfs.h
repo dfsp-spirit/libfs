@@ -46,7 +46,7 @@ namespace fs {
       std::vector<int> faces;
 
       /// Return string representing the mesh in Wavefront Object (.obj) format.
-      std::string to_obj() {
+      std::string to_obj() const {
         std::stringstream objs;
         for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) { // vertex coords
           objs << "v " << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
@@ -58,17 +58,17 @@ namespace fs {
       }
 
       /// Return the number of vertices in this mesh.
-      size_t num_vertices() {
+      size_t num_vertices() const {
         return(this->vertices.size() / 3);
       }
 
       /// Return the number of faces in this mesh.
-      size_t num_faces() {
+      size_t num_faces() const {
         return(this->faces.size() / 3);
       }
 
       /// Return string representing the mesh in PLY format.
-      std::string to_ply() {
+      std::string to_ply() const {
         std::stringstream plys;
         plys << "ply\nformat ascii 1.0\n";
         plys << "element vertex " << this->num_vertices() << "\n";
@@ -99,6 +99,11 @@ namespace fs {
     int32_t dtype;
     int32_t dof;
     int16_t ras_good_flag;
+
+    /// Compute the number of values based on the dim*length header fields.
+    size_t num_values() const {
+      return((size_t) dim1length * dim2length * dim3length * dim4length);
+    }
 
     float xsize;
     float ysize;
@@ -135,12 +140,12 @@ namespace fs {
       d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
   
     /// Get the value at the given 4D position.
-    T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) {
+    T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const {
       return data[get_index(i1, i2, i3, i4)];
     }
   
     /// Get the index in the vector for the given 4D position.
-    unsigned int get_index(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) {
+    unsigned int get_index(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const {
       assert(i1 >= 0 && i1 < d1);
       assert(i2 >= 0 && i2 < d2);
       assert(i3 >= 0 && i3 < d3);
