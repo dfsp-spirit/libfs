@@ -37,12 +37,20 @@ cmake_install.cmake
 Makefile
 CMakeFiles/
 
-# Generated binaries
+# Generated binaries and example output files
 run_libfs_tests
 examples/read_curv/read_curv
+examples/read_curv/tmp.lh.thickness
+
 examples/read_mgh/read_mgh
+examples/read_mgh/tmp.brain.mgh
+
+
 examples/read_surf/read_surf
-examples/read_surf/read_label
+examples/read_surf/lh_white.ply
+examples/read_surf/lh_white.obj
+
+examples/read_label/read_label
 
 # Doxygen
 doxyfile
