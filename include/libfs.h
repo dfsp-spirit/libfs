@@ -160,15 +160,15 @@ namespace fs {
   };
 
   // More declarations, should also go to separate header.
-  void read_mgh_header(MghHeader* mgh_header, std::string filename);
-  template <typename T> std::vector<T> _read_mgh_data(MghHeader*, std::string);
-  std::vector<int32_t> _read_mgh_data_int(MghHeader*, std::string);
-  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, std::string);
-  std::vector<float> _read_mgh_data_float(MghHeader*, std::string);
+  void read_mgh_header(MghHeader*, const std::string&);
+  template <typename T> std::vector<T> _read_mgh_data(MghHeader*, const std::string&);
+  std::vector<int32_t> _read_mgh_data_int(MghHeader*, const std::string&);
+  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, const std::string&);
+  std::vector<float> _read_mgh_data_float(MghHeader*, const std::string&);
 
 
   /// Read a FreeSurfer volume file in MGH format into the given Mgh struct.
-  void read_mgh(Mgh* mgh, std::string filename) {
+  void read_mgh(Mgh* mgh, const std::string& filename) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
     mgh->header = mgh_header;
@@ -235,7 +235,7 @@ namespace fs {
   /// Read MRI_INT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, std::string filename) {
+  std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_INT) {
       std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
     }
@@ -244,7 +244,7 @@ namespace fs {
 
 
   /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
-  void read_mgh_header(MghHeader* mgh_header, std::string filename) {    
+  void read_mgh_header(MghHeader* mgh_header, const std::string& filename) {    
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(infile.is_open()) {
@@ -261,7 +261,7 @@ namespace fs {
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
-  std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::string filename) {
+  std::vector<T> _read_mgh_data(MghHeader* mgh_header, const std::string& filename) {
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(infile.is_open()) {
@@ -283,7 +283,7 @@ namespace fs {
   /// Read MRI_FLOAT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<_Float32> _read_mgh_data_float(MghHeader* mgh_header, std::string filename) {
+  std::vector<_Float32> _read_mgh_data_float(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_FLOAT) {
       std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
     }
@@ -293,7 +293,7 @@ namespace fs {
   /// Read MRI_UCHAR data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, std::string filename) {
+  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_UCHAR) {
       std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
     }
@@ -303,7 +303,7 @@ namespace fs {
   /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
   ///
   /// Returns a Mesh datastructure representing a vertex-indexed tri-mesh.
-  void read_surf(Mesh* surface, std::string filename) {
+  void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -346,7 +346,7 @@ namespace fs {
   }
 
   /// Read per-vertex brain morphometry data from a FreeSurfer curv format file.
-  std::vector<float> read_curv(std::string filename) {
+  std::vector<float> read_curv(const std::string& filename) {
     const int CURV_MAGIC = 16777215;
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
@@ -373,7 +373,6 @@ namespace fs {
       std::cerr << "Unable to open curvature file '" << filename << "'.\n";
       exit(1);
     }
-    
   }
   
   /// Swap endianness of a value.
@@ -491,7 +490,7 @@ namespace fs {
   /// Write curv data to a file.
   ///
   /// See also: swrite_curv to write to a stream.
-  void write_curv(std::string filename, std::vector<float> curv_data, int32_t num_faces = 100000) {
+  void write_curv(const std::string& filename, std::vector<float> curv_data, const int32_t num_faces = 100000) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {
@@ -574,7 +573,7 @@ namespace fs {
   /// Write MGH data to a file.
   ///
   /// See also: swrite_mgh to write to a stream.
-  void write_mgh(std::string filename, const Mgh& mgh) {
+  void write_mgh(const std::string& filename, const Mgh& mgh) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {
@@ -671,7 +670,7 @@ namespace fs {
   /// sf::Label label;
   /// sf::read_label(&label, "subject1/label/lh.cortex.label");
   /// size_t nv = label.num_entries();
-  void read_label(Label* label, std::string filename) {
+  void read_label(Label* label, const std::string& filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
       sread_label(&infile, label);
@@ -698,7 +697,7 @@ namespace fs {
   /// Write label data to a file.
   ///
   /// See also: swrite_label to write to a stream.
-  void write_label(std::string filename, const Label& label) {
+  void write_label(const std::string& filename, const Label& label) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out);
     if(ofs.is_open()) {
