@@ -161,10 +161,15 @@ namespace fs {
 
   // More declarations, should also go to separate header.
   void read_mgh_header(MghHeader*, const std::string&);
+  void read_mgh_header(MghHeader*, std::istream*);
   template <typename T> std::vector<T> _read_mgh_data(MghHeader*, const std::string&);
+  template <typename T> std::vector<T> _read_mgh_data(MghHeader*, std::istream*);
   std::vector<int32_t> _read_mgh_data_int(MghHeader*, const std::string&);
+  std::vector<int32_t> _read_mgh_data_int(MghHeader*, std::istream*);
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, const std::string&);
+  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, std::istream*);
   std::vector<float> _read_mgh_data_float(MghHeader*, const std::string&);
+  std::vector<float> _read_mgh_data_float(MghHeader*, std::istream*);
 
 
   /// Read a FreeSurfer volume file in MGH format into the given Mgh struct.
@@ -190,8 +195,28 @@ namespace fs {
     }
   }
 
-  /// Read a MGH header from a stream.
-  void sread_mgh_header(std::ifstream* infile, MghHeader* mgh_header) {
+  // Overload for reading MGH data from a stream.
+  void read_mgh(Mgh* mgh, std::istream* is) {
+    MghHeader mgh_header;
+    read_mgh_header(&mgh_header, is);
+    mgh->header = mgh_header;
+    if(mgh->header.dtype == MRI_INT) {
+      std::vector<int32_t> data = _read_mgh_data_int(&mgh_header, is);
+      mgh->data.data_mri_int = data;
+    } else if(mgh->header.dtype == MRI_UCHAR) {
+      std::vector<uint8_t> data = _read_mgh_data_uchar(&mgh_header, is);
+      mgh->data.data_mri_uchar = data;
+    } else if(mgh->header.dtype == MRI_FLOAT) {
+      std::vector<float> data = _read_mgh_data_float(&mgh_header, is);
+      mgh->data.data_mri_float = data;
+    } else {      
+      std::cout << "Not reading data from MGH stream, data type " << mgh->header.dtype << " not supported yet.\n";
+      exit(1);
+    }
+  }
+
+  /// Read an MGH header from a stream.
+  void read_mgh_header(MghHeader* mgh_header, std::istream* infile) {
     const int MGH_VERSION = 1;    
 
     int format_version = _freadt<int32_t>(*infile);
@@ -242,13 +267,23 @@ namespace fs {
     return(_read_mgh_data<int32_t>(mgh_header, filename));
   }
 
+  /// Read MRI_INT data from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, std::istream* is) {
+    if(mgh_header->dtype != MRI_INT) {
+      std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
+    }
+    return(_read_mgh_data<int32_t>(mgh_header, is));
+  }
+
 
   /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
   void read_mgh_header(MghHeader* mgh_header, const std::string& filename) {    
     std::ifstream infile;
     infile.open(filename, std::ios_base::in | std::ios::binary);
     if(infile.is_open()) {
-      sread_mgh_header(&infile, mgh_header);
+      read_mgh_header(mgh_header, &infile);
       infile.close();
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
@@ -257,7 +292,7 @@ namespace fs {
   }
 
 
-  /// Read arbitrary MGH data.
+  /// Read arbitrary MGH data from a file.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
@@ -280,6 +315,23 @@ namespace fs {
     }
   }
 
+
+  /// Read arbitrary MGH data from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  template <typename T>
+  std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::istream* is) {
+    is->seekg(284, is->beg); // skip to end of header and beginning of data
+
+    int num_values = mgh_header->num_values();
+    std::vector<T> data;
+    for(int i=0; i<num_values; i++) {
+      data.push_back( _freadt<T>(*is));
+    }
+    return(data);
+  }
+
+
   /// Read MRI_FLOAT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
@@ -290,6 +342,16 @@ namespace fs {
     return(_read_mgh_data<_Float32>(mgh_header, filename));
   }
 
+  /// Read MRI_FLOAT data from an MGH stream
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  std::vector<_Float32> _read_mgh_data_float(MghHeader* mgh_header, std::istream* is) {
+    if(mgh_header->dtype != MRI_FLOAT) {
+      std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
+    }
+    return(_read_mgh_data<_Float32>(mgh_header, is));
+  }
+
   /// Read MRI_UCHAR data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
@@ -298,6 +360,16 @@ namespace fs {
       std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
     }
     return(_read_mgh_data<uint8_t>(mgh_header, filename));
+  }
+
+  /// Read MRI_UCHAR data from an MGH stream
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, std::istream* is) {
+    if(mgh_header->dtype != MRI_UCHAR) {
+      std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
+    }
+    return(_read_mgh_data<uint8_t>(mgh_header, is));
   }
 
   /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
@@ -396,13 +468,13 @@ namespace fs {
       return(dest.u);
   }
 
-  /// Read a big endian value from a file.
+  /// Read a big endian value from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
-  T _freadt(std::istream& infile) {
+  T _freadt(std::istream& is) {
     T t;
-    infile.read(reinterpret_cast<char*>(&t), sizeof(t));
+    is.read(reinterpret_cast<char*>(&t), sizeof(t));
     if(! _is_bigendian()) {
       t = _swap_endian<T>(t);
     }
@@ -412,9 +484,9 @@ namespace fs {
   /// Read 3 big endian bytes as a single integer from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  int _fread3(std::istream& infile) {
+  int _fread3(std::istream& is) {
     uint32_t i;
-    infile.read(reinterpret_cast<char*>(&i), 3);
+    is.read(reinterpret_cast<char*>(&i), 3);
     if(! _is_bigendian()) {
       i = _swap_endian<std::uint32_t>(i);
     }
@@ -422,7 +494,7 @@ namespace fs {
     return(i);
   }
 
-  /// Write a value to a file as big endian.
+  /// Write a value to a stream as big endian.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
@@ -457,9 +529,9 @@ namespace fs {
   /// Read a '\n'-terminated ASCII string from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  std::string _freadstringnewline(std::istream &stream) {
+  std::string _freadstringnewline(std::istream &is) {
     std::string s;
-    std::getline(stream, s, '\n');
+    std::getline(is, s, '\n');
     return s;
   }
 
