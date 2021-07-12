@@ -51,6 +51,7 @@ examples/read_surf/lh_white.ply
 examples/read_surf/lh_white.obj
 
 examples/read_label/read_label
+examples/read_label/tmp.lh.cortex.label
 
 # Doxygen
 doxyfile
