@@ -139,7 +139,7 @@ namespace fs {
       d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
   
     /// Get the value at the given 4D position.
-    T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const {
+    const T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const {
       return data[get_index(i1, i2, i3, i4)];
     }
   
@@ -216,42 +216,42 @@ namespace fs {
   }
 
   /// Read an MGH header from a stream.
-  void read_mgh_header(MghHeader* mgh_header, std::istream* infile) {
+  void read_mgh_header(MghHeader* mgh_header, std::istream* is) {
     const int MGH_VERSION = 1;    
 
-    int format_version = _freadt<int32_t>(*infile);
+    int format_version = _freadt<int32_t>(*is);
     if(format_version != MGH_VERSION) {        
       std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
       exit(1);
     }
-    mgh_header->dim1length =  _freadt<int32_t>(*infile);
-    mgh_header->dim2length =  _freadt<int32_t>(*infile);
-    mgh_header->dim3length =  _freadt<int32_t>(*infile);
-    mgh_header->dim4length =  _freadt<int32_t>(*infile);
+    mgh_header->dim1length =  _freadt<int32_t>(*is);
+    mgh_header->dim2length =  _freadt<int32_t>(*is);
+    mgh_header->dim3length =  _freadt<int32_t>(*is);
+    mgh_header->dim4length =  _freadt<int32_t>(*is);
 
-    mgh_header->dtype =  _freadt<int32_t>(*infile);
-    mgh_header->dof =  _freadt<int32_t>(*infile);
+    mgh_header->dtype =  _freadt<int32_t>(*is);
+    mgh_header->dof =  _freadt<int32_t>(*is);
 
     int unused_header_space_size_left = 256;  // in bytes
-    mgh_header->ras_good_flag =  _freadt<int16_t>(*infile);
+    mgh_header->ras_good_flag =  _freadt<int16_t>(*is);
     unused_header_space_size_left -= 2; // for the ras_good_flag
 
     // Read the RAS part of the header.
     if(mgh_header->ras_good_flag == 1) {
-      mgh_header->xsize =  _freadt<_Float32>(*infile);
-      mgh_header->ysize =  _freadt<_Float32>(*infile);
-      mgh_header->zsize =  _freadt<_Float32>(*infile);
+      mgh_header->xsize =  _freadt<_Float32>(*is);
+      mgh_header->ysize =  _freadt<_Float32>(*is);
+      mgh_header->zsize =  _freadt<_Float32>(*is);
 
       for(int i=0; i<9; i++) {
-        mgh_header->Mdc.push_back( _freadt<_Float32>(*infile));
+        mgh_header->Mdc.push_back( _freadt<_Float32>(*is));
       }
       for(int i=0; i<3; i++) {
-        mgh_header->Pxyz_c.push_back( _freadt<_Float32>(*infile));
+        mgh_header->Pxyz_c.push_back( _freadt<_Float32>(*is));
       }
       unused_header_space_size_left -= 60;
     }
     // TODO: MGH files may contain an optional footer after the data with some metadata that we could read.
-    //infile.seekg(unused_header_space_size_left, infile.cur);  // skip rest of header.
+    //is->seekg(unused_header_space_size_left, is->cur);  // skip rest of header.
     // skip past data
     // check if something left in file and read footer if existant
 

@@ -44,5 +44,17 @@ int main(int argc, char** argv) {
     ar2.data = mgh2.data.data_mri_uchar;
     std::cout << "The value at voxel (99,99,99,0) is: " << (unsigned int)ar2.at(99,99,99,0) << ".\n";
 
+
+    std::cout << "=== Reading original file stream-based. ===.\n";
+
+    // Read original MGH file stream-based
+    std::ifstream is;
+    is.open(mgh_fname, std::ios_base::in | std::ios::binary);
+    fs::Mgh mgh3;
+    fs::read_mgh(&mgh3, &is);
+    std::cout << "Received MGH with size " << mgh3.header.dim1length << "*" << mgh3.header.dim2length <<  "*" <<  mgh3.header.dim3length << "*" << mgh3.header.dim4length << " voxels.\n"; 
+    std::cout << "The data type is " << mgh3.header.dtype << " and the length of mgh.data.data_mri_uchar is " << mgh3.data.data_mri_uchar.size() << ".\n";
+    std::cout << "The RAS part of the header is valid: " << (mgh3.header.ras_good_flag ? "yes" : "no" ) << ".\n";
+
     exit(0);
 }
