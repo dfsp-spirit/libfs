@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 
     // Write to file and re-read
     std::string write_filename = "tmp.lh.cortex.label";
-    fs::write_label(write_filename, label);
+    fs::write_label(label, write_filename);
     fs::Label label2;
     fs::read_label(&label2, write_filename);
     float min_entry2 = *std::min_element(label2.value.begin(), label2.value.end());

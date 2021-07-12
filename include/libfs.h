@@ -553,12 +553,12 @@ namespace fs {
   }
 
   /// Write curv data to a stream. The stream must be open.
-  void swrite_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
+  void write_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
     const uint32_t CURV_MAGIC = 16777215;
     _fwritei3(os, CURV_MAGIC);
-     _fwritet<int32_t>(os, curv_data.size());
-     _fwritet<int32_t>(os, num_faces);
-     _fwritet<int32_t>(os, 1); // Number of values per vertex.
+    _fwritet<int32_t>(os, curv_data.size());
+    _fwritet<int32_t>(os, num_faces);
+    _fwritet<int32_t>(os, 1); // Number of values per vertex.
     for(size_t i=0; i<curv_data.size(); i++) {
        _fwritet<_Float32>(os, curv_data[i]);
     }
@@ -571,7 +571,7 @@ namespace fs {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {
-      swrite_curv(ofs, curv_data, num_faces);
+      write_curv(ofs, curv_data, num_faces);
       ofs.close();
     } else {
       std::cerr << "Unable to open curvature file '" << filename << "' for writing.\n";
@@ -580,7 +580,7 @@ namespace fs {
   }
 
   /// Write MGH data to a stream. The stream must be open.
-  void swrite_mgh(std::ostream& os, const Mgh& mgh) {
+  void write_mgh(const Mgh& mgh, std::ostream& os) {
      _fwritet<int32_t>(os, 1); // MGH file format version
      _fwritet<int32_t>(os, mgh.header.dim1length);
      _fwritet<int32_t>(os, mgh.header.dim2length);
@@ -650,11 +650,11 @@ namespace fs {
   /// Write MGH data to a file.
   ///
   /// See also: swrite_mgh to write to a stream.
-  void write_mgh(const std::string& filename, const Mgh& mgh) {
+  void write_mgh(const Mgh& mgh, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {
-      swrite_mgh(ofs, mgh);
+      write_mgh(mgh, ofs);
       ofs.close();
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "' for writing.\n";
@@ -699,7 +699,7 @@ namespace fs {
   /// Read a FreeSurfer ASCII label from a stream.
   ///
   /// See also: read_label to read it from a label file instead.
-  void sread_label(std::ifstream* is, Label* label) {
+  void read_label(Label* label, std::ifstream* is) {
     std::string line;
     int line_idx = -1;
     size_t num_entries_header = 0;  // number of vertices/voxels according to header
@@ -750,7 +750,7 @@ namespace fs {
   void read_label(Label* label, const std::string& filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
-      sread_label(&infile, label);
+      read_label(label, &infile);
       infile.close();
     } else {
       std::cerr << "Could not open label file for reading.\n";
@@ -762,7 +762,7 @@ namespace fs {
   /// Write label data to a stream.
   ///
   /// See also: write_label to write to a file.
-  void swrite_label(std::ostream& os, const Label& label) {
+  void write_label(const Label& label, std::ostream& os) {
     const size_t num_entries = label.num_entries();
     os << "#!ascii label from subject anonymous\n" << num_entries << "\n";
     for(size_t i=0; i<num_entries; i++) {
@@ -774,11 +774,11 @@ namespace fs {
   /// Write label data to a file.
   ///
   /// See also: swrite_label to write to a stream.
-  void write_label(const std::string& filename, const Label& label) {
+  void write_label(const Label& label, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out);
     if(ofs.is_open()) {
-      swrite_label(ofs, label);
+      write_label(label, ofs);
       ofs.close();
     } else {
       std::cerr << "Unable to open label file '" << filename << "' for writing.\n";

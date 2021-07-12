@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
 
     // Write and re-read
     std::string write_filename = "tmp.brain.mgh";
-    fs::write_mgh(write_filename, mgh);
+    fs::write_mgh(mgh, write_filename);
     fs::Mgh mgh2;
     fs::read_mgh(&mgh2, write_filename);
     std::cout << "Received MGH with size " << mgh2.header.dim1length << "*" << mgh2.header.dim2length <<  "*" <<  mgh2.header.dim3length << "*" << mgh2.header.dim4length << " voxels.\n"; 
