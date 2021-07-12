@@ -139,12 +139,12 @@ namespace fs {
       d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
   
     /// Get the value at the given 4D position.
-    const T& at(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const {
+    const T& at(const unsigned int i1, const unsigned int i2, const unsigned int i3, const unsigned int i4) const {
       return data[get_index(i1, i2, i3, i4)];
     }
   
     /// Get the index in the vector for the given 4D position.
-    unsigned int get_index(unsigned int i1, unsigned int i2, unsigned int i3, unsigned int i4) const {
+    unsigned int get_index(const unsigned int i1, const unsigned int i2, const unsigned int i3, const unsigned int i4) const {
       assert(i1 >= 0 && i1 < d1);
       assert(i2 >= 0 && i2 < d2);
       assert(i3 >= 0 && i3 < d3);
