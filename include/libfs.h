@@ -88,7 +88,17 @@ namespace fs {
       }        
       return(plys.str());
     }
-  };  
+  };
+
+
+  struct Curv {
+    Curv(std::vector<_Float32> data, int32_t num_faces = 100000) :
+      data(data), num_faces(num_faces), num_vertices((int32_t)data.size()), num_values_per_vertex(1)) {}
+    int32_t num_faces;
+    int32_t num_vertices;
+    int32_t num_values_per_vertex;
+    std::vector<_Float32> data;
+  };
 
   /// Models the header of an MGH file.
   struct MghHeader {

@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
         curv_fname = argv[1];
     }
     std::cout << "Reading input curv file '" << curv_fname << "'.\n";    
-    std::vector<float> data = fs::read_curv(curv_fname);
+    std::vector<float> data = fs::read_curv_data(curv_fname);
     float min_entry = *std::min_element(data.begin(), data.end());
     float max_entry = *std::max_element(data.begin(), data.end());
     if(data.size() > 0) {
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     // Write again.
     std::string write_filename = "tmp.lh.thickness";
     fs::write_curv(write_filename, data);
-    std::vector<float> data2 = fs::read_curv(write_filename);
+    std::vector<float> data2 = fs::read_curv_data(write_filename);
     float min_entry2 = *std::min_element(data2.begin(), data2.end());
     float max_entry2 = *std::max_element(data2.begin(), data2.end());
     if(data.size() > 0) {
