@@ -29,9 +29,9 @@ namespace fs {
   const int MRI_SHORT = 4;
 
   // Declarations, should go to a header file.
-  int _fread3(std::istream& infile);
-  template <typename T> T _freadt(std::istream& infile);
-  std::string _freadstringnewline(std::istream& stream);
+  int _fread3(std::istream&);
+  template <typename T> T _freadt(std::istream&);
+  std::string _freadstringnewline(std::istream&);
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
   
@@ -151,6 +151,11 @@ namespace fs {
       assert(i4 >= 0 && i4 < d4);
       return (((i1*d2 + i2)*d3 + i3)*d4 + i4);
     }
+
+    /// Get number of values/voxels.
+    unsigned int num_values() const {
+      return(d1*d2*d3*d4);
+    }
   
     unsigned int d1;
     unsigned int d2;
@@ -195,7 +200,7 @@ namespace fs {
     }
   }
 
-  // Overload for reading MGH data from a stream.
+  /// Read MGH data from a stream.
   void read_mgh(Mgh* mgh, std::istream* is) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, is);
@@ -280,11 +285,11 @@ namespace fs {
 
   /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
   void read_mgh_header(MghHeader* mgh_header, const std::string& filename) {    
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(infile.is_open()) {
-      read_mgh_header(mgh_header, &infile);
-      infile.close();
+    std::ifstream ifs;
+    ifs.open(filename, std::ios_base::in | std::ios::binary);
+    if(ifs.is_open()) {
+      read_mgh_header(mgh_header, &ifs);
+      ifs.close();
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
       exit(1);
@@ -297,17 +302,17 @@ namespace fs {
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
   std::vector<T> _read_mgh_data(MghHeader* mgh_header, const std::string& filename) {
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(infile.is_open()) {
-      infile.seekg(284, infile.beg); // skip to end of header and beginning of data
+    std::ifstream ifs;
+    ifs.open(filename, std::ios_base::in | std::ios::binary);
+    if(ifs.is_open()) {
+      ifs.seekg(284, ifs.beg); // skip to end of header and beginning of data
 
-      int num_values = mgh_header->dim1length * mgh_header->dim2length * mgh_header->dim3length * mgh_header->dim4length;
+      int num_values = mgh_header->num_values();
       std::vector<T> data;
       for(int i=0; i<num_values; i++) {
-        data.push_back( _freadt<T>(infile));
+        data.push_back( _freadt<T>(ifs));
       }
-      infile.close();
+      ifs.close();
       return(data);
     } else {
       std::cerr << "Unable to open MGH file '" << filename << "'.\n";
@@ -610,7 +615,7 @@ namespace fs {
     }
 
     // Write data
-    size_t num_values = mgh.header.dim1length * mgh.header.dim2length * mgh.header.dim3length * mgh.header.dim4length;
+    size_t num_values = mgh.header.num_values();
     if(mgh.header.dtype == MRI_INT) {
       if(mgh.data.data_mri_int.size() != num_values) {
         std::cerr << "Detected mismatch of MRI_INT data size and MGH header dim length values.\n";

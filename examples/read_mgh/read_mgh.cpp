@@ -55,6 +55,10 @@ int main(int argc, char** argv) {
     std::cout << "Received MGH with size " << mgh3.header.dim1length << "*" << mgh3.header.dim2length <<  "*" <<  mgh3.header.dim3length << "*" << mgh3.header.dim4length << " voxels.\n"; 
     std::cout << "The data type is " << mgh3.header.dtype << " and the length of mgh.data.data_mri_uchar is " << mgh3.data.data_mri_uchar.size() << ".\n";
     std::cout << "The RAS part of the header is valid: " << (mgh3.header.ras_good_flag ? "yes" : "no" ) << ".\n";
+    // Optional: Put the data into an Array4D for more convenient access to the voxel indices.
+    fs::Array4D<uint8_t> ar3(&mgh3.header);
+    ar3.data = mgh3.data.data_mri_uchar;
+    std::cout << "The value at voxel (99,99,99,0) is: " << (unsigned int)ar3.at(99,99,99,0) << ".\n";
 
     exit(0);
 }
