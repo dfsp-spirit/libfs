@@ -44,4 +44,9 @@ examples/read_mgh/read_mgh
 examples/read_surf/read_surf
 examples/read_surf/read_label
 
+# Doxygen
+doxyfile
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+doc/doc_built
 
