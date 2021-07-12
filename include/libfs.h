@@ -42,53 +42,52 @@ namespace fs {
     * The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
     * making up the respective face. Vertex indices are 0-based.
     */
-  class Mesh {
-    public:
-      std::vector<float> vertices;
-      std::vector<int> faces;
+  struct Mesh {
+    std::vector<float> vertices;
+    std::vector<int> faces;
 
-      /// Return string representing the mesh in Wavefront Object (.obj) format.
-      std::string to_obj() const {
-        std::stringstream objs;
-        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) { // vertex coords
-          objs << "v " << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
-        }
-        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 1-based
-          objs << "f " << faces[fidx]+1 << " " << faces[fidx+1]+1 << " " << faces[fidx+2]+1 << "\n";
-        }        
-        return(objs.str());
+    /// Return string representing the mesh in Wavefront Object (.obj) format.
+    std::string to_obj() const {
+      std::stringstream objs;
+      for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) { // vertex coords
+        objs << "v " << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
+      }
+      for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 1-based
+        objs << "f " << faces[fidx]+1 << " " << faces[fidx+1]+1 << " " << faces[fidx+2]+1 << "\n";
+      }        
+      return(objs.str());
+    }
+
+    /// Return the number of vertices in this mesh.
+    size_t num_vertices() const {
+      return(this->vertices.size() / 3);
+    }
+
+    /// Return the number of faces in this mesh.
+    size_t num_faces() const {
+      return(this->faces.size() / 3);
+    }
+
+    /// Return string representing the mesh in PLY format.
+    std::string to_ply() const {
+      std::stringstream plys;
+      plys << "ply\nformat ascii 1.0\n";
+      plys << "element vertex " << this->num_vertices() << "\n";
+      plys << "property float x\nproperty float y\nproperty float z\n";
+      plys << "element face " << this->num_faces() << "\n";
+      plys << "property list uchar int vertex_index\n";
+      plys << "end_header\n";
+      
+      for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
+        plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
       }
 
-      /// Return the number of vertices in this mesh.
-      size_t num_vertices() const {
-        return(this->vertices.size() / 3);
-      }
-
-      /// Return the number of faces in this mesh.
-      size_t num_faces() const {
-        return(this->faces.size() / 3);
-      }
-
-      /// Return string representing the mesh in PLY format.
-      std::string to_ply() const {
-        std::stringstream plys;
-        plys << "ply\nformat ascii 1.0\n";
-        plys << "element vertex " << this->num_vertices() << "\n";
-        plys << "property float x\nproperty float y\nproperty float z\n";
-        plys << "element face " << this->num_faces() << "\n";
-        plys << "property list uchar int vertex_index\n";
-        plys << "end_header\n";
-        
-        for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
-          plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
-        }
-
-        const int num_vertices_per_face = 3;
-        for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 0-based
-          plys << num_vertices_per_face << " " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
-        }        
-        return(plys.str());
-      }
+      const int num_vertices_per_face = 3;
+      for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 0-based
+        plys << num_vertices_per_face << " " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
+      }        
+      return(plys.str());
+    }
   };  
 
   /// Models the header of an MGH file.
