@@ -92,8 +92,6 @@ namespace fs {
 
 
   struct Curv {
-    Curv(std::vector<_Float32> data, int32_t num_faces = 100000) :
-      data(data), num_faces(num_faces), num_vertices((int32_t)data.size()), num_values_per_vertex(1)) {}
     int32_t num_faces;
     int32_t num_vertices;
     int32_t num_values_per_vertex;
@@ -392,28 +390,28 @@ namespace fs {
   /// Returns a Mesh datastructure representing a vertex-indexed tri-mesh.
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(infile.is_open()) {
-      int magic = _fread3(infile);
+    std::ifstream is;
+    is.open(filename, std::ios_base::in | std::ios::binary);
+    if(is.is_open()) {
+      int magic = _fread3(is);
       if(magic != SURF_TRIS_MAGIC) {
         std::cerr << "Magic did not match: expected " << SURF_TRIS_MAGIC << ", found " << magic << ".\n";
         exit(1);
       }
-      std::string created_line = _freadstringnewline(infile);
-      std::string comment_line = _freadstringnewline(infile);
-      int num_verts =  _freadt<int32_t>(infile);
-      int num_faces =  _freadt<int32_t>(infile);      
+      std::string created_line = _freadstringnewline(is);
+      std::string comment_line = _freadstringnewline(is);
+      int num_verts =  _freadt<int32_t>(is);
+      int num_faces =  _freadt<int32_t>(is);      
       //std::cout << "Read surface file with " << num_verts << " vertices, " << num_faces << " faces.\n";
       std::vector<float> vdata;
       for(int i=0; i<(num_verts*3); i++) {
-        vdata.push_back( _freadt<_Float32>(infile));
+        vdata.push_back( _freadt<_Float32>(is));
       }
       std::vector<int> fdata;
       for(int i=0; i<(num_faces*3); i++) {
-        fdata.push_back( _freadt<int32_t>(infile));
+        fdata.push_back( _freadt<int32_t>(is));
       }
-      infile.close();
+      is.close();
       surface->vertices = vdata;
       surface->faces = fdata;
     } else {
@@ -430,36 +428,48 @@ namespace fs {
     short int number = 0x1;
     char *numPtr = (char*)&number;
     return (numPtr[0] != 1);
-  }
+  }  
 
-  /// Read per-vertex brain morphometry data from a FreeSurfer curv format file.
-  std::vector<float> read_curv(const std::string& filename) {
+  /// Read per-vertex brain morphometry data from a FreeSurfer curv stream.
+  void read_curv(Curv* curv, std::istream *is) {
     const int CURV_MAGIC = 16777215;
-    std::ifstream infile;
-    infile.open(filename, std::ios_base::in | std::ios::binary);
-    if(infile.is_open()) {
-      int magic = _fread3(infile);
-      if(magic != CURV_MAGIC) {
-        std::cerr << "Magic did not match: expected " << CURV_MAGIC << ", found " << magic << ".\n";
-      }
-      int num_verts =  _freadt<int32_t>(infile);
-      int num_faces =  _freadt<int32_t>(infile);
-      (void)num_faces; // The num_faces it unused but needs to be read, we perform a no-op here to aviodi a compiler warning about an 'unused variable'.
-      int num_values_per_vertex =  _freadt<int32_t>(infile);
-      //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
-      if(num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
-        std::cerr << "Curv file must contain exactly 1 value per vertex, found " << num_values_per_vertex << ".\n";  
-      }
-      std::vector<float> data;
-      for(int i=0; i<num_verts; i++) {
-        data.push_back( _freadt<_Float32>(infile));
-      }
-      infile.close();
-      return(data);
+    int magic = _fread3(*is);
+    if(magic != CURV_MAGIC) {
+      std::cerr << "Magic did not match: expected " << CURV_MAGIC << ", found " << magic << ".\n";
+    }
+    curv->num_vertices = _freadt<int32_t>(*is);
+    curv->num_faces =  _freadt<int32_t>(*is);
+    curv->num_values_per_vertex = _freadt<int32_t>(*is);
+    //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
+    if(curv->num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
+      std::cerr << "Curv file must contain exactly 1 value per vertex, found " << curv->num_values_per_vertex << ".\n";  
+    }
+    std::vector<float> data;
+    for(int i=0; i<curv->num_vertices; i++) {
+      data.push_back( _freadt<_Float32>(*is));
+    }
+    curv->data = data;
+  }  
+
+
+  /// Read Curv instance from a FreeSurfer curv format file.
+  void read_curv(Curv* curv, const std::string& filename) {
+    std::ifstream is(filename);
+    if(is.is_open()) {
+      read_curv(curv, &is);
+      is.close();
     } else {
-      std::cerr << "Unable to open curvature file '" << filename << "'.\n";
+      std::cerr << "Could not open curv file for reading.\n";
       exit(1);
     }
+  }
+
+
+  /// Read per-vertex brain morphometry data from a FreeSurfer curv format file.
+  std::vector<float> read_curv_data(const std::string& filename) {
+    Curv curv;
+    read_curv(&curv, filename);
+    return(curv.data);
   }
   
   /// Swap endianness of a value.
