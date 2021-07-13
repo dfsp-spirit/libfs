@@ -465,7 +465,10 @@ namespace fs {
     return (numPtr[0] != 1);
   }  
 
-  /// Read per-vertex brain morphometry data from a FreeSurfer curv stream.
+  /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv stream.
+  /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
+  /// @param curv A Curv instance to be filled.
+  /// @param is An open istream from which to read the curv data.
   void read_curv(Curv* curv, std::istream *is) {
     const int CURV_MAGIC = 16777215;
     int magic = _fread3(*is);
@@ -487,7 +490,10 @@ namespace fs {
   }  
 
 
-  /// Read Curv instance from a FreeSurfer curv format file.
+  /// @brief Read Curv instance from a FreeSurfer curv format file.
+  /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
+  /// @param curv A Curv instance to be filled.
+  /// @param filename Path to a file from which to read the curv data.
   void read_curv(Curv* curv, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
@@ -500,7 +506,10 @@ namespace fs {
   }
 
 
-  /// Read per-vertex brain morphometry data from a FreeSurfer curv format file.
+  /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv format file.
+  /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
+  /// @param filename Path to a file from which to read the curv data.
+  /// @return a vector of float values, one per vertex.
   std::vector<float> read_curv_data(const std::string& filename) {
     Curv curv;
     read_curv(&curv, filename);
@@ -607,7 +616,8 @@ namespace fs {
     }
   }
 
-  /// Write curv data to a stream. The stream must be open.
+  /// @brief Write curv data to a stream.
+  /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   void write_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
     const uint32_t CURV_MAGIC = 16777215;
     _fwritei3(os, CURV_MAGIC);
@@ -634,7 +644,10 @@ namespace fs {
     }
   }
 
-  /// Write MGH data to a stream. The stream must be open.
+  /// @brief Write MGH data to a stream.
+  /// @details The MGH format is a binary, big-endian FreeSurfer file format for storing 4D data. Several data types are supported, and one has to check the header to see which one is contained in a file.
+  /// @param mgh An Mgh instance that should be written.
+  /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   void write_mgh(const Mgh& mgh, std::ostream& os) {
      _fwritet<int32_t>(os, 1); // MGH file format version
      _fwritet<int32_t>(os, mgh.header.dim1length);
@@ -702,9 +715,11 @@ namespace fs {
     
   }
 
-  /// Write MGH data to a file.
-  ///
-  /// See also: swrite_mgh to write to a stream.
+  /// @brief Write MGH data to a file.
+  /// @details The MGH format is a binary, big-endian FreeSurfer file format for storing 4D data. Several data types are supported, and one has to check the header to see which one is contained in a file.
+  /// @param mgh An Mgh instance that should be written.
+  /// @param filename Path to an output file to which to write.
+  /// @see There exists an overload to write to a stream.
   void write_mgh(const Mgh& mgh, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -725,7 +740,7 @@ namespace fs {
     std::vector<float> coord_z;
     std::vector<float> value;
 
-    // Compute for each vertex of the surface whether it is inside the label.
+    /// Compute for each vertex of the surface whether it is inside the label.
     std::vector<bool> vert_in_label(size_t surface_num_verts) const {
       if(surface_num_verts < this->vertex.size()) { // nonsense, so we warn (but don't exit, maybe the user really wants this).
         std::cerr << "Invalid number of vertices for surface, must be at least " << this->vertex.size() << "\n";
@@ -740,7 +755,7 @@ namespace fs {
       return(is_in);
     }
 
-    // Return the number of entries (vertices/voxels) in this label.
+    /// Return the number of entries (vertices/voxels) in this label.
     size_t num_entries() const {      
       size_t num_ent = this->vertex.size();
       if(this->coord_x.size() != num_ent || this->coord_y.size() != num_ent || this->coord_z.size() != num_ent || this->value.size() != num_ent || this->value.size() != num_ent) {
@@ -751,15 +766,17 @@ namespace fs {
   };
 
 
-  /// Read a FreeSurfer ASCII label from a stream.
-  ///
-  /// See also: read_label to read it from a label file instead.
+  /// @brief Read a FreeSurfer ASCII label from a stream.
+  /// @details A label is a list of vertices (for a surface label, given by index) or voxels (for a volume label, given by the xyz coordinates) and one floating point value per vertex/voxel. Sometimes a label is only used to define a set of vertices/voxels (like a certain brain region), and the values are irrelevant (and typically left at 0.0).
+  /// @param label A Label instance that should be filled.
+  /// @param is An open stream from which to read the label.
+  /// @see There exists an overload to read from a file instead.
   void read_label(Label* label, std::ifstream* is) {
     std::string line;
     int line_idx = -1;
     size_t num_entries_header = 0;  // number of vertices/voxels according to header
     size_t num_entries = 0;  // number of vertices/voxels for which the file contains label entries.
-    while (std::getline(*is, line)) {
+    while (std::getlinte(*is, line)) {
       line_idx += 1;
       std::istringstream iss(line);
       if(line_idx == 0) {
