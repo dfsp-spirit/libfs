@@ -45,6 +45,8 @@ examples/read_curv/tmp.lh.thickness
 examples/read_mgh/read_mgh
 examples/read_mgh/tmp.brain.mgh
 
+examples/read_mgz/read_mgz
+examples/read_mgz/tmp.brain.mgz
 
 examples/read_surf/read_surf
 examples/read_surf/lh_white.ply
