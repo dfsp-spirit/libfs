@@ -23,6 +23,10 @@ The MGZ format is just a gzipped version of the MGH format. While the MGZ format
 * You can extract the MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
 
+#### What libfs is not
+
+ This library was written from scratch in C++. It is **not** based on the FreeSurfer C code and does not use the same data structures that are used in FreeSurfer.
+
 ## Usage 
 
 ### Examples
