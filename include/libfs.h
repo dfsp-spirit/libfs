@@ -264,19 +264,14 @@ namespace fs {
       unused_header_space_size_left -= 60;
     }
 
-    // Advance to data part.
+    // Advance to data part. We do not seek here because that is not
+    // possible if the stream is gzip-wrapped with zstr, as in the read_mgz example.
     uint8_t discarded;
     while(unused_header_space_size_left > 0) {
       discarded = _freadt<uint8_t>(*is);
       unused_header_space_size_left -= 1;
     }
-    discarded = 0;
-
-    // TODO: MGH files may contain an optional footer after the data with some metadata that we could read.
-    //is->seekg(unused_header_space_size_left, is->cur);  // skip rest of header.
-    // skip past data
-    // check if something left in file and read footer if existant
-
+    (void)discarded; // Suppress warnings about unused variable.
   }
 
   /// Read MRI_INT data from MGH file

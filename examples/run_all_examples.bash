@@ -22,6 +22,9 @@ cd $bd/read_label && g++ -I../../include/ read_label.cpp -o read_label && ./read
 echo "$apptag ========== Running MGH example... =========="
 cd $bd/read_mgh && g++ -I../../include/ read_mgh.cpp -o read_mgh && ./read_mgh && cd ..
 
+echo "$apptag ========== Running MGZ example (requires zlib)... =========="
+cd $bd/read_mgz && g++ -I../../include/ -I./include_zstr/ read_mgz.cpp -o read_mgz -lz && ./read_mgz && cd ..
+
 echo "$apptag ========== Running surf example... =========="
 cd $bd/read_surf && g++ -I../../include/ read_surf.cpp -o read_surf && ./read_surf && cd ..
 
