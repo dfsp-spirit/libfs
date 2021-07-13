@@ -25,9 +25,6 @@
  */ 
 
 
-
-
-
 namespace fs {
   
   // MRI data types, used by the MGH functions.
@@ -616,8 +613,12 @@ namespace fs {
     }
   }
 
+
   /// @brief Write curv data to a stream.
+  /// @details A curv file contains one floating point value per vertex (or a related mesh).
   /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
+  /// @param curv_data the data to write.
+  /// @param num_faces the value for the header field `num_faces`. This is not needed afaik and typically ignored.
   void write_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
     const uint32_t CURV_MAGIC = 16777215;
     _fwritei3(os, CURV_MAGIC);
@@ -629,9 +630,12 @@ namespace fs {
     }
   }
 
-  /// Write curv data to a file.
-  ///
-  /// See also: swrite_curv to write to a stream.
+
+  /// @brief Write curv data to a file.
+  /// @details A curv file contains one floating point value per vertex (or a related mesh).
+  /// @param filename The path to the output file.
+  /// @param curv_data the data to write.
+  /// @param num_faces the value for the header field `num_faces`. This is not needed afaik and typically ignored.
   void write_curv(const std::string& filename, std::vector<float> curv_data, const int32_t num_faces = 100000) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -812,13 +816,12 @@ namespace fs {
     }
   }
 
-  /// Read a FreeSurfer ASCII label file.
-  ///
-  /// Examples:
-  ///
-  /// sf::Label label;
-  /// sf::read_label(&label, "subject1/label/lh.cortex.label");
-  /// size_t nv = label.num_entries();
+
+  /// @brief Read a FreeSurfer ASCII label from a file.
+  /// @details A label is a list of vertices (for a surface label, given by index) or voxels (for a volume label, given by the xyz coordinates) and one floating point value per vertex/voxel. Sometimes a label is only used to define a set of vertices/voxels (like a certain brain region), and the values are irrelevant (and typically left at 0.0).
+  /// @param label A Label instance that should be filled.
+  /// @param filename Path to the label file that should be read.
+  /// @see There exists an overload to read from a stream instead.
   void read_label(Label* label, const std::string& filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
