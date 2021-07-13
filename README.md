@@ -17,7 +17,7 @@ Supported data types for the MGH format include:
 
 ### A note on the MGZ format
 
-The MGZ format is just a gzipped version of the MGH format. While the MGZ format is not supported directly by `libfs`, but you have two options to read MGZ files:
+The MGZ format is just a gzipped version of the MGH format. While the MGZ format is not supported directly by `libfs`, you have two options to read MGZ files:
 
 * You can use `zlib` and the [zstr](https://github.com/mateidavid/zstr/) header-only C++ library (a stream wrapper around `zlib`) in combination with `libfs` to read MGZ files. It's easy and a complete example program that does it can be found in [examples/read_mgz/](./examples/read_mgz/). While `zlib` itself is not header-only, it should be available *everywhere anyways*, so it should not drag you into dependency hell.
 * You can extract the MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
