@@ -63,11 +63,9 @@ The documentation will be built and can be found in `doc/doc_built/` afterwards.
 
 * Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug.
 * Function naming:
-  - Functions that read data from files are called `read_*`, e.g., `read_surf`, `read_curv`, `read_mgh`.
-  - Function that read data from streams are called `sread_*`, e.g., `sread_curv`.
-  - Functions that write data to files are called `write_*`, e.g., `write_curv`.
-  - Functions that write data to streams are called `swrite_*`, e.g., `swrite_curv`.
-
+  - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
+  - Functions that write data to files are called `write_*`, e.g., `write_curv` and `write_mgh`.
+* Most `read_*`/`write_*` functions are overloaded and accept either a `const std::string& filename` argument or a `std::istream *is`/`std::ostream *os` as a source/sink. This allows you to pass streams and bring your own gunzip.
 
 
 ## Development
