@@ -69,7 +69,7 @@ The documentation will be built and can be found in `doc/doc_built/` afterwards.
 * Function naming:
   - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
   - Functions that write data to files are called `write_*`, e.g., `write_curv` and `write_mgh`.
-* Most `read_*`/`write_*` functions are overloaded and accept either a `const std::string& filename` argument or a `std::istream *is`/`std::ostream *os` as a source/sink. This allows you to pass streams and bring your own gunzip.
+* Most `read_*`/`write_*` functions are overloaded and accept either a `const std::string& filename` argument or a `std::istream *is`/`std::ostream *os` as a source/sink. This allows you to pass streams and bring your own gunzip (see [examples/read_mgz/](./examples/read_mgz/)).
 
 
 ## Development
@@ -98,6 +98,13 @@ make
 ./run_libfs_tests
 ```
 Note that the only thing that's being built is the test binary.
+
+
+## Running all examples
+
+In the repo root, just run `./examples/run_all_examples.bash` from your system shell.
+
+Note that the `read_mgz` example requires `zlib`.
 
 
 ## Author and Getting help
