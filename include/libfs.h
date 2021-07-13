@@ -263,6 +263,15 @@ namespace fs {
       }
       unused_header_space_size_left -= 60;
     }
+
+    // Advance to data part.
+    uint8_t discarded;
+    while(unused_header_space_size_left > 0) {
+      discarded = _freadt<uint8_t>(*is);
+      unused_header_space_size_left -= 1;
+    }
+    discarded = 0;
+
     // TODO: MGH files may contain an optional footer after the data with some metadata that we could read.
     //is->seekg(unused_header_space_size_left, is->cur);  // skip rest of header.
     // skip past data
@@ -329,13 +338,11 @@ namespace fs {
   }
 
 
-  /// Read arbitrary MGH data from a stream.
+  /// Read arbitrary MGH data from a stream. The stream must be open and at the beginning of the MGH data.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   template <typename T>
-  std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::istream* is) {
-    is->seekg(284, is->beg); // skip to end of header and beginning of data
-
+  std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::istream* is) {    
     int num_values = mgh_header->num_values();
     std::vector<T> data;
     for(int i=0; i<num_values; i++) {
