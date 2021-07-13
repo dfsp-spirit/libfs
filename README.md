@@ -9,18 +9,18 @@ A portable, header-only, zero-dependency, mildly templated, C++11 library for ac
 * read FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
 
-
-
 Supported data types for the MGH format include:
 * `MRI_INT`: 32 bit signed int
 * `MRI_FLOAT`: 32 bit signed float and
 * `MRI_UCHAR`: 8 bit unsigned int.
  
- 
-Note that the MGZ format is not supported directly, but you have two options to read MGZ files:
 
-* You can use zlib and the [zstr](https://github.com/mateidavid/zstr/) header-only C++ library (a stream wrapper around zlib) in combination with `libfs` to read it. It's easy and a complete example program that does it can be found in [examples/read_mgz/](./examples/read_mgz/).
-* You can extract it manually on the command line (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
+### A note on the MGZ format
+
+The MGZ format is just a gzipped version of the MGH format. While the MGZ format is not supported directly by `libfs`, but you have two options to read MGZ files:
+
+* You can use `zlib` and the [zstr](https://github.com/mateidavid/zstr/) header-only C++ library (a stream wrapper around `zlib`) in combination with `libfs` to read MGZ files. It's easy and a complete example program that does it can be found in [examples/read_mgz/](./examples/read_mgz/). While `zlib` itself is not header-only, it should be available *everywhere anyways*, so it should not drag you into dependency hell.
+* You can extract the MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
 
 ## Usage 
