@@ -100,7 +100,7 @@ make
 Note that the only thing that's being built is the test binary.
 
 
-## Running all examples
+### Running all examples
 
 In the repo root, just run `./examples/run_all_examples.bash` from your system shell.
 
