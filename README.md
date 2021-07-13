@@ -33,7 +33,7 @@ Just download the file [include/libfs.h](./include/libfs.h) and drop it whereeve
 
 int main(int argc, char** argv) {
     std::string curv_fname = "lh.thickness";
-    std::vector<float> data = fs::read_curv(curv_fname);
+    std::vector<float> data = fs::read_curv_data(curv_fname);
     std::cout << "Received " << data.size() << " per-vertex values.\n"; 
     exit(0);
 }
