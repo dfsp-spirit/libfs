@@ -10,7 +10,23 @@
 
 
 /// @file
-/// 
+///
+/*! \mainpage The libfs API documentation
+ *
+ * \section intro_sec Introduction
+ *
+ * Welcome to the API documentation for libfs, a header-only C++11 library to read and write FreeSurfer neuroimaging data.
+ * 
+ * All relevant functions are in the file include/libfs.h and only a few utility functions are class
+ * members, so the best place to start is to open the documentation for libfs.h in the Files section above.
+ * 
+ * The project page for fslib can be found at https://github.com/dfsp-spirit/libfs
+ * 
+ */ 
+
+
+
+
 
 namespace fs {
   
@@ -35,13 +51,12 @@ namespace fs {
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
   
-  /**
-    * Models a triangular mesh, used for brain surface meshes.
-    * Represents a vertex-indexed mesh. The n vertices are stored as 3D point coordinates (x,y,z) in a vector
-    * of length 3n, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
-    * The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
-    * making up the respective face. Vertex indices are 0-based.
-    */
+  /// Models a triangular mesh, used for brain surface meshes.
+  /// 
+  /// Represents a vertex-indexed mesh. The n vertices are stored as 3D point coordinates (x,y,z) in a vector
+  /// of length 3n, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
+  /// The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
+  /// making up the respective face. Vertex indices are 0-based.
   struct Mesh {
     std::vector<float> vertices;
     std::vector<int> faces;
@@ -91,6 +106,7 @@ namespace fs {
   };
 
 
+  /// Models a FreeSurfer curv file that contains per-vertex float data.
   struct Curv {
     int32_t num_faces;
     int32_t num_vertices;
@@ -186,6 +202,10 @@ namespace fs {
 
 
   /// Read a FreeSurfer volume file in MGH format into the given Mgh struct.
+  /// 
+  /// @param mgh An Mgh instance that should be filled with the data from the filename.
+  /// @param filename Path to the input MGH file.
+  /// @see There exists an overloaded version that reads from a stream.
   void read_mgh(Mgh* mgh, const std::string& filename) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
@@ -209,6 +229,10 @@ namespace fs {
   }
 
   /// Read MGH data from a stream.
+  /// 
+  /// @param mgh An Mgh instance that should be filled with the data from the stream.
+  /// @param is Pointer to an open istream from which to read the MGH data.
+  /// @see There exists an overloaded version that reads from a file.
   void read_mgh(Mgh* mgh, std::istream* is) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, is);
@@ -229,6 +253,10 @@ namespace fs {
   }
 
   /// Read an MGH header from a stream.
+  /// 
+  /// @param mgh_header An MghHeader instance that should be filled with the data from the stream.
+  /// @param is Pointer to an open istream from which to read the MGH data.
+  /// @see There exists an overloaded version that reads from a file.
   void read_mgh_header(MghHeader* mgh_header, std::istream* is) {
     const int MGH_VERSION = 1;    
 
@@ -296,6 +324,10 @@ namespace fs {
 
 
   /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
+  ///
+  /// @param mgh_header An MghHeader instance that should be filled with the data from the file.
+  /// @param filename Path to the file from which to read the MGH data.
+  /// @see There exists an overloaded version that reads from a stream.
   void read_mgh_header(MghHeader* mgh_header, const std::string& filename) {    
     std::ifstream ifs;
     ifs.open(filename, std::ios_base::in | std::ios::binary);
@@ -389,7 +421,8 @@ namespace fs {
 
   /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
   ///
-  /// Returns a Mesh datastructure representing a vertex-indexed tri-mesh.
+  /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
+  /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
@@ -783,7 +816,9 @@ namespace fs {
 
   /// Write label data to a stream.
   ///
-  /// See also: write_label to write to a file.
+  /// @param label The label to write.
+  /// @param os An open output stream.
+  /// @see There exists an onverload of this function to write a label to a file.
   void write_label(const Label& label, std::ostream& os) {
     const size_t num_entries = label.num_entries();
     os << "#!ascii label from subject anonymous\n" << num_entries << "\n";
@@ -807,8 +842,6 @@ namespace fs {
       exit(1);
     }
   }
-
-
 
 } // End namespace fs
 
