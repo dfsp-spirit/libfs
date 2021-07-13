@@ -61,7 +61,7 @@ The documentation will be built and can be found in `doc/doc_built/` afterwards.
 
 ### Conventions
 
-* Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug.
+* Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug. (Please [open an issue](https://github.com/dfsp-spirit/libfs/issues) if you feel that you need to use an internal function from your client code, and explain your use case.)
 * Function naming:
   - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
   - Functions that write data to files are called `write_*`, e.g., `write_curv` and `write_mgh`.
@@ -100,5 +100,5 @@ Note that the only thing that's being built is the test binary.
 
 The `libfs` library was written by [Tim Schäfer](http://rcmd.org/ts).
 
-Note that this library is **not** a part of FreeSurfer, and it is **in no way** endorsed by the FreeSurfer developers. Please do not contact them regarding this library, especially not for support. Open [an issue](https://github.com/dfsp-spirit/libfs/issues) in this repo instead.
+Note that this library is **not** a part of FreeSurfer, and it is **in no way** endorsed by the FreeSurfer developers. Please do not contact them regarding this library, especially not for support. [Open an issue](https://github.com/dfsp-spirit/libfs/issues) in this repo instead.
 
