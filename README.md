@@ -15,7 +15,7 @@ Supported data types for the MGH format include:
 * `MRI_UCHAR`: 8 bit unsigned int.
  
 
-### A note on the MGZ format
+#### A note on the MGZ format
 
 The MGZ format is just a gzipped version of the MGH format. While the MGZ format is not supported directly by `libfs`, you have two options to read MGZ files:
 
