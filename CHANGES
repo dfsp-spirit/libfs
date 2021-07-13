@@ -8,6 +8,7 @@ v0.2.0
 * add many new member functions to structs and use them throughout the library
 * add Curv struct and new read_curv function that reads into it.
 * BREAKING: rename old read_curv function that reads only the data part to read_curv_data.
+* add write support for labels
 
 
 v0.1.0
