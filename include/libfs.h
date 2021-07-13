@@ -602,7 +602,7 @@ namespace fs {
   }
 
   /// Write MGH data to a stream. The stream must be open.
-  void write_mgh(Mgh& mgh, std::ostream& os) {
+  void write_mgh(const Mgh& mgh, std::ostream& os) {
      _fwritet<int32_t>(os, 1); // MGH file format version
      _fwritet<int32_t>(os, mgh.header.dim1length);
      _fwritet<int32_t>(os, mgh.header.dim2length);
@@ -672,7 +672,7 @@ namespace fs {
   /// Write MGH data to a file.
   ///
   /// See also: swrite_mgh to write to a stream.
-  void write_mgh(Mgh& mgh, const std::string& filename) {
+  void write_mgh(const Mgh& mgh, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {

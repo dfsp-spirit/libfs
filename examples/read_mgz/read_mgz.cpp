@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     std::string write_filename = "tmp.brain.mgz";
     std::unique_ptr< std::ofstream > ofs_p = std::unique_ptr< std::ofstream >(new strict_fstream::ofstream(write_filename));
     std::ostream * os_p = ofs_p.get();
-    fs::write_mgh(&mgh, *os_p);
+    fs::write_mgh(mgh, *os_p);
 
     std::cout << "===== Re-reading written MGZ file. =====\n";
     fs::Mgh mgh2;
