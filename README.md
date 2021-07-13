@@ -16,7 +16,11 @@ Supported data types for the MGH format include:
 * `MRI_FLOAT`: 32 bit signed float and
 * `MRI_UCHAR`: 8 bit unsigned int.
  
-Note that the MGZ format is not supported yet, but you can extract it manually (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
+ 
+Note that the MGZ format is not supported directly, but you have two options to read MGZ files:
+
+* You can use zlib and the [zstr](https://github.com/mateidavid/zstr/) header-only C++ library (a stream wrapper around zlib) in combination with `libfs` to read it. It's easy and a complete example program that does it can be found in [examples/read_mgz/](./examples/read_mgz/).
+* You can extract it manually on the command line (it's simply gzipped MGH) or convert it using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
 
 ## Usage 
