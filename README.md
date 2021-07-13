@@ -100,6 +100,13 @@ make
 Note that the only thing that's being built is the test binary.
 
 
+## Running all examples
+
+In the repo root, just run `./examples/run_all_examples.bash` from your system shell.
+
+Note that the `read_mgz` example requires `zlib`.
+
+
 ## Author and Getting help
 
 The `libfs` library was written by [Tim Schäfer](http://rcmd.org/ts).
