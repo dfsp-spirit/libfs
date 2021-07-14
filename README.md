@@ -62,17 +62,6 @@ Compilation instructions for g++ and clang are at the top of each example source
 
 The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://codedocs.xyz/dfsp-spirit/libfs/).
 
-#### Building the documentation yourself
-
-If you have `doxygen` installed (`sudo apt install doxygen graphviz` under Debian-based Linux distros), you can generate the full API documentation like this:
-
-```
-cmake .
-make doc
-```
-
-The documentation will be built and can be found in `doc_built/` afterwards. The recommended way to browse it is to open `doc_built/html/index.html` with your favorite webbrowser.
-
 
 ### Conventions
 
@@ -112,6 +101,18 @@ Note that the only thing that's being built is the test binary.
 In the repo root, just run `./examples/run_all_examples.bash` from your system shell.
 
 Note that the `read_mgz` example requires `zlib`.
+
+
+### Building the documentation locally
+
+If you have `doxygen` installed (`sudo apt install doxygen graphviz` under Debian-based Linux distros), you can generate the full API documentation like this:
+
+```
+cmake .
+make doc
+```
+
+The documentation will be built and can be found in `doc_built/` afterwards. The recommended way to browse it is to open `doc_built/html/index.html` with your favorite webbrowser.
 
 
 ## Author and Getting help
