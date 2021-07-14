@@ -125,7 +125,12 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE(surface.fm_at(1,2) == surface.faces[5]);
         REQUIRE(surface.fm_at(2,0) == surface.faces[6]);
         REQUIRE(surface.fm_at(2,1) == surface.faces[7]);
-        REQUIRE(surface.fm_at(2,2) == surface.faces[8]);        
+        REQUIRE(surface.fm_at(2,2) == surface.faces[8]);
+
+        // Test known values as well: first face consists of vertices 0,1,5
+        REQUIRE(surface.fm_at(0,0) == 0);
+        REQUIRE(surface.fm_at(0,1) == 1);
+        REQUIRE(surface.fm_at(0,2) == 5);
     }
 }
 
