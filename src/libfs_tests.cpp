@@ -137,3 +137,40 @@ TEST_CASE( "Reading the demo label file works" ) {
     }
 }
 
+
+TEST_CASE( "Reading the demo annot file works" ) {
+
+    fs::Annot annot;
+    fs::read_annot(&annot, "examples/read_annot/lh.aparc.annot");
+    const size_t surface_num_vertices = 149244;
+
+    SECTION("The number of vertices in the annot is correct" ) {        
+        REQUIRE( annot.num_vertices() == surface_num_vertices);
+    }
+
+    SECTION("The number of regions in the annot Colortable is correct" ) {        
+        REQUIRE( annot.colortable.num_entries() == 36);
+    }
+
+    SECTION("One can compute all vertices of a region." ) {
+        std::string region_name = "bankssts";
+        std::vector<int32_t> bankssts_vertices = annot.region_vertices(region_name);
+        REQUIRE( bankssts_vertices.size() == 1722);
+    }
+
+    SECTION("One can compute the region for all vertices." ) {
+        std::string region_name = "bankssts";
+        std::vector<int32_t> bankssts_vertices = annot.region_vertices(region_name);
+        std::vector<std::string> vertex_reg_names = annot.vertex_region_names();
+        
+        int32_t num_bankssts = 0;
+        for(size_t i=0; i<vertex_reg_names.size(); i++) {
+            if(vertex_reg_names[i] == region_name) {
+                num_bankssts++;
+            }
+        }
+        REQUIRE( num_bankssts == 1722);
+
+    }
+}
+
