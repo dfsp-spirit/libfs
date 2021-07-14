@@ -1,20 +1,28 @@
 
 
+v0.2.1
+------
+* Finish API documentation
+* Add structs Annot and Colortable with many convenience member functions that model brain parcellations.
+* Add support for reading brain surface parcellations from annot files.
+* Add example for reading annot files.
+
+
 v0.2.0
 ------
 * BREAKING: change order of arguments for all functions reading streams.
 * BREAKING: rename all sread_ function to read_ and use overloading.
-* add stream-based versions for reading various formats, including MGH. This allows for MGZ support, see examples/read_mgz/.
-* add many new member functions to structs and use them throughout the library
-* add Curv struct and new read_curv function that reads into it.
+* Add stream-based versions for reading various formats, including MGH. This allows for MGZ support, see examples/read_mgz/.
+* Add many new member functions to structs and use them throughout the library
+* Add Curv struct and new read_curv function that reads into it.
 * BREAKING: rename old read_curv function that reads only the data part to read_curv_data.
-* add write support for labels
+* Add write support for labels
 
 
 v0.1.0
 ------
-* read and write FreeSurfer per-vertex data from and to binary curv format files (like $SUBJECTS_DIR/surf/lh.thickness).
-* read FreeSurfer brain surface meshes from binary surf format files (like $SUBJECTS_DIR/surf/lh.white).
-* read FreeSurfer ASCII label files (like $SUBJECTS_DIR/label/lh.cortex.label).
-* read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like $SUBJECTS_DIR/mri/brain.mgh or $SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh).
+* Read and write FreeSurfer per-vertex data from and to binary curv format files (like $SUBJECTS_DIR/surf/lh.thickness).
+* Read FreeSurfer brain surface meshes from binary surf format files (like $SUBJECTS_DIR/surf/lh.white).
+* Read FreeSurfer ASCII label files (like $SUBJECTS_DIR/label/lh.cortex.label).
+* Read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like $SUBJECTS_DIR/mri/brain.mgh or $SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh).
 
