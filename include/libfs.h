@@ -114,11 +114,42 @@ namespace fs {
   /// The colortable from an Annot file, can be used for parcellations and integer labels. Typically each index (in all fields) describes a brain region.
   struct Colortable {
     std::vector<int32_t> id;  ///< internal region index
+    std::vector<std::string> name;   ///< region name
     std::vector<int32_t> r;   ///< red channel of RGBA color
     std::vector<int32_t> g;   ///< blue channel of RGBA color
     std::vector<int32_t> b;   ///< green channel of RGBA color
     std::vector<int32_t> a;   ///< alpha channel of RGBA color
     std::vector<int32_t> label;   ///< label integer computed from rgba values. Maps to the Annot.vertex_label field.
+
+    /// Get the number of enties (regions) in this Colortable.
+    size_t num_entries() const {
+      size_t num_ids = this->id.size();
+      if(this->name.size() != num_ids || this->r.size() != num_ids || this->g.size() != num_ids || this->b.size() != num_ids || this->a.size() != num_ids || this->label.size() != num_ids) {
+        std::cerr << "Inconsistent Colortable, vector sizes do not match.\n";
+      }
+      return num_ids;
+    }
+
+    /// Get the index of a region in the Colortable by region name. Returns a negative value if the region is not found.
+    int32_t get_region_idx(const std::string& query_name) const {
+      for(size_t i = 0; i<this->num_entries(); i++) {
+        if(this->name[i] == query_name) {
+          return (int32_t)i;
+        }
+      }
+      return(-1);
+    }
+
+    /// Get the index of a region in the Colortable by label. Returns a negative value if the region is not found.
+    int32_t get_region_idx(int32_t query_label) const {
+      for(size_t i = 0; i<this->num_entries(); i++) {
+        if(this->label[i] == query_label) {
+          return (int32_t)i;
+        }
+      }
+      return(-1);
+    } 
+
   };
 
 
@@ -127,6 +158,28 @@ namespace fs {
     std::vector<int32_t> vertex_indices;  ///< Indices of the vertices, these always go from 0 to N-1 (where N is the number of vertices in the respective surface/annotation). Not really needed.
     std::vector<int32_t> vertex_labels;   ///< The label code for each vertex, defining the region it belongs to. Check in the Colortable for a region that has this label.
     Colortable colortable;  ///< A Colortable defining the regions (most importantly, the region name and visualization color).
+    
+    /// Get all vertices of a region given by name in the brain surface parcellation. Returns an integer vector, the vertex indices.
+    std::vector<int32_t> region_vertices(const std::string& region_name) const {
+      int32_t region_idx = this->colortable.get_region_idx(region_name);
+      if(region_idx >= 0) {
+        return(this->region_vertices(this->colortable.label[region_idx]));
+      } else {
+        std::vector<int32_t> empty;
+        return(empty);
+      }
+    }    
+
+    /// Get all vertices of a region given by label in the brain surface parcellation. Returns an integer vector, the vertex indices.
+    std::vector<int32_t> region_vertices(int32_t region_label) const {
+      std::vector<int32_t> reg_verts;
+      for(size_t i=0; i<this->vertex_labels.size(); i++) {
+        if(this->vertex_labels[i] == region_label) {
+          reg_verts.push_back(i);
+        }
+      }
+      return(reg_verts);
+    }
   };
 
 
