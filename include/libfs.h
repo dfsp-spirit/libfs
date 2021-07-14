@@ -676,7 +676,23 @@ namespace fs {
       std::cerr << "Reading annotation without colortable not supported. Maybe invalid annotation file?\n";
       exit(1);
     }
-  }  
+  }
+
+
+  /// @brief Read a FreeSurfer annotation from a file.
+  /// @param annot An Annot instance that should be filled.
+  /// @param filename Path to the label file that should be read.
+  /// @see There exists an overload to read from a stream instead.
+  void read_annot(Annot* annot, const std::string& filename) {
+    std::ifstream is(filename);
+    if(is.is_open()) {
+      read_annot(annot, &is);
+      is.close();
+    } else {
+      std::cerr << "Could not open annot file for reading.\n";
+      exit(1);
+    }
+  }
 
 
   /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv format file.
