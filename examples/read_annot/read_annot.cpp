@@ -28,9 +28,25 @@ int main(int argc, char** argv) {
     fs::read_annot(&annot, annot_fname);
 
     std::cout << "Read annotation for " << annot.num_vertices() << " surface vertices containing " << annot.colortable.num_entries() << " regions.\n";
-    std::cout << "The names of the first 3 regions are: " << annot.colortable.name[0] << ", " << annot.colortable.name[1] << ", " << annot.colortable.name[2] << ".\n";
 
-    std::string region_name;
+    // Print info on Colortable
+    std::cout << "The names of the first 3 regions are: " << annot.colortable.name[0] << ", " << annot.colortable.name[1] << ", " << annot.colortable.name[2] << ".\n";
+    std::cout << "The lengths of their region name strings are: " << annot.colortable.name[0].length() << ", " << annot.colortable.name[1].length() << ", " << annot.colortable.name[2].length() << ".\n";
+    std::cout << "Their region label integers are: " << annot.colortable.label[0] << ", " << annot.colortable.label[1] << ", " << annot.colortable.label[2] << ".\n";    
+    std::cout << "Their region color channel R values are: " << annot.colortable.r[0] << ", " << annot.colortable.r[1] << ", " << annot.colortable.r[2] << ".\n";
+    std::cout << "Their region color channel G values are: " << annot.colortable.g[0] << ", " << annot.colortable.g[1] << ", " << annot.colortable.g[2] << ".\n";
+    std::cout << "Their region color channel B values are: " << annot.colortable.b[0] << ", " << annot.colortable.b[1] << ", " << annot.colortable.b[2] << ".\n";
+    std::cout << "Their region color channel A values are: " << annot.colortable.a[0] << ", " << annot.colortable.a[1] << ", " << annot.colortable.a[2] << ".\n";
+    
+    std::string region_name = "bankssts";
+    std::cout << "Region " << region_name << " has index " << annot.colortable.get_region_idx(region_name) << " in the Colortable.\n";
+    region_name = "caudalanteriorcingulate";
+    std::cout << "Region " << region_name << " has index " << annot.colortable.get_region_idx(region_name) << " in the Colortable.\n";
+    
+    // Print information on the parcellation.
+    std::cout << "The first 3 vertex indices in the parcellation are: " << annot.vertex_indices[0] << ", " << annot.vertex_indices[1] << ", "<< annot.vertex_indices[2] << ".\n";
+    std::cout << "Their labels are: " << annot.vertex_labels[0] << ", " << annot.vertex_labels[1] << ", "<< annot.vertex_labels[2] << ".\n";
+
     region_name = annot.colortable.name[0];
     std::cout << "The region " << region_name << " contains " << annot.region_vertices(region_name).size() << " vertices.\n";
     region_name = annot.colortable.name[1];

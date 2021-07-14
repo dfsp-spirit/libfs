@@ -45,7 +45,7 @@ namespace fs {
   int _fread3(std::istream&);
   template <typename T> T _freadt(std::istream&);
   std::string _freadstringnewline(std::istream&);
-  std::string _freadfixedlengthstring(std::istream&, int32_t);
+  std::string _freadfixedlengthstring(std::istream&, int32_t, bool);
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
   
@@ -166,6 +166,7 @@ namespace fs {
       if(region_idx >= 0) {
         return(this->region_vertices(this->colortable.label[region_idx]));
       } else {
+        std::cerr << "No such region in annot, returning empty vector.\n";
         std::vector<int32_t> empty;
         return(empty);
       }
@@ -632,12 +633,12 @@ namespace fs {
     for(int32_t i=0; i<num_entries; i++) {
       colortable->id.push_back(_freadt<int32_t>(*is));
       entry_num_chars = _freadt<int32_t>(*is);
-      colortable->name.push_back(_freadfixedlengthstring(*is, entry_num_chars));
+      colortable->name.push_back(_freadfixedlengthstring(*is, entry_num_chars, true));
       colortable->r.push_back(_freadt<int32_t>(*is));
       colortable->g.push_back(_freadt<int32_t>(*is));
       colortable->b.push_back(_freadt<int32_t>(*is));
       colortable->a.push_back(_freadt<int32_t>(*is));
-      colortable->label.push_back(colortable->r[i] + colortable->g[i]*(2^8) + colortable->b[i]*(2^16) + colortable->a[i]*(2^24));
+      colortable->label.push_back(colortable->r[i] + colortable->g[i]*256 + colortable->b[i]*65536 + colortable->a[i]*16777216);
     }
 
   }
@@ -653,9 +654,9 @@ namespace fs {
     std::vector<int32_t> labels;
     for(int32_t i=0; i<(num_vertices*2); i++) { // The vertices and their labels are stored directly after one another: v1,v1_label,v2,v2_label,...
         if(i % 2 == 0) {
-          labels.push_back(_freadt<int32_t>(*is));
+          vertices.push_back(_freadt<int32_t>(*is));          
         } else {
-          vertices.push_back(_freadt<int32_t>(*is));
+          labels.push_back(_freadt<int32_t>(*is));          
         }
     }
     annot->vertex_indices = vertices;
@@ -800,10 +801,17 @@ namespace fs {
   }
 
   /// Read a fixed length C-style string from an open binary stream. This does not care about trailing NULL bytes or anything, it just reads the given length of bytes.
-  std::string _freadfixedlengthstring(std::istream &is, int32_t length) {
+  std::string _freadfixedlengthstring(std::istream &is, int32_t length, bool strip_last_char=true) {
+    if(length <= 0) {
+      std::cerr << "Parameter 'length' must be a positive integer.\n";
+      exit(1);
+    }
     std::string str;
     str.resize(length);
     is.read(&str[0], length);
+    if(strip_last_char) {
+      str = str.substr(0, length-1);
+    }
     return str;
   }
 
