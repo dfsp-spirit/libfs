@@ -180,6 +180,39 @@ namespace fs {
       }
       return(reg_verts);
     }
+
+    /// Get the number of vertices of this parcellation (or the associated surface).
+    size_t num_vertices() const {
+      size_t nv = this->vertex_indices.size();
+      return nv;
+    }
+
+    /// Compute the region indices in the Colortable for all vertices in this brain surface parcellation. With the region indices, it becomes very easy to obtain all region names, labels, and coolor channel values from the Colortable.
+    /// @see The function `vertex_region_names` uses this function to get the region names for all vertices.
+    std::vector<size_t> vertex_regions() const {
+      std::vector<size_t> vert_reg;
+      for(size_t i=0; i<this->num_vertices(); i++) {
+        vert_reg.push_back(0);  // init with zeros.
+      }
+      for(size_t region_idx=0; region_idx<this->colortable.num_entries(); region_idx++) {
+        std::vector<int32_t> reg_vertices = this->region_vertices(this->colortable.label[region_idx]);
+        for(size_t region_vert_local_idx=0;  region_vert_local_idx<reg_vertices.size(); region_vert_local_idx++) {
+          int32_t region_vert_idx = reg_vertices[region_vert_local_idx];
+          vert_reg[region_vert_idx] = region_idx;
+        }
+      }
+      return vert_reg;
+    }
+
+    /// Compute the region names in the Colortable for all vertices in this brain surface parcellation.
+    std::vector<std::string> vertex_region_names() const {
+      std::vector<std::string> region_names;
+      std::vector<size_t> vertex_region_indices = this->vertex_regions();
+      for(size_t i=0; i<vertex_region_indices.size(); i++) {
+        region_names.push_back(this->colortable.name[vertex_region_indices[i]]);
+      }
+      return(region_names);
+    }
   };
 
 
