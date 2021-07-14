@@ -111,6 +111,25 @@ namespace fs {
     std::vector<_Float32> data;
   };
 
+  /// The colortable from an Annot file, can be used for parcellations and integer labels. Typically each index (in all fields) describes a brain region.
+  struct Colortable {
+    std::vector<int32_t> id;  ///< internal region index
+    std::vector<int32_t> r;   ///< red channel of RGBA color
+    std::vector<int32_t> g;   ///< blue channel of RGBA color
+    std::vector<int32_t> b;   ///< green channel of RGBA color
+    std::vector<int32_t> a;   ///< alpha channel of RGBA color
+    std::vector<int32_t> label;   ///< label integer computed from rgba values. Maps to the Annot.vertex_label field.
+  };
+
+
+  /// An annotation, also known as a brain surface parcellation. Assigns to each vertex a region, identified by the region_label. The region name and color for each region can be found in the Colortable.
+  struct Annot {
+    std::vector<int32_t> vertex_indices;  ///< Indices of the vertices, these always go from 0 to N-1 (where N is the number of vertices in the respective surface/annotation). Not really needed.
+    std::vector<int32_t> vertex_labels;   ///< The label code for each vertex, defining the region it belongs to. Check in the Colortable for a region that has this label.
+    Colortable colortable;  ///< A Colortable defining the regions (most importantly, the region name and visualization color).
+  };
+
+
   /// Models the header of an MGH file.
   struct MghHeader {
     int32_t dim1length;
