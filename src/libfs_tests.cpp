@@ -160,9 +160,9 @@ TEST_CASE( "Reading the demo annot file works" ) {
 
     SECTION("One can compute the region for all vertices." ) {
         std::string region_name = "bankssts";
-        std::vector<int32_t> bankssts_vertices = annot.region_vertices(region_name);
         std::vector<std::string> vertex_reg_names = annot.vertex_region_names();
         
+        // Ensure that bankssts occurs 1722 times in total.
         int32_t num_bankssts = 0;
         for(size_t i=0; i<vertex_reg_names.size(); i++) {
             if(vertex_reg_names[i] == region_name) {
@@ -170,7 +170,6 @@ TEST_CASE( "Reading the demo annot file works" ) {
             }
         }
         REQUIRE( num_bankssts == 1722);
-
     }
 }
 
