@@ -780,7 +780,7 @@ namespace fs {
     int line_idx = -1;
     size_t num_entries_header = 0;  // number of vertices/voxels according to header
     size_t num_entries = 0;  // number of vertices/voxels for which the file contains label entries.
-    while (std::getlinte(*is, line)) {
+    while (std::getline(*is, line)) {
       line_idx += 1;
       std::istringstream iss(line);
       if(line_idx == 0) {
