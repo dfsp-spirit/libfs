@@ -185,6 +185,10 @@ namespace fs {
     /// Get the number of vertices of this parcellation (or the associated surface).
     size_t num_vertices() const {
       size_t nv = this->vertex_indices.size();
+      if(this->vertex_labels.size() != nv) {
+        std::cerr << "Inconsistent annot, number of vertex indices and labels does not match.\n";
+        exit(1);
+      }
       return nv;
     }
 
@@ -654,6 +658,8 @@ namespace fs {
           vertices.push_back(_freadt<int32_t>(*is));
         }
     }
+    annot->vertex_indices = vertices;
+    annot->vertex_labels = labels;
     int32_t has_colortable = _freadt<int32_t>(*is);
     if(has_colortable == 1) {
       int32_t num_colortable_entries_old_format = _freadt<int32_t>(*is);
