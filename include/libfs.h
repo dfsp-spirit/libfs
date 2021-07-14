@@ -45,6 +45,7 @@ namespace fs {
   int _fread3(std::istream&);
   template <typename T> T _freadt(std::istream&);
   std::string _freadstringnewline(std::istream&);
+  std::string _freadfixedlengthstring(std::istream&, int32_t);
   bool _ends_with(std::string const &fullString, std::string const &ending);
   struct MghHeader;
   
@@ -607,6 +608,76 @@ namespace fs {
     }
   }
 
+  /// Read an Annot Colortable from a stream.
+  void _read_annot_colortable(Colortable* colortable, std::istream *is, int32_t num_entries) {
+    int32_t num_chars_orig_filename = _freadt<int32_t>(*is);  // The number of characters of the file this annot was built from. 
+
+    // It follows the name of the file this annot was built from. This is development metadata and irrelevant afaik. We skip it.
+    uint8_t discarded;
+    for(int32_t i=0; i<num_chars_orig_filename; i++) {
+      discarded = _freadt<uint8_t>(*is);
+    }
+    (void)discarded; // Suppress warnings about unused variable.
+
+    int32_t num_entries_duplicated = _freadt<int32_t>(*is); // Yes, once more.
+    if(num_entries != num_entries_duplicated) {
+      std::cerr << "Warning: the two num_entries header fields of this annotation do not match. Use with care.\n";
+    }
+    
+    int32_t entry_num_chars;
+    for(int32_t i=0; i<num_entries; i++) {
+      colortable->id.push_back(_freadt<int32_t>(*is));
+      entry_num_chars = _freadt<int32_t>(*is);
+      colortable->name.push_back(_freadfixedlengthstring(*is, entry_num_chars));
+      colortable->r.push_back(_freadt<int32_t>(*is));
+      colortable->g.push_back(_freadt<int32_t>(*is));
+      colortable->b.push_back(_freadt<int32_t>(*is));
+      colortable->a.push_back(_freadt<int32_t>(*is));
+      colortable->label.push_back(colortable->r[i] + colortable->g[i]*(2^8) + colortable->b[i]*(2^16) + colortable->a[i]*(2^24));
+    }
+
+  }
+
+  /// @brief Read a FreeSurfer annotation or brain surface parcellation from an annot stream.
+  /// @details A brain parcellations contains a region table and assigns to each vertex of a surface a region.
+  /// @param annot An Annot instance to be filled.
+  /// @param is An open istream from which to read the annot data.
+  void read_annot(Annot* annot, std::istream *is) {
+    
+    int32_t num_vertices = _freadt<int32_t>(*is);
+    std::vector<int32_t> vertices;
+    std::vector<int32_t> labels;
+    for(int32_t i=0; i<(num_vertices*2); i++) { // The vertices and their labels are stored directly after one another: v1,v1_label,v2,v2_label,...
+        if(i % 2 == 0) {
+          labels.push_back(_freadt<int32_t>(*is));
+        } else {
+          vertices.push_back(_freadt<int32_t>(*is));
+        }
+    }
+    int32_t has_colortable = _freadt<int32_t>(*is);
+    if(has_colortable == 1) {
+      int32_t num_colortable_entries_old_format = _freadt<int32_t>(*is);
+      if(num_colortable_entries_old_format > 0) {
+        std::cerr << "Reading annotation in old format not supported. Please open an issue and supply an example file if you need this.\n";
+        exit(1);
+      } else {
+        int32_t colortable_format_version = -num_colortable_entries_old_format; // If the value is negative, we are in new format and its absolute value is the format version.
+        if(colortable_format_version == 2) {
+          int32_t num_colortable_entries = _freadt<int32_t>(*is); // This time for real.
+          _read_annot_colortable(&annot->colortable, is, num_colortable_entries);
+        } else {
+          std::cerr << "Reading annotation in new format version !=2 not supported. Please open an issue and supply an example file if you need this.\n";
+          exit(1);
+        }
+
+      }
+
+    } else {
+      std::cerr << "Reading annotation without colortable not supported. Maybe invalid annotation file?\n";
+      exit(1);
+    }
+  }  
+
 
   /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv format file.
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
@@ -704,6 +775,14 @@ namespace fs {
     std::string s;
     std::getline(is, s, '\n');
     return s;
+  }
+
+  /// Read a fixed length C-style string from an open binary stream. This does not care about trailing NULL bytes or anything, it just reads the given length of bytes.
+  std::string _freadfixedlengthstring(std::istream &is, int32_t length) {
+    std::string str;
+    str.resize(length);
+    is.read(&str[0], length);
+    return str;
   }
 
   /// Check whether a string ends with the given suffix.
