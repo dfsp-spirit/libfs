@@ -103,6 +103,30 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE(min_entry == Approx(-108.6204));
         REQUIRE(max_entry == Approx(106.1743));
     }
+
+    SECTION("Matrix indices into the vertices vector can be computed." ) {        
+        REQUIRE(surface.vm_at(0,0) == Approx(surface.vertices[0]));
+        REQUIRE(surface.vm_at(0,1) == Approx(surface.vertices[1]));
+        REQUIRE(surface.vm_at(0,2) == Approx(surface.vertices[2]));
+        REQUIRE(surface.vm_at(1,0) == Approx(surface.vertices[3]));
+        REQUIRE(surface.vm_at(1,1) == Approx(surface.vertices[4]));
+        REQUIRE(surface.vm_at(1,2) == Approx(surface.vertices[5]));
+        REQUIRE(surface.vm_at(2,0) == Approx(surface.vertices[6]));
+        REQUIRE(surface.vm_at(2,1) == Approx(surface.vertices[7]));
+        REQUIRE(surface.vm_at(2,2) == Approx(surface.vertices[8]));        
+    }
+
+    SECTION("Matrix indices into the faces vectors can be computed." ) {        
+        REQUIRE(surface.fm_at(0,0) == surface.faces[0]);
+        REQUIRE(surface.fm_at(0,1) == surface.faces[1]);
+        REQUIRE(surface.fm_at(0,2) == surface.faces[2]);
+        REQUIRE(surface.fm_at(1,0) == surface.faces[3]);
+        REQUIRE(surface.fm_at(1,1) == surface.faces[4]);
+        REQUIRE(surface.fm_at(1,2) == surface.faces[5]);
+        REQUIRE(surface.fm_at(2,0) == surface.faces[6]);
+        REQUIRE(surface.fm_at(2,1) == surface.faces[7]);
+        REQUIRE(surface.fm_at(2,2) == surface.faces[8]);        
+    }
 }
 
 
