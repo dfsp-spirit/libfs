@@ -39,6 +39,10 @@ CMakeFiles/
 
 # Generated binaries and example output files
 run_libfs_tests
+
+examples/read_annot/read_annot
+examples/read_annot/lh.aparc.annot
+
 examples/read_curv/read_curv
 examples/read_curv/tmp.lh.thickness
 
