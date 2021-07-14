@@ -60,6 +60,10 @@ Compilation instructions for g++ and clang are at the top of each example source
 
 ### Full API documentation
 
+The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://codedocs.xyz/dfsp-spirit/libfs/).
+
+#### Building the documentation yourself
+
 If you have `doxygen` installed (`sudo apt install doxygen graphviz` under Debian-based Linux distros), you can generate the full API documentation like this:
 
 ```
