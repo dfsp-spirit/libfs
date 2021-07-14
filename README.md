@@ -67,7 +67,7 @@ cmake .
 make doc
 ```
 
-The documentation will be built and can be found in `doc/doc_built/` afterwards. The recommended way to browse it is to open `doc/doc_built/html/index.html` with your favorite webbrowser.
+The documentation will be built and can be found in `doc_built/` afterwards. The recommended way to browse it is to open `doc_built/html/index.html` with your favorite webbrowser.
 
 
 ### Conventions

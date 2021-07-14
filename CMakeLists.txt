@@ -31,8 +31,8 @@ if(BUILD_DOCUMENTATION)
          message(FATAL_ERROR "Doxygen is needed to build the documentation.")
     endif()
 
-    set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/doc/libfs.doxyfile)
-    set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doxyfile)
+    set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
+    set(doxyfile ${CMAKE_CURRENT_BINARY_DIR}/doxyfile_cmake)
 
     configure_file(${doxyfile_in} ${doxyfile} @ONLY)
 
@@ -40,7 +40,7 @@ if(BUILD_DOCUMENTATION)
 
     add_custom_target(doc
                       COMMAND ${DOXYGEN_EXECUTABLE} ${doxyfile_in}
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doc
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                       COMMENT "Generating API documentation with Doxygen"
                       VERBATIM)
 endif()
