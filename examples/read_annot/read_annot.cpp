@@ -30,5 +30,16 @@ int main(int argc, char** argv) {
     std::cout << "Read annotation for " << annot.num_vertices() << " surface vertices containing " << annot.colortable.num_entries() << " regions.\n";
     std::cout << "The names of the first 3 regions are: " << annot.colortable.name[0] << ", " << annot.colortable.name[1] << ", " << annot.colortable.name[2] << ".\n";
 
+    std::string region_name;
+    region_name = annot.colortable.name[0];
+    std::cout << "The region " << region_name << " contains " << annot.region_vertices(region_name).size() << " vertices.\n";
+    region_name = annot.colortable.name[1];
+    std::cout << "The region " << region_name << " contains " << annot.region_vertices(region_name).size() << " vertices.\n";
+    region_name = annot.colortable.name[2];
+    std::cout << "The region " << region_name << " contains " << annot.region_vertices(region_name).size() << " vertices.\n";
+
+    std::vector<std::string> vertex_reg_names = annot.vertex_region_names();
+    std::cout << "The regions for the first 3 vertices are " << vertex_reg_names[0] << ", " << vertex_reg_names[1] << ", " << vertex_reg_names[2] << ".\n";
+
     exit(0);
 }
