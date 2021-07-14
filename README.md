@@ -52,6 +52,8 @@ See the [examples directory](./examples/) for some programs which use the librar
 
 ### Building your programs
 
+Just add the directory into which you saved `libfs.h` to the include path during compilation. This is done by adding an `-I<path>` flag for most compilers, check the manual of your compiler if in doubt.
+
 Compilation instructions for g++ and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler. If you prefer to build with cmake, have a look at the [CMakeLists.txt file](./CMakeLists.txt) we use to build the unit tests.
 
 
