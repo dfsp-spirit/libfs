@@ -13,6 +13,9 @@ fi
 
 bd=$(pwd)
 
+echo "$apptag ========== Running annot example... =========="
+cd $bd/read_annot && g++ -I../../include/ read_annot.cpp -o read_annot && ./read_annot && cd ..
+
 echo "$apptag ========== Running curv example... =========="
 cd $bd/read_curv && g++ -I../../include/ read_curv.cpp -o read_curv && ./read_curv && cd ..
 
