@@ -35,6 +35,8 @@ The MGZ format is just a gzipped version of the MGH format. While the MGZ format
 Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place. Then use the functions:
 
 ```cpp
+// filename: main.cpp. To compile with g++ run: 
+//     g++ -I<path_to_directory_containing_libfs.h> main.cpp -o read_curv_data
 #include "libfs.h"
 #include <iostream>
 #include <string>
@@ -65,6 +67,7 @@ The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://
 
 ### Conventions
 
+* Everything from `libfs` is in the `fs::` namespace.
 * Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug. (Please [open an issue](https://github.com/dfsp-spirit/libfs/issues) if you feel that you need to use an internal function from your client code, and explain your use case.)
 * Function naming:
   - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
