@@ -132,10 +132,15 @@ namespace fs {
 
   /// Models a FreeSurfer curv file that contains per-vertex float data.
   struct Curv {
+    Curv(std::vector<_Float32> curv_data) :
+      num_faces(100000), num_vertices(0), num_values_per_vertex(1) { data = curv_data; num_vertices = data.size(); }
+    Curv() :
+      num_faces(100000), num_vertices(0), num_values_per_vertex(1) {}
     int32_t num_faces;
+    std::vector<_Float32> data;
     int32_t num_vertices;
     int32_t num_values_per_vertex;
-    std::vector<_Float32> data;
+    
   };
 
   /// The colortable from an Annot file, can be used for parcellations and integer labels. Typically each index (in all fields) describes a brain region.
