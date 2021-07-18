@@ -57,6 +57,15 @@ namespace fs {
   /// The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
   /// making up the respective face. Vertex indices are 0-based.
   struct Mesh {
+
+    /// Construct a Mesh from the given vertices and faces.
+    Mesh(std::vector<_Float32> cvertices, std::vector<int32_t> cfaces) { 
+      vertices = cvertices; faces = cfaces; 
+    }
+
+    /// Construct an empty Mesh.
+    Mesh() {}
+
     std::vector<_Float32> vertices;
     std::vector<int32_t> faces;
 
@@ -132,10 +141,15 @@ namespace fs {
 
   /// Models a FreeSurfer curv file that contains per-vertex float data.
   struct Curv {
+
+    /// Construct a Curv instance from the given per-vertex data.
     Curv(std::vector<_Float32> curv_data) :
       num_faces(100000), num_vertices(0), num_values_per_vertex(1) { data = curv_data; num_vertices = data.size(); }
+    
+    /// Construct an empty Curv instance.
     Curv() :
       num_faces(100000), num_vertices(0), num_values_per_vertex(1) {}
+
     int32_t num_faces;
     std::vector<_Float32> data;
     int32_t num_vertices;
