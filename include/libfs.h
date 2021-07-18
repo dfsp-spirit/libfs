@@ -292,6 +292,10 @@ namespace fs {
 
   /// Models the data of an MGH file. Currently these are 1D vectors, but one can compute the 4D array using the dimXlength fields of the respective MghHeader.
   struct MghData {
+    MghData() {}
+    MghData(std::vector<int32_t> curv_data) { data_mri_int = curv_data; }
+    explicit MghData(std::vector<uint8_t> curv_data) { data_mri_uchar = curv_data; }
+    MghData(std::vector<float> curv_data) { data_mri_float = curv_data; }
     std::vector<int32_t> data_mri_int;
     std::vector<uint8_t> data_mri_uchar;
     std::vector<float> data_mri_float;
