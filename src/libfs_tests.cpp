@@ -212,3 +212,19 @@ TEST_CASE( "Reading the demo annot file works" ) {
     }
 }
 
+
+TEST_CASE( "Reading metadata works" ) {
+
+    
+    SECTION("A simple subjects file can be read." ) {
+        const std::string subjects_file = "examples/read_metadata/subjects.txt";
+        std::vector<std::string> subjects = fs::read_subjectsfile(subjects_file);
+        REQUIRE( subjects.size() == 3);
+        REQUIRE( subjects[0] == "subject001");
+        REQUIRE( subjects[1] == "subject002");
+        REQUIRE( subjects[2] == "subject003");
+    }
+
+    
+}
+
