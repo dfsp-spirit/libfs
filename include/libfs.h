@@ -625,7 +625,7 @@ namespace fs {
   ///
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
-  /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches.  
+  /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.  
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
@@ -696,7 +696,7 @@ namespace fs {
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
   /// @param curv A Curv instance to be filled.
   /// @param filename Path to a file from which to read the curv data.
-  /// @throws runtime_error if the file cannot be opened.
+  /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
   void read_curv(Curv* curv, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
@@ -787,7 +787,7 @@ namespace fs {
   /// @param annot An Annot instance that should be filled.
   /// @param filename Path to the label file that should be read.
   /// @see There exists an overload to read from a stream instead.
-  /// @throws runtime_error if the file cannot be opened.
+  /// @throws runtime_error if the file cannot be opened, domain_error if the file format version is not supported or the file is missing the color table.
   void read_annot(Annot* annot, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
@@ -803,7 +803,7 @@ namespace fs {
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
   /// @param filename Path to a file from which to read the curv data.
   /// @return a vector of float values, one per vertex.
-  /// @throws runtime_error if the file cannot be opened.
+  /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
   std::vector<float> read_curv_data(const std::string& filename) {
     Curv curv;
     read_curv(&curv, filename);
@@ -1033,7 +1033,7 @@ namespace fs {
   /// @param mgh An Mgh instance that should be written.
   /// @param filename Path to an output file to which to write.
   /// @see There exists an overload to write to a stream.
-  /// @throws std::runtime_error if the file cannot be opened.
+  /// @throws std::runtime_error if the file cannot be opened, std::logic_error if the mgh header and data are inconsistent, std::domain_error if the given MRI data type is unknown or unsupported.
   void write_mgh(const Mgh& mgh, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
