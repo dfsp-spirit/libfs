@@ -1055,7 +1055,7 @@ namespace fs {
 
     /// Compute for each vertex of the surface whether it is inside the label.
     std::vector<bool> vert_in_label(size_t surface_num_verts) const {
-      if(surface_num_verts < this->vertex.size()) { // nonsense, so we warn (but don't exit, maybe the user really wants this).
+      if(surface_num_verts < this->vertex.size()) { // nonsense, so we warn (but don't throw, maybe the user really wants this).
         std::cerr << "Invalid number of vertices for surface, must be at least " << this->vertex.size() << "\n";
       }
       std::vector<bool> is_in;
