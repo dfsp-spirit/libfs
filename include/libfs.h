@@ -538,8 +538,7 @@ namespace fs {
       read_mgh_header(mgh_header, &ifs);
       ifs.close();
     } else {
-      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(1);
+      throw std::runtime_error("Unable to open MGH file '" + filename + "'.\n");
     }
   }
 
@@ -1085,6 +1084,7 @@ namespace fs {
   /// @param label A Label instance that should be filled.
   /// @param is An open stream from which to read the label.
   /// @see There exists an overload to read from a file instead.
+  /// @throws std::domain_error if the label data format is incorrect
   void read_label(Label* label, std::ifstream* is) {
     std::string line;
     int line_idx = -1;
@@ -1098,14 +1098,12 @@ namespace fs {
       } else {
         if(line_idx == 1) {
           if (!(iss >> num_entries_header)) { 
-            std::cerr << "Could not parse entry count from label file, invalid file.\n";
-            exit(1);
+            throw std::domain_error("Could not parse entry count from label file, invalid format.\n");
           } 
         } else {
           int vertex; float x, y, z, value;
           if (!(iss >> vertex >> x >> y >> z >> value)) { 
-            std::cerr << "Could not parse line " << (line_idx+1) << " of label file, invalid file.\n";
-            exit(1);
+            throw std::domain_error("Could not parse line " + std::to_string(line_idx+1) + " of label file, invalid format.\n");
           }
           //std::cout << "Line " << (line_idx+1) << ": vertex=" << vertex << ", x=" << x << ", y=" << y << ", z=" << z << ", value=" << value << ".\n";
           label->vertex.push_back(vertex);
@@ -1118,11 +1116,10 @@ namespace fs {
       }        
     }
     if(num_entries != num_entries_header) {
-      std::cerr << "Expected " << num_entries_header << " entries from label file header, but found " << num_entries << " in file, invalid label file.\n";
-      exit(1);
+      throw std::domain_error("Expected " + std::to_string(num_entries_header) + " entries from label file header, but found " + std::to_string(num_entries) + " in file, invalid label file.\n");
     }
     if(label->vertex.size() != num_entries || label->coord_x.size() != num_entries || label->coord_y.size() != num_entries || label->coord_z.size() != num_entries || label->value.size() != num_entries) {
-      std::cerr << "Expected " << num_entries << " entries in all Label vectors, but some did not match.\n";
+      throw std::domain_error("Expected " + std::to_string(num_entries) + " entries in all Label vectors, but some did not match.\n");
     }
   }
 
@@ -1132,14 +1129,14 @@ namespace fs {
   /// @param label A Label instance that should be filled.
   /// @param filename Path to the label file that should be read.
   /// @see There exists an overload to read from a stream instead.
+  /// @throws std::domain_error if the label data format is incorrect, std::runtime_error if the file cannot be opened.
   void read_label(Label* label, const std::string& filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
       read_label(label, &infile);
       infile.close();
     } else {
-      std::cerr << "Could not open label file for reading.\n";
-      exit(1);
+      throw std::runtime_error("Could not open label file '" + filename + "' for reading.\n");
     }
   }
 
@@ -1148,7 +1145,7 @@ namespace fs {
   ///
   /// @param label The label to write.
   /// @param os An open output stream.
-  /// @see There exists an onverload of this function to write a label to a file.
+  /// @see There exists an onverload of this function to write a label to a file.  
   void write_label(const Label& label, std::ostream& os) {
     const size_t num_entries = label.num_entries();
     os << "#!ascii label from subject anonymous\n" << num_entries << "\n";
@@ -1161,6 +1158,7 @@ namespace fs {
   /// Write label data to a file.
   ///
   /// See also: swrite_label to write to a stream.
+  /// @throws std::runtime_error if the file cannot be opened.
   void write_label(const Label& label, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out);
@@ -1168,8 +1166,7 @@ namespace fs {
       write_label(label, ofs);
       ofs.close();
     } else {
-      std::cerr << "Unable to open label file '" << filename << "' for writing.\n";
-      exit(1);
+      throw std::runtime_error("Unable to open label file '" + filename + "' for writing.\n");
     }
   }
 
