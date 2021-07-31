@@ -7,7 +7,7 @@
 #include <fstream>
 #include <cassert>
 #include <sstream>
-
+#include <stdexcept>
 
 /// @file
 ///
@@ -94,11 +94,11 @@ namespace fs {
     /// @brief Retrieve a vertex index of a face, treating the faces vector as an nx3 matrix.
     /// @param i the row index, valid values are 0..num_faces.
     /// @param j the column index, valid values are 0..2 (for the 3 vertices of a face).
-    int32_t fm_at(size_t i, size_t j) const {
+    /// @throws std::range_error on invalid index
+    const int32_t& fm_at(size_t i, size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
-      if(idx > this->faces.size()-1) {
-        std::cerr << "Indices << (" << i << "," << j << ") into Mesh.faces out of bounds. Hit " << idx << " with max valid index " << this->faces.size()-1 << ".\n";
-        exit(1);
+      if(idx > this->faces.size()-1) {        
+        throw std::range_error("Indices (" + std::to_string(i) + "," + std::to_string(j) + ") into Mesh.faces out of bounds. Hit " + std::to_string(idx) + " with max valid index " + std::to_string(this->faces.size()-1) + ".\n");
       }
       return(this->faces[idx]);
     }
@@ -133,7 +133,7 @@ namespace fs {
     /// @brief Retrieve a coordinate of a vertex, treating the vertices vector as an nx3 matrix.
     /// @param i the row index, valid values are 0..num_vertices.
     /// @param j the column index, valid values are 0..2 (for the x,y,z coordinates).
-    _Float32 vm_at(size_t i, size_t j) const {
+    const _Float32& vm_at(size_t i, size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->vertices.size()-1) {
         std::cerr << "Indices << (" << i << "," << j << ") into Mesh.vertices out of bounds. Hit " << idx << " with max valid index " << this->vertices.size()-1 << ".\n";

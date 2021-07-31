@@ -142,6 +142,10 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE(surface.fm_at(surface.num_faces()-1,1) == Approx(surface.faces[surface.faces.size() -1 -1]));
         REQUIRE(surface.fm_at(surface.num_faces()-1,2) == Approx(surface.faces[surface.faces.size() -1 -0]));
     }
+
+    SECTION("Trying to access invalid face indices results in an exception." ) {
+        REQUIRE_THROWS(surface.fm_at(surface.num_faces(),0));
+    }
 }
 
 
