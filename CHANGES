@@ -4,6 +4,7 @@ v0.2.2
 ------
 * add read_subjectsfile function
 * throw exceptions in all places where exit() was still being called. document potentially thrown exceptions in function doc strings.
+* fix mesh indexing bug
 
 
 v0.2.1
