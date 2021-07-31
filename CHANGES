@@ -1,5 +1,11 @@
 
 
+v0.2.2
+------
+* add read_subjectsfile function
+* throw exceptions in all places where exit() was still being called. document potentially thrown exceptions in function doc strings.
+
+
 v0.2.1
 ------
 * Finish API documentation
