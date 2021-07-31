@@ -747,6 +747,7 @@ namespace fs {
   /// @details A brain parcellations contains a region table and assigns to each vertex of a surface a region.
   /// @param annot An Annot instance to be filled.
   /// @param is An open istream from which to read the annot data.
+  /// @throws domain_error if the file format version is not supported or the file is missing the color table.
   void read_annot(Annot* annot, std::istream *is) {
     
     int32_t num_vertices = _freadt<int32_t>(*is);
@@ -765,23 +766,20 @@ namespace fs {
     if(has_colortable == 1) {
       int32_t num_colortable_entries_old_format = _freadt<int32_t>(*is);
       if(num_colortable_entries_old_format > 0) {
-        std::cerr << "Reading annotation in old format not supported. Please open an issue and supply an example file if you need this.\n";
-        exit(1);
+        throw std::domain_error("Reading annotation in old format not supported. Please open an issue and supply an example file if you need this.\n");
       } else {
         int32_t colortable_format_version = -num_colortable_entries_old_format; // If the value is negative, we are in new format and its absolute value is the format version.
         if(colortable_format_version == 2) {
           int32_t num_colortable_entries = _freadt<int32_t>(*is); // This time for real.
           _read_annot_colortable(&annot->colortable, is, num_colortable_entries);
         } else {
-          std::cerr << "Reading annotation in new format version !=2 not supported. Please open an issue and supply an example file if you need this.\n";
-          exit(1);
+          throw std::domain_error("Reading annotation in new format version !=2 not supported. Please open an issue and supply an example file if you need this.\n");
         }
 
       }
 
     } else {
-      std::cerr << "Reading annotation without colortable not supported. Maybe invalid annotation file?\n";
-      exit(1);
+      throw std::domain_error("Reading annotation without colortable not supported. Maybe invalid annotation file?\n");
     }
   }
 
@@ -790,14 +788,14 @@ namespace fs {
   /// @param annot An Annot instance that should be filled.
   /// @param filename Path to the label file that should be read.
   /// @see There exists an overload to read from a stream instead.
+  /// @throws runtime_error if the file cannot be opened.
   void read_annot(Annot* annot, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
       read_annot(annot, &is);
       is.close();
     } else {
-      std::cerr << "Could not open annot file for reading.\n";
-      exit(1);
+      throw std::runtime_error("Could not open annot file '" + filename + "' for reading.\n");
     }
   }
 
@@ -806,6 +804,7 @@ namespace fs {
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
   /// @param filename Path to a file from which to read the curv data.
   /// @return a vector of float values, one per vertex.
+  /// @throws runtime_error if the file cannot be opened.
   std::vector<float> read_curv_data(const std::string& filename) {
     Curv curv;
     read_curv(&curv, filename);
@@ -901,10 +900,10 @@ namespace fs {
   }
 
   /// Read a fixed length C-style string from an open binary stream. This does not care about trailing NULL bytes or anything, it just reads the given length of bytes.
+  /// @throws std::out_of_range if length is not positive
   std::string _freadfixedlengthstring(std::istream &is, int32_t length, bool strip_last_char=true) {
     if(length <= 0) {
-      std::cerr << "Parameter 'length' must be a positive integer.\n";
-      exit(1);
+      throw std::out_of_range("Parameter 'length' must be a positive integer.\n");
     }
     std::string str;
     str.resize(length);
@@ -950,6 +949,7 @@ namespace fs {
   /// @param filename The path to the output file.
   /// @param curv_data the data to write.
   /// @param num_faces the value for the header field `num_faces`. This is not needed afaik and typically ignored.
+  /// @throws std::runtime_error if the file cannot be opened.
   void write_curv(const std::string& filename, std::vector<float> curv_data, const int32_t num_faces = 100000) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -957,8 +957,7 @@ namespace fs {
       write_curv(ofs, curv_data, num_faces);
       ofs.close();
     } else {
-      std::cerr << "Unable to open curvature file '" << filename << "' for writing.\n";
-      exit(1);
+      throw std::runtime_error("Unable to open curvature file '" + filename + "' for writing.\n");
     }
   }
 
@@ -966,6 +965,7 @@ namespace fs {
   /// @details The MGH format is a binary, big-endian FreeSurfer file format for storing 4D data. Several data types are supported, and one has to check the header to see which one is contained in a file.
   /// @param mgh An Mgh instance that should be written.
   /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
+  /// @throws std::logic_error if the mgh header and data are inconsistent, std::domain_error if the given MRI data type is unknown or unsupported.
   void write_mgh(const Mgh& mgh, std::ostream& os) {
      _fwritet<int32_t>(os, 1); // MGH file format version
      _fwritet<int32_t>(os, mgh.header.dim1length);
@@ -1004,31 +1004,27 @@ namespace fs {
     size_t num_values = mgh.header.num_values();
     if(mgh.header.dtype == MRI_INT) {
       if(mgh.data.data_mri_int.size() != num_values) {
-        std::cerr << "Detected mismatch of MRI_INT data size and MGH header dim length values.\n";
-        exit(1);
+        throw std::logic_error("Detected mismatch of MRI_INT data size and MGH header dim length values.\n");
       }
       for(size_t i=0; i<num_values; i++) {
          _fwritet<int32_t>(os, mgh.data.data_mri_int[i]);
       }
     } else if(mgh.header.dtype == MRI_FLOAT) {
       if(mgh.data.data_mri_float.size() != num_values) {
-        std::cerr << "Detected mismatch of MRI_FLOAT data size and MGH header dim length values.\n";
-        exit(1);
+        throw std::logic_error("Detected mismatch of MRI_FLOAT data size and MGH header dim length values.\n");
       }
       for(size_t i=0; i<num_values; i++) {
          _fwritet<_Float32>(os, mgh.data.data_mri_float[i]);
       }
     } else if(mgh.header.dtype == MRI_UCHAR) {
       if(mgh.data.data_mri_uchar.size() != num_values) {
-        std::cerr << "Detected mismatch of MRI_UCHAR data size and MGH header dim length values.\n";
-        exit(1);
+        throw std::logic_error("Detected mismatch of MRI_UCHAR data size and MGH header dim length values.\n");
       }
       for(size_t i=0; i<num_values; i++) {
          _fwritet<uint8_t>(os, mgh.data.data_mri_uchar[i]);
       }
     } else {
-      std::cerr << "Unsupported MRI data type " << mgh.header.dtype << ", cannot write MGH data.\n";
-      exit(1);
+      throw std::domain_error("Unsupported MRI data type " + std::to_string(mgh.header.dtype) + ", cannot write MGH data.\n");
     }
     
   }
@@ -1038,6 +1034,7 @@ namespace fs {
   /// @param mgh An Mgh instance that should be written.
   /// @param filename Path to an output file to which to write.
   /// @see There exists an overload to write to a stream.
+  /// @throws std::runtime_error if the file cannot be opened.
   void write_mgh(const Mgh& mgh, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -1045,8 +1042,7 @@ namespace fs {
       write_mgh(mgh, ofs);
       ofs.close();
     } else {
-      std::cerr << "Unable to open MGH file '" << filename << "' for writing.\n";
-      exit(1);
+      throw std::runtime_error("Unable to open MGH file '" + filename + "' for writing.\n");
     }
   }
 
