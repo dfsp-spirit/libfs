@@ -671,18 +671,19 @@ namespace fs {
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
   /// @param curv A Curv instance to be filled.
   /// @param is An open istream from which to read the curv data.
+  /// @throws domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
   void read_curv(Curv* curv, std::istream *is) {
     const int CURV_MAGIC = 16777215;
     int magic = _fread3(*is);
     if(magic != CURV_MAGIC) {
-      std::cerr << "Magic did not match: expected " << CURV_MAGIC << ", found " << magic << ".\n";
+      throw std::domain_error("Magic did not match: expected " + std::to_string(CURV_MAGIC) + ", found " + std::to_string(magic) + ".\n");
     }
     curv->num_vertices = _freadt<int32_t>(*is);
     curv->num_faces =  _freadt<int32_t>(*is);
     curv->num_values_per_vertex = _freadt<int32_t>(*is);
     //std::cout << "Read file with " << num_verts << " vertices, " << num_faces << " faces and " << num_values_per_vertex << " values per vertex.\n";
     if(curv->num_values_per_vertex != 1) { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
-      std::cerr << "Curv file must contain exactly 1 value per vertex, found " << curv->num_values_per_vertex << ".\n";  
+      throw std::domain_error("Curv file must contain exactly 1 value per vertex, found " + std::to_string(curv->num_values_per_vertex) + ".\n");
     }
     std::vector<float> data;
     for(int i=0; i<curv->num_vertices; i++) {
@@ -696,14 +697,14 @@ namespace fs {
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
   /// @param curv A Curv instance to be filled.
   /// @param filename Path to a file from which to read the curv data.
+  /// @throws runtime_error if the file cannot be opened.
   void read_curv(Curv* curv, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
       read_curv(curv, &is);
       is.close();
     } else {
-      std::cerr << "Could not open curv file for reading.\n";
-      exit(1);
+      throw std::runtime_error("Could not open curv file '" + filename + "' for reading.\n");
     }
   }
 
