@@ -105,6 +105,7 @@ namespace fs {
 
 
     /// Get all vertex indices of the face, given by its index.
+    /// @throws std::range_error on invalid index
     std::vector<int32_t> face_vertices(size_t face) const {
       if(face > this->num_faces()-1) {
         throw std::range_error("Index " + std::to_string(face) + " into Mesh.faces out of bounds, max valid index is " + std::to_string(this->num_faces()-1) + ".\n");
@@ -117,6 +118,7 @@ namespace fs {
     }
 
     /// Get all coordinates of the vertex, given by its index.
+    /// @throws std::range_error on invalid index
     std::vector<_Float32> vertex_coords(size_t vertex) const {
       if(vertex > this->num_vertices()-1) {
         throw std::range_error("Index " + std::to_string(vertex) + " into Mesh.vertices out of bounds, max valid index is " + std::to_string(this->num_vertices()-1) + ".\n");
@@ -131,6 +133,7 @@ namespace fs {
     /// @brief Retrieve a coordinate of a vertex, treating the vertices vector as an nx3 matrix.
     /// @param i the row index, valid values are 0..num_vertices.
     /// @param j the column index, valid values are 0..2 (for the x,y,z coordinates).
+    /// @throws std::range_error on invalid index
     const _Float32& vm_at(size_t i, size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->vertices.size()-1) {
@@ -253,11 +256,11 @@ namespace fs {
     }
 
     /// Get the number of vertices of this parcellation (or the associated surface).
+    /// @throws std::runtime_error on invalid annot
     size_t num_vertices() const {
       size_t nv = this->vertex_indices.size();
       if(this->vertex_labels.size() != nv) {
-        std::cerr << "Inconsistent annot, number of vertex indices and labels does not match.\n";
-        exit(1);
+        throw std::runtime_error("Inconsistent annot, number of vertex indices and labels does not match.\n");
       }
       return nv;
     }
@@ -387,6 +390,7 @@ namespace fs {
   /// @param mgh An Mgh instance that should be filled with the data from the filename.
   /// @param filename Path to the input MGH file.
   /// @see There exists an overloaded version that reads from a stream.
+  /// @throws runtime_error if the file uses an unsupported MRI data type.
   void read_mgh(Mgh* mgh, const std::string& filename) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
@@ -401,24 +405,23 @@ namespace fs {
       std::vector<float> data = _read_mgh_data_float(&mgh_header, filename);
       mgh->data.data_mri_float = data;
     } else {      
-      std::cout << "Not reading MGH data from file '" << filename << "', data type " << mgh->header.dtype << " not supported yet.\n";
       if(_ends_with(filename, ".mgz")) {
-        std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported yet.\n";  
+        std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported directly. You can ignore this message if you wrapped a gz stream.\n";  
       }
-      exit(1);
+      throw std::runtime_error("Not reading MGH data from file '" + filename + "', data type " + std::to_string(mgh->header.dtype) + " not supported yet.\n");
     }
   }
 
   /// Read a vector of subject identifiers from a FreeSurfer subjects file.
   /// @param filename a text file that contains one subject identifier per line.
+  /// @throws runtime_error if the file cannot be read
   std::vector<std::string> read_subjectsfile(const std::string& filename) {
     std::vector<std::string> subjects;
     std::ifstream input(filename);
     std::string line;
 
-    if(! input.is_open()) {
-      std::cerr << "Could not open subjects file '" << filename << "'.\n";
-      exit(1);
+    if(! input.is_open()) {      
+      throw std::runtime_error("Could not open subjects file '" + filename + "'.\n");
     }
 
     while( std::getline( input, line ) ) {
@@ -432,6 +435,7 @@ namespace fs {
   /// @param mgh An Mgh instance that should be filled with the data from the stream.
   /// @param is Pointer to an open istream from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a file.
+  /// @throws runtime_error if the file uses an unsupported MRI data type.
   void read_mgh(Mgh* mgh, std::istream* is) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, is);
@@ -446,8 +450,7 @@ namespace fs {
       std::vector<float> data = _read_mgh_data_float(&mgh_header, is);
       mgh->data.data_mri_float = data;
     } else {      
-      std::cout << "Not reading data from MGH stream, data type " << mgh->header.dtype << " not supported yet.\n";
-      exit(1);
+      throw std::runtime_error("Not reading data from MGH stream, data type " + std::to_string(mgh->header.dtype) + " not supported yet.\n");
     }
   }
 
@@ -456,13 +459,13 @@ namespace fs {
   /// @param mgh_header An MghHeader instance that should be filled with the data from the stream.
   /// @param is Pointer to an open istream from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a file.
+  /// @throws runtime_error if the file uses an unsupported MRI file format version. Only version 1 is supported (the only existing version to my knowledge).
   void read_mgh_header(MghHeader* mgh_header, std::istream* is) {
     const int MGH_VERSION = 1;    
 
     int format_version = _freadt<int32_t>(*is);
     if(format_version != MGH_VERSION) {        
-      std::cerr << "Invalid MGH file or unsupported file format version: expected version " << MGH_VERSION << ", found " << format_version << ".\n";
-      exit(1);
+      throw std::runtime_error("Invalid MGH file or unsupported file format version: expected version " + std::to_string(MGH_VERSION) + ", found " + std::to_string(format_version) + ".\n");
     }
     mgh_header->dim1length =  _freadt<int32_t>(*is);
     mgh_header->dim2length =  _freadt<int32_t>(*is);
@@ -527,6 +530,7 @@ namespace fs {
   /// @param mgh_header An MghHeader instance that should be filled with the data from the file.
   /// @param filename Path to the file from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a stream.
+  /// @throws runtime_error if the file cannot be opened
   void read_mgh_header(MghHeader* mgh_header, const std::string& filename) {    
     std::ifstream ifs;
     ifs.open(filename, std::ios_base::in | std::ios::binary);
@@ -543,6 +547,7 @@ namespace fs {
   /// Read arbitrary MGH data from a file.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @throws runtime_error if the file cannot be opened
   template <typename T>
   std::vector<T> _read_mgh_data(MghHeader* mgh_header, const std::string& filename) {
     std::ifstream ifs;
@@ -558,8 +563,7 @@ namespace fs {
       ifs.close();
       return(data);
     } else {
-      std::cerr << "Unable to open MGH file '" << filename << "'.\n";
-      exit(1);
+      throw std::runtime_error("Unable to open MGH file '" + filename + "'.\n");
     }
   }
 
@@ -622,6 +626,7 @@ namespace fs {
   ///
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
+  /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches.  
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
@@ -629,8 +634,7 @@ namespace fs {
     if(is.is_open()) {
       int magic = _fread3(is);
       if(magic != SURF_TRIS_MAGIC) {
-        std::cerr << "Magic did not match: expected " << SURF_TRIS_MAGIC << ", found " << magic << ".\n";
-        exit(1);
+        throw std::domain_error("Magic did not match: expected " + std::to_string(SURF_TRIS_MAGIC) + ", found " + std::to_string(magic) + ".\n");
       }
       std::string created_line = _freadstringnewline(is);
       std::string comment_line = _freadstringnewline(is);
@@ -649,8 +653,7 @@ namespace fs {
       surface->vertices = vdata;
       surface->faces = fdata;
     } else {
-      std::cerr << "Unable to open surface file '" << filename << "'.\n";
-      exit(1);
+      throw std::runtime_error("Unable to open surface file '" + filename + "'.\n");
     }
   }
 
