@@ -121,6 +121,10 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE(surface.vm_at(surface.num_vertices()-1,2) == Approx(surface.vertices[surface.vertices.size() -1 -0]));
     }
 
+    SECTION("Trying to access invalid vertex coord indices results in an exception." ) {
+        REQUIRE_THROWS(surface.vm_at(surface.num_vertices(),0));
+    }
+
     SECTION("Matrix indices into the faces vectors can be computed." ) {        
         REQUIRE(surface.fm_at(0,0) == surface.faces[0]);
         REQUIRE(surface.fm_at(0,1) == surface.faces[1]);

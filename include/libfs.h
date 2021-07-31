@@ -107,8 +107,7 @@ namespace fs {
     /// Get all vertex indices of the face, given by its index.
     std::vector<int32_t> face_vertices(size_t face) const {
       if(face > this->num_faces()-1) {
-        std::cerr << "Index << " << face << " into Mesh.faces out of bounds, max valid index is " << this->num_faces()-1 << ".\n";
-        exit(1);
+        throw std::range_error("Index " + std::to_string(face) + " into Mesh.faces out of bounds, max valid index is " + std::to_string(this->num_faces()-1) + ".\n");
       }
       std::vector<int32_t> fv(3);
       fv[0] = this->fm_at(face, 0);
@@ -120,8 +119,7 @@ namespace fs {
     /// Get all coordinates of the vertex, given by its index.
     std::vector<_Float32> vertex_coords(size_t vertex) const {
       if(vertex > this->num_vertices()-1) {
-        std::cerr << "Index << " << vertex << " into Mesh.vertices out of bounds, max valid index is " << this->num_vertices()-1 << ".\n";
-        exit(1);
+        throw std::range_error("Index " + std::to_string(vertex) + " into Mesh.vertices out of bounds, max valid index is " + std::to_string(this->num_vertices()-1) + ".\n");
       }
       std::vector<_Float32> vc(3);
       vc[0] = this->vm_at(vertex, 0);
@@ -136,8 +134,7 @@ namespace fs {
     const _Float32& vm_at(size_t i, size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->vertices.size()-1) {
-        std::cerr << "Indices << (" << i << "," << j << ") into Mesh.vertices out of bounds. Hit " << idx << " with max valid index " << this->vertices.size()-1 << ".\n";
-        exit(1);
+        throw std::range_error("Indices (" + std::to_string(i) + "," + std::to_string(j) + ") into Mesh.vertices out of bounds. Hit " + std::to_string(idx) + " with max valid index " + std::to_string(this->vertices.size()-1) + ".\n");
       }
       return(this->vertices[idx]);
     }
