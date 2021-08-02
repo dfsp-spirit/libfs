@@ -209,6 +209,93 @@ namespace fs {
       }
     }
 
+
+    /// Read a brainmesh from a Stanford PLY format stream.
+    static void from_ply(Mesh* mesh, std::ifstream* is) {
+      std::string line;
+      int line_idx = -1;
+      int noncomment_line_idx = -1;
+
+      std::vector<float> vertices;
+      std::vector<int> faces;
+
+      bool in_header = true; // current status
+      int num_verts = -1;
+      int num_faces = -1;
+      while (std::getline(*is, line)) {
+        line_idx += 1;
+        std::istringstream iss(line);
+        if(fs::util::starts_with(line, "comment")) {
+          continue; // skip comment.
+        } else {
+          noncomment_line_idx++;
+          if(in_header) {
+            if(noncomment_line_idx == 0) {
+              if(line != "ply") throw std::domain_error("Invalid PLY file");
+            } else if(noncomment_line_idx == 1) {
+              if(line != "format ascii 1.0") throw std::domain_error("Unsupported PLY file format, only format 'format ascii 1.0' is supported.");
+            }
+
+            if(line == "end_header") {
+              in_header = false;
+            } else if(fs::util::starts_with(line, "element vertex")) {
+              std::string elem, elem_type_identifier;
+              if (!(iss >> elem >> elem_type_identifier >> num_verts)) { 
+                throw std::domain_error("Could not parse element vertex line of PLY header, invalid format.\n");
+              }
+            } else if(fs::util::starts_with(line, "element face")) {
+              std::string elem, elem_type_identifier;
+              if (!(iss >> elem >> elem_type_identifier >> num_faces)) { 
+                throw std::domain_error("Could not parse element face line of PLY header, invalid format.\n");
+              }
+            } // Other properties like vertex colors and normals are ignored for now.
+
+          } else {  // in data part.
+            if(num_verts < 1 || num_faces < 1) {
+              throw std::domain_error("Invalid PLY file: missing element count lines of header.");
+            }
+            // Read vertices
+            if(vertices.size() < (size_t)num_verts * 3) {
+              float x,y,z;
+              if (!(iss >> x >> y >> z)) { 
+                throw std::domain_error("Could not parse vertex line of PLY data, invalid format.\n");
+              }
+              vertices.push_back(x);
+              vertices.push_back(y);
+              vertices.push_back(z);
+            } else {
+              if(faces.size() < (size_t)num_faces * 3) {
+                int verts_per_face, v0, v1, v2;
+                if (!(iss >> verts_per_face >> v0 >> v1 >> v2)) { 
+                  throw std::domain_error("Could not parse face line of PLY data, invalid format.\n");
+                }
+                if(verts_per_face != 3) {
+                  throw std::domain_error("Only triangular meshes are supported: PLY faces lines must contain exactly 3 vertex indices.\n");
+                }
+                faces.push_back(v0);
+                faces.push_back(v1);
+                faces.push_back(v2);
+              }
+            }
+          }
+        }
+      }
+      mesh->vertices = vertices;
+      mesh->faces = faces;
+    }
+
+    /// Read a brainmesh from a Stanford PLY format mesh file.
+    /// @throws std::runtime_error if the file cannot be read.
+    static void from_ply(Mesh* mesh, const std::string& filename) {
+      std::ifstream input(filename);
+      if(input.is_open()) {
+        Mesh::from_ply(mesh, &input);
+        input.close();
+      } else {
+        throw std::runtime_error("Could not open Stanford PLY format mesh file '" + filename + "' for reading.\n");
+      }
+    }
+
     /// Return the number of vertices in this mesh.
     size_t num_vertices() const {
       return(this->vertices.size() / 3);
@@ -290,6 +377,12 @@ namespace fs {
         plys << num_vertices_per_face << " " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
       }        
       return(plys.str());
+    }
+
+    /// Export this mesh to a file in Stanford PLY format.
+    /// @throws st::runtime_error if the target file cannot be opened.
+    void to_ply_file(const std::string& filename) const {
+      fs::util::str_to_file(filename, this->to_ply());
     }
   };
 

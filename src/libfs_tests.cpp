@@ -189,12 +189,60 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE(cmax_entry == Approx(106.1743));
     }
 
-    SECTION("Re-reading also works with read_mesh." ) {        
+    SECTION("The mesh can be exported to PLY format and re-read." ) {        
+        const std::string ply_file = "examples/read_surf/lh.white.ply";
+        surface.to_ply_file(ply_file);
+
+        fs::Mesh surface2;
+        fs::Mesh::from_ply(&surface2, ply_file);
+
+        // Check vertex and face counts
+        REQUIRE( surface2.vertices.size() == 149244 * 3);
+        REQUIRE( surface2.faces.size() == 298484 * 3);
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface2.faces.begin(), surface2.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface2.faces.begin(), surface2.faces.end());    
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);    
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface2.vertices.begin(), surface2.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface2.vertices.begin(), surface2.vertices.end());    
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
+    }
+
+    SECTION("Re-reading OBJ also works with read_mesh." ) {        
         const std::string obj_file = "examples/read_surf/lh.white.obj";
         surface.to_obj_file(obj_file);
 
         fs::Mesh surface2;
         fs::read_mesh(&surface2, obj_file);
+
+        // Check vertex and face counts
+        REQUIRE( surface2.vertices.size() == 149244 * 3);
+        REQUIRE( surface2.faces.size() == 298484 * 3);
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface2.faces.begin(), surface2.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface2.faces.begin(), surface2.faces.end());    
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);    
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface2.vertices.begin(), surface2.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface2.vertices.begin(), surface2.vertices.end());    
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
+    }
+
+    SECTION("Re-reading PLY also works with read_mesh." ) {        
+        const std::string ply_file = "examples/read_surf/lh.white.ply";
+        surface.to_ply_file(ply_file);
+
+        fs::Mesh surface2;
+        fs::read_mesh(&surface2, ply_file);
 
         // Check vertex and face counts
         REQUIRE( surface2.vertices.size() == 149244 * 3);
