@@ -1,5 +1,12 @@
 
 
+v0.2.3
+------
+* add support for importing meshes from Wavefront OBJ format.
+* add support for importing meshes from Stanford PLY ascii format.
+* add new function read_mesh that reads from all supported formats and auto-determines the format from the file extension.
+
+
 v0.2.2
 ------
 * add read_subjectsfile function

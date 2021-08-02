@@ -6,6 +6,8 @@ A portable, header-only, zero-dependency, mildly templated, C++11 library for ac
 
 * read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
 * read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
+  - can also import triangular meshes from the following standard mesh file formats: Wavefront object, Standord PLY (ascii version).
+  - can export meshes to the following standard mesh file formats: Wavefront object, Standord PLY (ascii version).
 * read FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
