@@ -879,14 +879,16 @@ namespace fs {
   }
 
 
-  /// Read a triangular mesh from a file into the given Mesh instance.
+  /// Read a triangular mesh from a surf, obj, or ply file into the given Mesh instance.
   ///
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
-  /// @param filename The path to the file from which to read the mesh. The format will be determined from the file extension as follows: file names ending with '.obj' are loaded as Wavefront OBJ files. All other files are loaded as FreeSurfer binary surf files.
+  /// @param filename The path to the file from which to read the mesh. The format will be determined from the file extension as follows. File names ending with '.obj' are loaded as Wavefront OBJ files. File names ending with '.ply' are loaded as Stanford PLY files in format version 'ascii 1.0'. All other files are loaded as FreeSurfer binary surf files.
   /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.  
   void read_mesh(Mesh* surface, const std::string& filename) {
     if(fs::util::ends_with(filename, ".obj")) {
       fs::Mesh::from_obj(surface, filename);
+    } else if(fs::util::ends_with(filename, ".ply")) {
+      fs::Mesh::from_ply(surface, filename);
     } else {
       read_surf(surface, filename);
     }
