@@ -753,7 +753,8 @@ namespace fs {
   ///
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
-  /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.  
+  /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.
+  /// @see read_mesh, a generalized version that supports other file formats as well.
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
@@ -781,6 +782,20 @@ namespace fs {
       surface->faces = fdata;
     } else {
       throw std::runtime_error("Unable to open surface file '" + filename + "'.\n");
+    }
+  }
+
+
+  /// Read a triangular mesh from a file into the given Mesh instance.
+  ///
+  /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
+  /// @param filename The path to the file from which to read the mesh. The format will be determined from the file extension as follows: file names ending with '.obj' are loaded as Wavefront OBJ files. All other files are loaded as FreeSurfer binary surf files.
+  /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.  
+  void read_mesh(Mesh* surface, const std::string& filename) {
+    if(fs::util::ends_with(filename, ".obj")) {
+      fs::Mesh::from_obj(surface, filename);
+    } else {
+      read_surf(surface, filename);
     }
   }
 
