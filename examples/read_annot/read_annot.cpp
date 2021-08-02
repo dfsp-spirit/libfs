@@ -57,5 +57,11 @@ int main(int argc, char** argv) {
     std::vector<std::string> vertex_reg_names = annot.vertex_region_names();
     std::cout << "The regions for the first 3 vertices are " << vertex_reg_names[0] << ", " << vertex_reg_names[1] << ", " << vertex_reg_names[2] << ".\n";
 
+    // Export a vertex-color version of a brain mesh in PLY format. You can open it in Blender, Meshlab or whatever and inspect the colors.
+    std::string surface_fname = "../read_surf/lh.white";
+    fs::Mesh surface;
+    fs::read_surf(&surface, surface_fname);
+    surface.to_ply_file("aparc_brain.ply", annot.vertex_colors());
+
     exit(0);
 }

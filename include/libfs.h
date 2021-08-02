@@ -390,14 +390,14 @@ namespace fs {
     
     /// Return string representing the mesh in PLY format. Overload that works without passing a color vector.
     std::string to_ply() const {
-      std::vector<u_char> empty_col;
+      std::vector<uint8_t> empty_col;
       return(this->to_ply(empty_col));
     }
 
     /// Return string representing the mesh in PLY format.
     /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
     /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices. 
-    std::string to_ply(std::vector<u_char> col) const {
+    std::string to_ply(std::vector<uint8_t> col) const {
       bool use_vertex_colors = col.size() != 0;
       std::stringstream plys;
       plys << "ply\nformat ascii 1.0\n";
@@ -416,7 +416,7 @@ namespace fs {
       for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
         plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2];
         if(use_vertex_colors) {
-          plys << col[vidx] << " " << col[vidx+1] << " " << col[vidx+2];
+          plys << " " << (int)col[vidx] << " " << (int)col[vidx+1] << " " << (int)col[vidx+2];
         }
         plys << "\n";
       }
@@ -432,6 +432,12 @@ namespace fs {
     /// @throws st::runtime_error if the target file cannot be opened.
     void to_ply_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_ply());
+    }
+
+    /// Export this mesh to a file in Stanford PLY format with vertex colors.
+    /// @throws st::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    void to_ply_file(const std::string& filename, std::vector<uint8_t> col) const {
+      fs::util::str_to_file(filename, this->to_ply(col));
     }
   };
 
@@ -527,16 +533,17 @@ namespace fs {
 
     /// Get the vertex colors as an array of uchar values, 3 consecutive values are the red, green and blue channel values for a single vertex.
     /// @param alpha whether to include the alpha channel and return 4 values per vertex instead of 3.
-    std::vector<u_char> vertex_colors(bool alpha = false) const {
+    std::vector<uint8_t> vertex_colors(bool alpha = false) const {
       int num_channels = alpha ? 4 : 3;
-      std::vector<u_char> col(this->num_vertices() * num_channels);
+      std::vector<uint8_t> col;
+      col.reserve(this->num_vertices() * num_channels);
       std::vector<size_t> vertex_region_indices = this->vertex_regions();
-      for(size_t i=0; i<this->num_vertices()*num_channels; i+=num_channels) {
-        col[i] = this->colortable.r[vertex_region_indices[i]];
-        col[i+1] = this->colortable.g[vertex_region_indices[i]];
-        col[i+2] = this->colortable.b[vertex_region_indices[i]];
+      for(size_t i=0; i<this->num_vertices(); i++) {
+        col.push_back(this->colortable.r[vertex_region_indices[i]]);
+        col.push_back(this->colortable.g[vertex_region_indices[i]]);
+        col.push_back(this->colortable.b[vertex_region_indices[i]]);
         if(alpha) {
-          col[i+3] = this->colortable.a[vertex_region_indices[i]];
+          col.push_back(this->colortable.a[vertex_region_indices[i]]);
         }
       }
       return(col);

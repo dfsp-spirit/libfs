@@ -339,6 +339,14 @@ TEST_CASE( "Reading the demo annot file works" ) {
         }
         REQUIRE( num_bankssts == 1722);
     }
+
+    SECTION("One can compute the vertex colors for all vertices." ) {
+        std::vector<u_char> vertex_colors_rgb = annot.vertex_colors();
+        REQUIRE( vertex_colors_rgb.size() == surface_num_vertices * 3);
+
+        std::vector<u_char> vertex_colors_rgba = annot.vertex_colors(true);
+        REQUIRE( vertex_colors_rgba.size() == surface_num_vertices * 4);
+    }
 }
 
 
