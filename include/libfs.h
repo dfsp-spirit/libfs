@@ -388,19 +388,37 @@ namespace fs {
       return(this->vertices[idx]);
     }
     
+    /// Return string representing the mesh in PLY format. Overload that works without passing a color vector.
+    std::string to_ply() const {
+      std::vector<u_char> empty_col;
+      return(this->to_ply(empty_col));
+    }
 
     /// Return string representing the mesh in PLY format.
-    std::string to_ply() const {
+    /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
+    /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices. 
+    std::string to_ply(std::vector<u_char> col) const {
+      bool use_vertex_colors = col.size() != 0;
       std::stringstream plys;
       plys << "ply\nformat ascii 1.0\n";
       plys << "element vertex " << this->num_vertices() << "\n";
       plys << "property float x\nproperty float y\nproperty float z\n";
+      if(use_vertex_colors) {
+        if(col.size() != this->vertices.size()) {
+          throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing PLY file.");
+        }
+        plys << "property uchar red\nproperty uchar green\nproperty uchar blue\n";
+      }
       plys << "element face " << this->num_faces() << "\n";
       plys << "property list uchar int vertex_index\n";
       plys << "end_header\n";
       
       for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
-        plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
+        plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2];
+        if(use_vertex_colors) {
+          plys << col[vidx] << " " << col[vidx+1] << " " << col[vidx+2];
+        }
+        plys << "\n";
       }
 
       const int num_vertices_per_face = 3;
@@ -507,6 +525,23 @@ namespace fs {
       return(reg_verts);
     }
 
+    /// Get the vertex colors as an array of uchar values, 3 consecutive values are the red, green and blue channel values for a single vertex.
+    /// @param alpha whether to include the alpha channel and return 4 values per vertex instead of 3.
+    std::vector<u_char> vertex_colors(bool alpha = false) const {
+      int num_channels = alpha ? 4 : 3;
+      std::vector<u_char> col(this->num_vertices() * num_channels);
+      std::vector<size_t> vertex_region_indices = this->vertex_regions();
+      for(size_t i=0; i<this->num_vertices()*num_channels; i+=num_channels) {
+        col[i] = this->colortable.r[vertex_region_indices[i]];
+        col[i+1] = this->colortable.g[vertex_region_indices[i]];
+        col[i+2] = this->colortable.b[vertex_region_indices[i]];
+        if(alpha) {
+          col[i+3] = this->colortable.a[vertex_region_indices[i]];
+        }
+      }
+      return(col);
+    }
+
     /// Get the number of vertices of this parcellation (or the associated surface).
     /// @throws std::runtime_error on invalid annot
     size_t num_vertices() const {
@@ -517,7 +552,7 @@ namespace fs {
       return nv;
     }
 
-    /// Compute the region indices in the Colortable for all vertices in this brain surface parcellation. With the region indices, it becomes very easy to obtain all region names, labels, and coolor channel values from the Colortable.
+    /// Compute the region indices in the Colortable for all vertices in this brain surface parcellation. With the region indices, it becomes very easy to obtain all region names, labels, and color channel values from the Colortable.
     /// @see The function `vertex_region_names` uses this function to get the region names for all vertices.
     std::vector<size_t> vertex_regions() const {
       std::vector<size_t> vert_reg;
@@ -538,7 +573,7 @@ namespace fs {
     std::vector<std::string> vertex_region_names() const {
       std::vector<std::string> region_names;
       std::vector<size_t> vertex_region_indices = this->vertex_regions();
-      for(size_t i=0; i<vertex_region_indices.size(); i++) {
+      for(size_t i=0; i<this->num_vertices(); i++) {
         region_names.push_back(this->colortable.name[vertex_region_indices[i]]);
       }
       return(region_names);
