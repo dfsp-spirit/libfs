@@ -236,3 +236,39 @@ TEST_CASE( "Reading metadata works" ) {
     
 }
 
+
+TEST_CASE( "The util functions work" ) {
+
+    
+    SECTION("The starts_with function works." ) {
+        const std::string some_file = "examples/read_metadata/subjects.txt";        
+        REQUIRE( fs::util::starts_with(some_file, "examples"));
+        REQUIRE( fs::util::starts_with(some_file, "e"));
+        REQUIRE( fs::util::starts_with(some_file, some_file));
+
+        REQUIRE( fs::util::starts_with(some_file, "nope") == false);
+    }
+
+    SECTION("The ends_with function works." ) {
+        const std::string some_file = "examples/read_metadata/subjects.txt";        
+        REQUIRE( fs::util::ends_with(some_file, ".txt"));
+        REQUIRE( fs::util::ends_with(some_file, "t"));
+        REQUIRE( fs::util::ends_with(some_file, some_file));
+
+        REQUIRE( fs::util::ends_with(some_file, "nope") == false);
+    }
+
+    SECTION("The fullpath function works." ) {        
+        REQUIRE( fs::util::fullpath({"a", "b"}) == "a/b");
+        REQUIRE( fs::util::fullpath({"/a", "b"}) == "/a/b");
+        REQUIRE( fs::util::fullpath({"/a", "/b"}) == "/a/b");
+        REQUIRE( fs::util::fullpath({"/a", "b/"}) == "/a/b");
+        REQUIRE( fs::util::fullpath({"/a", "/b/"}) == "/a/b");
+        REQUIRE( fs::util::fullpath({"/a/", "/b/"}) == "/a/b");
+        REQUIRE( fs::util::fullpath({"/a/", "/b"}) == "/a/b");
+        REQUIRE( fs::util::fullpath({"/a/", "b/"}) == "/a/b");
+    }
+
+    
+}
+

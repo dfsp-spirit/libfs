@@ -25,7 +25,58 @@
  */ 
 
 
+
 namespace fs {
+
+  namespace util {
+    /// Check whether a string ends with the given suffix.
+    inline bool ends_with(std::string const & value, std::string const & suffix) {
+        if (suffix.size() > value.size()) return false;
+        return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
+    }
+
+    /// Check whether a string starts with the given prefix.
+    inline bool starts_with(std::string const & value, std::string const & prefix) {
+        if (prefix.length() > value.length()) return false;
+        return value.rfind(prefix, 0) == 0;
+    }
+
+
+    /// Construct a UNIX file system path from the given path_components.
+    /// @details Any trailing or leading slash (path_sep) will be stripped from the individual components and replaced with a single one between two components. If the first path component started with a slash, that slash will be kept (absolute paths are left intact).
+    /// @param path_components init list of strings, the path components.
+    /// @throws std::invalid_argument on empty path_components
+    std::string fullpath( std::initializer_list<std::string> path_components, std::string path_sep = std::string("/") ) {
+      std::string fp;
+      if(path_components.size() == 0) {
+          throw std::invalid_argument("The 'path_components' must not be empty.");
+      }
+      
+      std::string comp;
+      std::string comp_mod;
+      size_t idx = 0;    
+      for(auto comp : path_components) {
+        comp_mod = comp;
+        if(idx != 0) { // We keep a leading slash intact for the first element (absolute path).
+          if (starts_with(comp, path_sep)) {
+            comp_mod = comp.substr(1, comp.size()-1);
+          }        
+        }
+        
+        if(ends_with(comp_mod, path_sep)) {
+            comp_mod = comp_mod.substr(0, comp_mod.size()-1);
+        }
+
+        fp += comp_mod;
+        if(idx < path_components.size()-1) {
+          fp += path_sep;
+        }
+        idx++;
+      }
+      return fp;
+    }
+  }
+
   
   // MRI data types, used by the MGH functions.
 
@@ -79,6 +130,60 @@ namespace fs {
         objs << "f " << faces[fidx]+1 << " " << faces[fidx+1]+1 << " " << faces[fidx+2]+1 << "\n";
       }        
       return(objs.str());
+    }
+
+    /// Read a brainmesh from a Wavefront object format stream.
+    static void from_obj(Mesh* mesh, std::ifstream* is) {
+      std::string line;
+      int line_idx = -1;
+
+      std::vector<float> vertices;
+      std::vector<int> faces;
+
+      while (std::getline(*is, line)) {
+        line_idx += 1;
+        std::istringstream iss(line);
+        if(fs::util::starts_with(line, "#")) {
+          continue; // skip comment.
+        } else {
+          if(fs::util::starts_with(line, "v")) {
+            std::string elem_type_identifier; float x, y, z;
+            if (!(iss >> elem_type_identifier >> x >> y >> z)) { 
+              throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx+1) + " of OBJ data, invalid format.\n");
+            }
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+          } else if(fs::util::starts_with(line, "f")) {
+            std::string elem_type_identifier; int v0, v1, v2;
+            if (!(iss >> elem_type_identifier >> v0 >> v1 >> v2)) { 
+              throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OBJ data, invalid format.\n");
+            }
+            faces.push_back(v0);
+            faces.push_back(v1);
+            faces.push_back(v2);
+
+          } else {
+            std::cerr << "Ignoring line " << line_idx << " of OBJ data, unsupported element type.\n";
+            continue;
+          }
+          
+        }        
+      }
+      mesh->vertices = vertices;
+      mesh->faces = faces;
+    }
+
+    /// Read a brainmesh from a Wavefront object format mesh file.
+    /// @throws std::runtime_error if the file cannot be read.
+    static void from_obj(Mesh* mesh, const std::string& filename) {
+      std::ifstream input(filename);
+      if(input.is_open()) {
+        Mesh::from_obj(mesh, &input);
+        input.close();
+      } else {
+        throw std::runtime_error("Could not open Wavefront object format mesh file '" + filename + "' for reading.\n");
+      }
     }
 
     /// Return the number of vertices in this mesh.
@@ -1171,4 +1276,5 @@ namespace fs {
   }
 
 } // End namespace fs
+
 
