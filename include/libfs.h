@@ -75,6 +75,19 @@ namespace fs {
       }
       return fp;
     }
+
+    /// Write the given text representation (any string) to a file.
+    /// @throws st::runtime_error if the file cannot be opened.
+    void str_to_file(const std::string& filename, const std::string rep) {
+      std::ofstream ofs;
+      ofs.open(filename, std::ofstream::out);
+      if(ofs.is_open()) {
+          ofs << rep;
+          ofs.close();
+      } else {
+          throw std::runtime_error("Unable to open file '" + filename + "' for writing.\n");
+      }
+    }
   }
 
   
@@ -118,7 +131,7 @@ namespace fs {
     Mesh() {}
 
     std::vector<_Float32> vertices;
-    std::vector<int32_t> faces;
+    std::vector<int32_t> faces;    
 
     /// Return string representing the mesh in Wavefront Object (.obj) format.
     std::string to_obj() const {
@@ -131,6 +144,14 @@ namespace fs {
       }        
       return(objs.str());
     }
+
+    /// Export this mesh to a file in Wavefront OBJ format.
+    /// @throws st::runtime_error if the target file cannot be opened.
+    void to_obj_file(const std::string& filename) const {
+      fs::util::str_to_file(filename, this->to_obj());
+    }
+
+    
 
     /// Read a brainmesh from a Wavefront object format stream.
     static void from_obj(Mesh* mesh, std::ifstream* is) {

@@ -153,6 +153,37 @@ TEST_CASE( "Reading the demo surface file works" ) {
 }
 
 
+TEST_CASE( "Importing and exporting meshes works" ) {
+
+    fs::Mesh surface;
+    fs::read_surf(&surface, "examples/read_surf/lh.white");
+
+    SECTION("The mesh can be exported to OBJ format and re-read." ) {        
+        const std::string obj_file = "examples/read_surf/lh.white.obj";
+        surface.to_obj_file(obj_file);
+
+        fs::Mesh surface2;
+        fs::Mesh::from_obj(&surface2, obj_file);
+
+        // Check vertex and face counts
+        REQUIRE( surface.vertices.size() == 149244 * 3);
+        REQUIRE( surface.faces.size() == 298484 * 3);
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface.faces.begin(), surface.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface.faces.begin(), surface.faces.end());    
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);    
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
+    }            
+}
+
+
 TEST_CASE( "Reading the demo label file works" ) {
 
     fs::Label label;
