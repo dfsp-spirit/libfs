@@ -261,20 +261,15 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE(cmax_entry == Approx(106.1743));
     }
 
-    SECTION("Reading PLY and OBJ files exported from Blender works." ) {        
+    SECTION("Reading OBJ files exported from Blender works." ) {        
         const std::string obj_file = "examples/read_surf/blender_export_lh_white.obj";
-        const std::string ply_file = "examples/read_surf/blender_export_lh_white.ply";        
 
-        fs::Mesh surface_obj, surface_ply;
+        fs::Mesh surface_obj;
         fs::read_mesh(&surface_obj, obj_file);
-        fs::read_mesh(&surface_ply, ply_file);
 
         // Check vertex and face counts
         REQUIRE( surface_obj.vertices.size() == 149244 * 3);
         REQUIRE( surface_obj.faces.size() == 298484 * 3);
-        
-        REQUIRE( surface_ply.vertices.size() == 149244 * 3);
-        REQUIRE( surface_ply.faces.size() == 298484 * 3);
     }            
 }
 
