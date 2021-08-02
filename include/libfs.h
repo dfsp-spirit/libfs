@@ -160,6 +160,7 @@ namespace fs {
 
       std::vector<float> vertices;
       std::vector<int> faces;
+      size_t num_lines_ignored = 0;
 
       while (std::getline(*is, line)) {
         line_idx += 1;
@@ -167,19 +168,40 @@ namespace fs {
         if(fs::util::starts_with(line, "#")) {
           continue; // skip comment.
         } else {
-          if(fs::util::starts_with(line, "v")) {
+          if(fs::util::starts_with(line, "v ")) {
             std::string elem_type_identifier; float x, y, z;
             if (!(iss >> elem_type_identifier >> x >> y >> z)) { 
               throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx+1) + " of OBJ data, invalid format.\n");
             }
+            assert(elem_type_identifier == "v");
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
-          } else if(fs::util::starts_with(line, "f")) {
-            std::string elem_type_identifier; int v0, v1, v2;
-            if (!(iss >> elem_type_identifier >> v0 >> v1 >> v2)) { 
+          } else if(fs::util::starts_with(line, "f ")) {
+            std::string elem_type_identifier, v0raw, v1raw, v2raw; int v0, v1, v2;
+            if (!(iss >> elem_type_identifier >> v0raw >> v1raw >> v2raw)) { 
               throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OBJ data, invalid format.\n");
             }
+            assert(elem_type_identifier == "f");
+
+            // The OBJ format allows to specifiy face indices with slashes to also set normal and material indices.
+            // So instead of a line like 'f 22 34 45', we could get 'f 3/1 4/2 5/3' or 'f 6/4/1 3/5/3 7/6/5' or 'f 7//1 8//2 9//3'.
+            // We need to extract the stuff before the first slash and interprete it as int to get the vertex index we are looking for.
+            std::size_t found_v0 = v0raw.find("/");
+            std::size_t found_v1 = v1raw.find("/");
+            std::size_t found_v2 = v2raw.find("/");
+            if (found_v0 != std::string::npos) {
+              v0raw = v0raw.substr(0, found_v0);              
+            }
+            if (found_v1 != std::string::npos) {
+              v1raw = v1raw.substr(0, found_v1);              
+            }
+            if (found_v2 != std::string::npos) {
+              v2raw = v0raw.substr(0, found_v2);              
+            }
+            v0 = std::stoi(v0raw);
+            v1 = std::stoi(v1raw);
+            v2 = std::stoi(v2raw);
 
             // The vertex indices in Wavefront OBJ files are 1-based, so we have to substract 1 here.
             faces.push_back(v0 - 1);
@@ -187,11 +209,14 @@ namespace fs {
             faces.push_back(v2 - 1);
 
           } else {
-            std::cerr << "Ignoring line " << line_idx << " of OBJ data, unsupported element type.\n";
+            num_lines_ignored++;
             continue;
           }
           
         }        
+      }
+      if(num_lines_ignored > 0) {
+        std::cerr << "Ignored " << num_lines_ignored << " lines in Wavefront OBJ format mesh file.\n";
       }
       mesh->vertices = vertices;
       mesh->faces = faces;
