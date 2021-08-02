@@ -136,10 +136,10 @@ namespace fs {
     /// Return string representing the mesh in Wavefront Object (.obj) format.
     std::string to_obj() const {
       std::stringstream objs;
-      for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) { // vertex coords
+      for(size_t vidx=0; vidx<this->vertices.size(); vidx+=3) { // vertex coords
         objs << "v " << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2] << "\n";
       }
-      for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 1-based
+      for(size_t fidx=0; fidx<this->faces.size(); fidx+=3) { // faces: vertex indices, 1-based
         objs << "f " << faces[fidx]+1 << " " << faces[fidx+1]+1 << " " << faces[fidx+2]+1 << "\n";
       }        
       return(objs.str());
@@ -180,9 +180,11 @@ namespace fs {
             if (!(iss >> elem_type_identifier >> v0 >> v1 >> v2)) { 
               throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OBJ data, invalid format.\n");
             }
-            faces.push_back(v0);
-            faces.push_back(v1);
-            faces.push_back(v2);
+
+            // The vertex indices in Wavefront OBJ files are 1-based, so we have to substract 1 here.
+            faces.push_back(v0 - 1);
+            faces.push_back(v1 - 1);
+            faces.push_back(v2 - 1);
 
           } else {
             std::cerr << "Ignoring line " << line_idx << " of OBJ data, unsupported element type.\n";

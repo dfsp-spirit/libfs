@@ -170,14 +170,14 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE( surface.faces.size() == 298484 * 3);
 
         // Check face vertex indices
-        int vmin_entry = *std::min_element(surface.faces.begin(), surface.faces.end()); // could use minmax for single call
-        int vmax_entry = *std::max_element(surface.faces.begin(), surface.faces.end());    
+        int vmin_entry = *std::min_element(surface2.faces.begin(), surface2.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface2.faces.begin(), surface2.faces.end());    
         REQUIRE(vmin_entry == 0);
         REQUIRE(vmax_entry == 149243);    
 
         // The range of vertex coordinates is correct"
-        float cmin_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
-        float cmax_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+        float cmin_entry = *std::min_element(surface2.vertices.begin(), surface2.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface2.vertices.begin(), surface2.vertices.end());    
         REQUIRE(cmin_entry == Approx(-108.6204));
         REQUIRE(cmax_entry == Approx(106.1743));
     }            
