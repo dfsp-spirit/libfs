@@ -1,12 +1,12 @@
 # libfs
-A portable, header-only, zero-dependency, mildly templated, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
+A portable, header-only, single file, no-dependency, mildly templated, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
 
 
 ## Features
 
 * read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
 * read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
-  - can also import triangular meshes from the following standard mesh file formats: Wavefront object, Standord PLY (ascii version).
+  - can also import triangular meshes from the following standard mesh file formats: Wavefront object format, Stanford PLY format (ascii version).
   - can export meshes to the following standard mesh file formats: Wavefront object, Standord PLY (ascii version).
 * read FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
