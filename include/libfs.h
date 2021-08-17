@@ -160,7 +160,7 @@ namespace fs {
 
       std::vector<float> vertices;
       std::vector<int> faces;
-      size_t num_lines_ignored = 0;
+      size_t num_lines_ignored = 0; // Not comments, but custom extensions or material data lines which are ignored by libfs.
 
       while (std::getline(*is, line)) {
         line_idx += 1;
@@ -231,6 +231,88 @@ namespace fs {
         input.close();
       } else {
         throw std::runtime_error("Could not open Wavefront object format mesh file '" + filename + "' for reading.\n");
+      }
+    }
+
+    /// Read a brainmesh from an Object File format (OFF) stream.
+    static void from_off(Mesh* mesh, std::ifstream* is) {
+      std::string line;
+      int line_idx = -1;
+      int noncomment_line_idx = -1;
+
+      std::vector<float> vertices;
+      std::vector<int> faces;
+      size_t num_vertices, num_faces, num_edges;
+      size_t num_verts_parsed = 0;
+      size_t num_faces_parsed = 0;
+      float x, y, z;
+      float v0, v1, v2;
+
+      while (std::getline(*is, line)) {
+        line_idx++;
+        std::istringstream iss(line);
+        if(fs::util::starts_with(line, "#")) {
+          continue; // skip comment.
+        } else {
+          noncomment_line_idx++;
+          if(noncomment_line_idx == 0) {
+            std::string off_header_magic;
+            if (!(iss >> off_header_magic)) {
+              throw std::domain_error("Could not parse first header line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
+            }
+            if(off_header_magic != "OFF") {
+              throw std::domain_error("OFF magic string invalid, file not in OFF format.\n");
+            }
+          } else if (noncomment_line_idx == 1) {
+            if (!(iss >> num_vertices >> num_faces >> num_edges)) {
+              throw std::domain_error("Could not parse element count header line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
+            }
+          } else {
+            
+            while(num_verts_parsed < num_vertices) {
+              if (!(iss >> x >> y >> z)) {
+                throw std::domain_error("Could not parse vertex coordinate line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
+              }
+              vertices.push_back(x);
+              vertices.push_back(y);
+              vertices.push_back(z);
+            }
+
+            while(num_verts_parsed < num_vertices) {
+              if (!(iss >> v0 >> v1 >> v2)) {
+                throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
+              }
+              faces.push_back(v0 - 1);
+              faces.push_back(v1 - 1);
+              faces.push_back(v2 - 1);              
+            }
+
+          }
+            
+                    
+        }        
+      }
+      if(num_verts_parsed < num_vertices) {
+        throw std::domain_error("Vertex count mismatch between OFF header and data.\n");
+      }
+      if(num_verts_parsed < num_vertices) {
+        throw std::domain_error("Vertex count mismatch between OFF header and data.\n");
+      }
+      mesh->vertices = vertices;
+      mesh->faces = faces;
+    }
+
+
+    /// Read a brainmesh from an OFF format mesh file.
+    /// @details The OFF is the Object File Format (file extension .off) is a simple text-based mesh file format. Not to be confused with the Wavefront Object format (.obj).
+    /// @throws std::runtime_error if the file cannot be read.
+    static void from_off(Mesh* mesh, const std::string& filename) {
+      std::ifstream input(filename);
+      if(input.is_open()) {
+        Mesh::from_off(mesh, &input);
+        input.close();
+      } else {
+        throw std::runtime_error("Could not open Object file format (OFF) mesh file '" + filename + "' for reading.\n");
       }
     }
 
@@ -341,7 +423,7 @@ namespace fs {
     /// @param i the row index, valid values are 0..num_faces.
     /// @param j the column index, valid values are 0..2 (for the 3 vertices of a face).
     /// @throws std::range_error on invalid index
-    const int32_t& fm_at(size_t i, size_t j) const {
+    const int32_t& fm_at(const size_t i, const size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->faces.size()-1) {        
         throw std::range_error("Indices (" + std::to_string(i) + "," + std::to_string(j) + ") into Mesh.faces out of bounds. Hit " + std::to_string(idx) + " with max valid index " + std::to_string(this->faces.size()-1) + ".\n");
@@ -352,7 +434,7 @@ namespace fs {
 
     /// Get all vertex indices of the face, given by its index.
     /// @throws std::range_error on invalid index
-    std::vector<int32_t> face_vertices(size_t face) const {
+    std::vector<int32_t> face_vertices(const size_t face) const {
       if(face > this->num_faces()-1) {
         throw std::range_error("Index " + std::to_string(face) + " into Mesh.faces out of bounds, max valid index is " + std::to_string(this->num_faces()-1) + ".\n");
       }
@@ -365,7 +447,7 @@ namespace fs {
 
     /// Get all coordinates of the vertex, given by its index.
     /// @throws std::range_error on invalid index
-    std::vector<_Float32> vertex_coords(size_t vertex) const {
+    std::vector<_Float32> vertex_coords(const size_t vertex) const {
       if(vertex > this->num_vertices()-1) {
         throw std::range_error("Index " + std::to_string(vertex) + " into Mesh.vertices out of bounds, max valid index is " + std::to_string(this->num_vertices()-1) + ".\n");
       }
@@ -380,7 +462,7 @@ namespace fs {
     /// @param i the row index, valid values are 0..num_vertices.
     /// @param j the column index, valid values are 0..2 (for the x,y,z coordinates).
     /// @throws std::range_error on invalid index
-    const _Float32& vm_at(size_t i, size_t j) const {
+    const _Float32& vm_at(const size_t i, const size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->vertices.size()-1) {
         throw std::range_error("Indices (" + std::to_string(i) + "," + std::to_string(j) + ") into Mesh.vertices out of bounds. Hit " + std::to_string(idx) + " with max valid index " + std::to_string(this->vertices.size()-1) + ".\n");
@@ -397,7 +479,7 @@ namespace fs {
     /// Return string representing the mesh in PLY format.
     /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
     /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices. 
-    std::string to_ply(std::vector<uint8_t> col) const {
+    std::string to_ply(const std::vector<uint8_t> col) const {
       bool use_vertex_colors = col.size() != 0;
       std::stringstream plys;
       plys << "ply\nformat ascii 1.0\n";
@@ -436,7 +518,7 @@ namespace fs {
 
     /// Export this mesh to a file in Stanford PLY format with vertex colors.
     /// @throws st::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
-    void to_ply_file(const std::string& filename, std::vector<uint8_t> col) const {
+    void to_ply_file(const std::string& filename, const std::vector<uint8_t> col) const {
       fs::util::str_to_file(filename, this->to_ply(col));
     }
   };
@@ -629,7 +711,7 @@ namespace fs {
   };
 
   /// A simple 4D array datastructure, useful for representing volume data.
-  template<class T> 
+  template<class T>
   struct Array4D {
     Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) :
       d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
