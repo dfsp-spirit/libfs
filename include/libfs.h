@@ -133,6 +133,7 @@ namespace fs {
     std::vector<_Float32> vertices;
     std::vector<int32_t> faces;    
 
+
     /// Return string representing the mesh in Wavefront Object (.obj) format.
     std::string to_obj() const {
       std::stringstream objs;
@@ -145,15 +146,17 @@ namespace fs {
       return(objs.str());
     }
 
+
     /// Export this mesh to a file in Wavefront OBJ format.
     /// @throws st::runtime_error if the target file cannot be opened.
     void to_obj_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_obj());
     }
-
     
 
     /// Read a brainmesh from a Wavefront object format stream.
+    /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
+    /// @throws std::domain_error if the file format is invalid.
     static void from_obj(Mesh* mesh, std::ifstream* is) {
       std::string line;
       int line_idx = -1;
@@ -222,8 +225,11 @@ namespace fs {
       mesh->faces = faces;
     }
 
+
     /// Read a brainmesh from a Wavefront object format mesh file.
+    /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
     /// @throws std::runtime_error if the file cannot be read.
+    /// @throws std::domain_error if the file format is invalid.
     static void from_obj(Mesh* mesh, const std::string& filename) {
       std::ifstream input(filename);
       if(input.is_open()) {
@@ -234,7 +240,9 @@ namespace fs {
       }
     }
 
+
     /// Read a brainmesh from an Object File format (OFF) stream.
+    /// @throws std::domain_error if the file format is invalid.
     static void from_off(Mesh* mesh, std::ifstream* is) {
       std::string line;
       int line_idx = -1;
@@ -287,16 +295,14 @@ namespace fs {
               faces.push_back(v2 - 1);              
             }
 
-          }
-            
-                    
+          }         
         }        
       }
       if(num_verts_parsed < num_vertices) {
         throw std::domain_error("Vertex count mismatch between OFF header and data.\n");
       }
-      if(num_verts_parsed < num_vertices) {
-        throw std::domain_error("Vertex count mismatch between OFF header and data.\n");
+      if(num_faces_parsed < num_faces) {
+        throw std::domain_error("Face count mismatch between OFF header and data.\n");
       }
       mesh->vertices = vertices;
       mesh->faces = faces;
@@ -306,6 +312,7 @@ namespace fs {
     /// Read a brainmesh from an OFF format mesh file.
     /// @details The OFF is the Object File Format (file extension .off) is a simple text-based mesh file format. Not to be confused with the Wavefront Object format (.obj).
     /// @throws std::runtime_error if the file cannot be read.
+    /// @throws std::domain_error if the file format is invalid.
     static void from_off(Mesh* mesh, const std::string& filename) {
       std::ifstream input(filename);
       if(input.is_open()) {
@@ -318,6 +325,7 @@ namespace fs {
 
 
     /// Read a brainmesh from a Stanford PLY format stream.
+    /// @throws std::domain_error if the file format is invalid.
     static void from_ply(Mesh* mesh, std::ifstream* is) {
       std::string line;
       int line_idx = -1;
@@ -399,6 +407,7 @@ namespace fs {
 
     /// Read a brainmesh from a Stanford PLY format mesh file.
     /// @throws std::runtime_error if the file cannot be read.
+    /// @throws std::domain_error if the file format is invalid.
     static void from_ply(Mesh* mesh, const std::string& filename) {
       std::ifstream input(filename);
       if(input.is_open()) {
@@ -408,6 +417,7 @@ namespace fs {
         throw std::runtime_error("Could not open Stanford PLY format mesh file '" + filename + "' for reading.\n");
       }
     }
+
 
     /// Return the number of vertices in this mesh.
     size_t num_vertices() const {
