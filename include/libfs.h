@@ -256,7 +256,7 @@ namespace fs {
       float x, y, z;    // vertex xyz coords
       //bool has_color;
       //int r, g, b, a;   // vertex colors
-      int v0, v1, v2;   // tri-face, defined by vertex indices.
+      int num_verts_this_face, v0, v1, v2;   // face, defined by number of vertices and vertex indices.
 
       while (std::getline(*is, line)) {
         line_idx++;
@@ -290,12 +290,15 @@ namespace fs {
               num_verts_parsed++;
             } else {
               if(num_faces_parsed < num_faces) {
-                if (!(iss >> v0 >> v1 >> v2)) {
+                if (!(iss >> num_verts_this_face >> v0 >> v1 >> v2)) {
                   throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
                 }
-                faces.push_back(v0 - 1);
-                faces.push_back(v1 - 1);
-                faces.push_back(v2 - 1);
+                if(num_verts_this_face != 3) {
+                  throw std::domain_error("At OFF line " + std::to_string(line_idx+1) + ": only triangular meshes supported.\n");
+                }
+                faces.push_back(v0);
+                faces.push_back(v1);
+                faces.push_back(v2);
                 num_faces_parsed++;
               }
             }
