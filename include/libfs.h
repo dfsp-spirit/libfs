@@ -291,7 +291,7 @@ namespace fs {
             } else {
               if(faces.size() < (size_t)num_faces * 3) {
                 int verts_per_face, v0, v1, v2;
-                if (!(iss >> verts_per_face >> v0 >> v1 >> v2)) { 
+                if (!(iss >> verts_per_face >> v0 >> v1 >> v2)) {
                   throw std::domain_error("Could not parse face line of PLY data, invalid format.\n");
                 }
                 if(verts_per_face != 3) {
