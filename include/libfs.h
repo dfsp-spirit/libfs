@@ -253,8 +253,10 @@ namespace fs {
       size_t num_vertices, num_faces, num_edges;
       size_t num_verts_parsed = 0;
       size_t num_faces_parsed = 0;
-      float x, y, z;
-      float v0, v1, v2;
+      float x, y, z;    // vertex xyz coords
+      //bool has_color;
+      //int r, g, b, a;   // vertex colors
+      int v0, v1, v2;   // tri-face, defined by vertex indices.
 
       while (std::getline(*is, line)) {
         line_idx++;
@@ -268,41 +270,43 @@ namespace fs {
             if (!(iss >> off_header_magic)) {
               throw std::domain_error("Could not parse first header line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
             }
-            if(off_header_magic != "OFF") {
+            if(!(off_header_magic == "OFF" || off_header_magic == "COFF")) {
               throw std::domain_error("OFF magic string invalid, file not in OFF format.\n");
             }
+            //has_color = off_header_magic == "COFF";
           } else if (noncomment_line_idx == 1) {
             if (!(iss >> num_vertices >> num_faces >> num_edges)) {
               throw std::domain_error("Could not parse element count header line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
             }
           } else {
             
-            while(num_verts_parsed < num_vertices) {
+            if(num_verts_parsed < num_vertices) {
               if (!(iss >> x >> y >> z)) {
                 throw std::domain_error("Could not parse vertex coordinate line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
               }
               vertices.push_back(x);
               vertices.push_back(y);
               vertices.push_back(z);
-            }
-
-            while(num_verts_parsed < num_vertices) {
-              if (!(iss >> v0 >> v1 >> v2)) {
-                throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
+              num_verts_parsed++;
+            } else {
+              if(num_faces_parsed < num_faces) {
+                if (!(iss >> v0 >> v1 >> v2)) {
+                  throw std::domain_error("Could not parse face line " + std::to_string(line_idx+1) + " of OFF data, invalid format.\n");
+                }
+                faces.push_back(v0 - 1);
+                faces.push_back(v1 - 1);
+                faces.push_back(v2 - 1);
+                num_faces_parsed++;
               }
-              faces.push_back(v0 - 1);
-              faces.push_back(v1 - 1);
-              faces.push_back(v2 - 1);              
             }
-
           }         
         }        
       }
       if(num_verts_parsed < num_vertices) {
-        throw std::domain_error("Vertex count mismatch between OFF header and data.\n");
+        throw std::domain_error("Vertex count mismatch between OFF header (" + std::to_string(num_vertices) + ") and data (" + std::to_string(num_verts_parsed) + ").\n");
       }
       if(num_faces_parsed < num_faces) {
-        throw std::domain_error("Face count mismatch between OFF header and data.\n");
+        throw std::domain_error("Face count mismatch between OFF header  (" + std::to_string(num_faces) + ") and data (" + std::to_string(num_faces_parsed) + ").\n");
       }
       mesh->vertices = vertices;
       mesh->faces = faces;
@@ -1054,6 +1058,8 @@ namespace fs {
       fs::Mesh::from_obj(surface, filename);
     } else if(fs::util::ends_with(filename, ".ply")) {
       fs::Mesh::from_ply(surface, filename);
+    } else if(fs::util::ends_with(filename, ".off")) {
+      fs::Mesh::from_off(surface, filename);
     } else {
       read_surf(surface, filename);
     }

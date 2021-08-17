@@ -270,6 +270,17 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         // Check vertex and face counts
         REQUIRE( surface_obj.vertices.size() == 149244 * 3);
         REQUIRE( surface_obj.faces.size() == 298484 * 3);
+    }
+
+    SECTION("Reading OFF files exported from MeshLab works.") {        
+        const std::string off_file = "examples/read_surf/lh_white.off";
+
+        fs::Mesh surface_obj;
+        fs::read_mesh(&surface_obj, off_file);
+
+        // Check vertex and face counts
+        REQUIRE( surface_obj.vertices.size() == 149244 * 3);
+        REQUIRE( surface_obj.faces.size() == 298484 * 3);
     }            
 }
 
