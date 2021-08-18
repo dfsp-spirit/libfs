@@ -270,17 +270,41 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         // Check vertex and face counts
         REQUIRE( surface_obj.vertices.size() == 149244 * 3);
         REQUIRE( surface_obj.faces.size() == 298484 * 3);
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface_obj.faces.begin(), surface_obj.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface_obj.faces.begin(), surface_obj.faces.end());    
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);    
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface_obj.vertices.begin(), surface_obj.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface_obj.vertices.begin(), surface_obj.vertices.end());    
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
     }
 
     SECTION("Reading OFF files exported from MeshLab works.") {        
         const std::string off_file = "examples/read_surf/lh_white.off";
 
-        fs::Mesh surface_obj;
-        fs::read_mesh(&surface_obj, off_file);
+        fs::Mesh surface;
+        fs::read_mesh(&surface, off_file);
 
         // Check vertex and face counts
-        REQUIRE( surface_obj.vertices.size() == 149244 * 3);
-        REQUIRE( surface_obj.faces.size() == 298484 * 3);
+        REQUIRE( surface.vertices.size() == 149244 * 3);
+        REQUIRE( surface.faces.size() == 298484 * 3);
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface.faces.begin(), surface.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface.faces.begin(), surface.faces.end());    
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);    
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
     }            
 }
 
