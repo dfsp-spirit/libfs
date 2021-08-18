@@ -277,11 +277,8 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE(vmin_entry == 0);
         REQUIRE(vmax_entry == 149243);    
 
-        // The range of vertex coordinates is correct"
-        float cmin_entry = *std::min_element(surface_obj.vertices.begin(), surface_obj.vertices.end()); // could use minmax for single call
-        float cmax_entry = *std::max_element(surface_obj.vertices.begin(), surface_obj.vertices.end());    
-        REQUIRE(cmin_entry == Approx(-108.6204));
-        REQUIRE(cmax_entry == Approx(106.1743));
+        // We do not test the coordinate range for this file, as the Blender import/export seems to have messed with
+        // the coordinates.
     }
 
     SECTION("Reading OFF files exported from MeshLab works.") {        
