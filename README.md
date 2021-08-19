@@ -6,8 +6,11 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
 
 * read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
 * read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
-  - can also import triangular meshes from the following standard mesh file formats: Wavefront object format, Stanford PLY format (ascii version).
-  - can export meshes to the following standard mesh file formats: Wavefront object, Standord PLY (ascii version).
+  - can also import triangular meshes from the following standard mesh file formats:
+    * Wavefront object format (.obj)
+    * Stanford PLY format (.ply, ascii version)
+    * Object File Format (.off, both the plain version and the COFF variant including per-vertex colors are supported).
+  - can export meshes to the following standard mesh file formats: Wavefront object, Stanford PLY (ascii version).
 * read FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
@@ -70,7 +73,7 @@ The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://
 ### Conventions
 
 * Everything from `libfs` is in the `fs::` namespace.
-* Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug. (Please [open an issue](https://github.com/dfsp-spirit/libfs/issues) if you feel that you need to use an internal function from your client code, and explain your use case.)
+* Internal functions in `libfs` are prefixed with an underscore, e.g., `_do_internal_stuff`. You should never call these functions from client code, as they may change without notice between versions. Relying on them is an application bug. (Please [open an issue](https://github.com/dfsp-spirit/libfs/issues) if you feel that you need to use an internal function from your client code, and explain your use case.) Internal functions are not listed in the API docs.
 * Function naming:
   - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
   - Functions that write data to files are called `write_*`, e.g., `write_curv` and `write_mgh`.
