@@ -715,10 +715,12 @@ namespace fs {
     MghData() {}
     MghData(std::vector<int32_t> curv_data) { data_mri_int = curv_data; }
     explicit MghData(std::vector<uint8_t> curv_data) { data_mri_uchar = curv_data; }
+    explicit MghData(std::vector<short> curv_data) { data_mri_short = curv_data; }
     MghData(std::vector<float> curv_data) { data_mri_float = curv_data; }
     std::vector<int32_t> data_mri_int;
     std::vector<uint8_t> data_mri_uchar;
     std::vector<float> data_mri_float;
+    std::vector<short> data_mri_short;
   };
 
   /// Models a whole MGH file.
@@ -774,6 +776,8 @@ namespace fs {
   std::vector<int32_t> _read_mgh_data_int(MghHeader*, std::istream*);
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, const std::string&);
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader*, std::istream*);
+  std::vector<short> _read_mgh_data_short(MghHeader*, const std::string&);
+  std::vector<short> _read_mgh_data_short(MghHeader*, std::istream*);
   std::vector<float> _read_mgh_data_float(MghHeader*, const std::string&);
   std::vector<float> _read_mgh_data_float(MghHeader*, std::istream*);
 
@@ -797,6 +801,9 @@ namespace fs {
     } else if(mgh->header.dtype == MRI_FLOAT) {
       std::vector<float> data = _read_mgh_data_float(&mgh_header, filename);
       mgh->data.data_mri_float = data;
+    } else if(mgh->header.dtype == MRI_SHORT) {
+      std::vector<short> data = _read_mgh_data_short(&mgh_header, filename);
+      mgh->data.data_mri_short = data;
     } else {      
       if(_ends_with(filename, ".mgz")) {
         std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported directly. You can ignore this message if you wrapped a gz stream.\n";  
@@ -842,6 +849,9 @@ namespace fs {
     } else if(mgh->header.dtype == MRI_FLOAT) {
       std::vector<float> data = _read_mgh_data_float(&mgh_header, is);
       mgh->data.data_mri_float = data;
+    } else if(mgh->header.dtype == MRI_SHORT) {
+      std::vector<short> data = _read_mgh_data_short(&mgh_header, is);
+      mgh->data.data_mri_short = data;
     } else {      
       throw std::runtime_error("Not reading data from MGH stream, data type " + std::to_string(mgh->header.dtype) + " not supported yet.\n");
     }
@@ -915,6 +925,26 @@ namespace fs {
       std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
     }
     return(_read_mgh_data<int32_t>(mgh_header, is));
+  }
+
+  /// Read MRI_SHORT data from MGH file
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  std::vector<short> _read_mgh_data_short(MghHeader* mgh_header, const std::string& filename) {
+    if(mgh_header->dtype != MRI_SHORT) {
+      std::cerr << "Expected MRI data type " << MRI_SHORT << ", but found " << mgh_header->dtype << ".\n";
+    }
+    return(_read_mgh_data<short>(mgh_header, filename));
+  }
+
+  /// Read MRI_SHORT data from a stream.
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  std::vector<short> _read_mgh_data_short(MghHeader* mgh_header, std::istream* is) {
+    if(mgh_header->dtype != MRI_SHORT) {
+      std::cerr << "Expected MRI data type " << MRI_SHORT << ", but found " << mgh_header->dtype << ".\n";
+    }
+    return(_read_mgh_data<short>(mgh_header, is));
   }
 
 
