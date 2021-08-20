@@ -79,6 +79,41 @@ TEST_CASE( "Reading the demo MGH file works" ) {
     }
 }
 
+TEST_CASE( "Writing and re-reading an MGH file works" ) {
+
+    // Read our demo MGH file.
+    fs::Mgh mgh;
+    fs::read_mgh(&mgh, "examples/read_mgh/brain.mgh");
+
+    // Write a copy to disk.
+    const std::string mgh_out_file = "examples/read_mgh/brain_exp.mgh";
+    fs::write_mgh(mgh, mgh_out_file);
+
+    // Re-read it.
+    fs::Mgh mgh2;
+    fs::read_mgh(&mgh2, mgh_out_file);
+
+    SECTION("The MRI_DTYPE is correct" ) {        
+        REQUIRE( mgh2.header.dtype == fs::MRI_UCHAR);
+    }
+
+    SECTION("The number of values read is correct" ) {        
+        REQUIRE( mgh2.data.data_mri_uchar.size() == 256*256*256);
+    }
+
+    SECTION("The range of the values read is correct" ) {    
+        uint8_t min_entry = *std::min_element(mgh2.data.data_mri_uchar.begin(), mgh2.data.data_mri_uchar.end());
+        uint8_t max_entry = *std::max_element(mgh2.data.data_mri_uchar.begin(), mgh2.data.data_mri_uchar.end());    
+        REQUIRE(min_entry == 0);
+        REQUIRE(max_entry == 156);
+    }
+
+    SECTION("The sum of the values is as expected") {
+        int dsum = std::accumulate(mgh2.data.data_mri_uchar.begin(), mgh2.data.data_mri_uchar.end(), 0);
+        REQUIRE(dsum == 121035479);
+    }
+}
+
 
 TEST_CASE( "Reading the demo surface file works" ) {
 
