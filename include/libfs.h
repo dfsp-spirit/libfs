@@ -1464,6 +1464,13 @@ namespace fs {
       for(size_t i=0; i<num_values; i++) {
          _fwritet<uint8_t>(os, mgh.data.data_mri_uchar[i]);
       }
+    } else if(mgh.header.dtype == MRI_SHORT) {
+      if(mgh.data.data_mri_short.size() != num_values) {
+        throw std::logic_error("Detected mismatch of MRI_SHORT data size and MGH header dim length values.\n");
+      }
+      for(size_t i=0; i<num_values; i++) {
+         _fwritet<short>(os, mgh.data.data_mri_short[i]);
+      }
     } else {
       throw std::domain_error("Unsupported MRI data type " + std::to_string(mgh.header.dtype) + ", cannot write MGH data.\n");
     }

@@ -79,9 +79,9 @@ TEST_CASE( "Reading the demo MGH file works" ) {
     }
 }
 
-TEST_CASE( "Writing and re-reading an MGH file works" ) {
+TEST_CASE( "Writing and re-reading an MGH file with UCHAR data works" ) {
 
-    // Read our demo MGH file.
+    // Read our demo MGH file. It contains MRI_UCHAR data already.
     fs::Mgh mgh;
     fs::read_mgh(&mgh, "examples/read_mgh/brain.mgh");
 
@@ -110,6 +110,50 @@ TEST_CASE( "Writing and re-reading an MGH file works" ) {
 
     SECTION("The sum of the values is as expected") {
         int dsum = std::accumulate(mgh2.data.data_mri_uchar.begin(), mgh2.data.data_mri_uchar.end(), 0);
+        REQUIRE(dsum == 121035479);
+    }
+}
+
+
+TEST_CASE( "Writing and re-reading an MGH file with MRI_SHORT data works" ) {
+
+    // Read our demo MGH file. It contains MRI_UCHAR data, so we convert that.
+    fs::Mgh mgh;
+    fs::read_mgh(&mgh, "examples/read_mgh/brain.mgh");
+
+    // Convert data.
+    mgh.header.dtype = fs::MRI_SHORT;
+    size_t num_values = mgh.data.data_mri_uchar.size();
+    mgh.data.data_mri_short = std::vector<short>(num_values);
+    for(size_t i=0; i<num_values; i++) {
+        mgh.data.data_mri_short[i] = (short)mgh.data.data_mri_uchar[i];
+    }
+
+    // Write a copy to disk.
+    const std::string mgh_out_file = "examples/read_mgh/brain_exp_short.mgh";
+    fs::write_mgh(mgh, mgh_out_file);
+
+    // Re-read it.
+    fs::Mgh mgh2;
+    fs::read_mgh(&mgh2, mgh_out_file);
+
+    SECTION("The MRI_DTYPE is correct" ) {        
+        REQUIRE( mgh2.header.dtype == fs::MRI_SHORT);
+    }
+
+    SECTION("The number of values read is correct" ) {        
+        REQUIRE( mgh2.data.data_mri_short.size() == 256*256*256);
+    }
+
+    SECTION("The range of the values read is correct" ) {    
+        uint8_t min_entry = *std::min_element(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end());
+        uint8_t max_entry = *std::max_element(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end());    
+        REQUIRE(min_entry == 0);
+        REQUIRE(max_entry == 156);
+    }
+
+    SECTION("The sum of the values is as expected") {
+        int dsum = std::accumulate(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end(), 0);
         REQUIRE(dsum == 121035479);
     }
 }
