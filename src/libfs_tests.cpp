@@ -363,8 +363,8 @@ TEST_CASE( "Importing and exporting meshes works" ) {
     SECTION("Reading OFF files exported from MeshLab works.") {        
         const std::string off_file = "examples/read_surf/lh_white.off";
 
-        fs::Mesh surface;
-        fs::read_mesh(&surface, off_file);
+        fs::Mesh surface2;
+        fs::read_mesh(&surface2, off_file);
 
         // Check vertex and face counts
         REQUIRE( surface.vertices.size() == 149244 * 3);
@@ -379,6 +379,32 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         // The range of vertex coordinates is correct"
         float cmin_entry = *std::min_element(surface.vertices.begin(), surface.vertices.end()); // could use minmax for single call
         float cmax_entry = *std::max_element(surface.vertices.begin(), surface.vertices.end());    
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
+    }
+
+
+    SECTION("Writing and re-reading OFF files works.") {
+
+        const std::string off_file = "examples/read_surf/lh.white_exp.off";
+        surface.to_off_file(off_file);
+
+        fs::Mesh surface2;
+        fs::read_mesh(&surface2, off_file);
+
+        // Check vertex and face countss
+        REQUIRE( surface2.vertices.size() == 149244 * 3);
+        REQUIRE( surface2.faces.size() == 298484 * 3);
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface2.faces.begin(), surface2.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface2.faces.begin(), surface2.faces.end());    
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);    
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface2.vertices.begin(), surface2.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface2.vertices.begin(), surface2.vertices.end());    
         REQUIRE(cmin_entry == Approx(-108.6204));
         REQUIRE(cmax_entry == Approx(106.1743));
     }            

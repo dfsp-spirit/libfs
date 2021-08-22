@@ -538,6 +538,55 @@ namespace fs {
     void to_ply_file(const std::string& filename, const std::vector<uint8_t> col) const {
       fs::util::str_to_file(filename, this->to_ply(col));
     }
+
+    /// Return string representing the mesh in OFF format. Overload that works without passing a color vector.
+    std::string to_off() const {
+      std::vector<uint8_t> empty_col;
+      return(this->to_off(empty_col));
+    }
+
+    /// Return string representing the mesh in PLY format.
+    /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
+    /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices. 
+    std::string to_off(const std::vector<uint8_t> col) const {
+      bool use_vertex_colors = col.size() != 0;
+      std::stringstream offs;
+      if(use_vertex_colors) {
+        if(col.size() != this->vertices.size()) {
+          throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing OFF file.");
+        }
+        offs << "COFF\n";
+      } else {
+        offs << "OFF\n";
+      }
+      offs << this->num_vertices() << " " << this->num_faces() << " 0\n";
+      
+      for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
+        offs << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2];
+        if(use_vertex_colors) {
+          offs << " " << (int)col[vidx] << " " << (int)col[vidx+1] << " " << (int)col[vidx+2] << " 255";
+        }
+        offs << "\n";
+      }
+
+      const int num_vertices_per_face = 3;
+      for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 0-based
+        offs << num_vertices_per_face << " " << faces[fidx] << " " << faces[fidx+1] << " " << faces[fidx+2] << "\n";
+      }        
+      return(offs.str());
+    }
+
+    /// Export this mesh to a file in OFF format.
+    /// @throws st::runtime_error if the target file cannot be opened.
+    void to_off_file(const std::string& filename) const {
+      fs::util::str_to_file(filename, this->to_off());
+    }
+
+    /// Export this mesh to a file in OFF format with vertex colors (COFF).
+    /// @throws st::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    void to_off_file(const std::string& filename, const std::vector<uint8_t> col) const {
+      fs::util::str_to_file(filename, this->to_off(col));
+    }
   };
 
 
