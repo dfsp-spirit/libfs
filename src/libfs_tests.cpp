@@ -456,6 +456,15 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE(cmin_entry == Approx(-108.6204));
         REQUIRE(cmax_entry == Approx(106.1743));
     }
+
+    SECTION("Constructing a cube Mesh instance works.") {
+
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+
+        // Check vertex and face countss
+        REQUIRE( surface2.num_vertices() == 8);
+        REQUIRE( surface2.num_faces() == 12);
+    }
 }
 
 

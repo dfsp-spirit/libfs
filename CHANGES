@@ -2,3 +2,5 @@ fslib Changes
 ===============
 
 2022-07-31: add support for writing FreeSurfer brain meshes in surf format, see function write_surf.
+2022-07-31: add support for constructing basic meshes, see fs::Mesh::construct_cube(). Mainly for examples.
+2022-07-31: extend various doc strings with examples

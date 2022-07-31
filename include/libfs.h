@@ -30,12 +30,14 @@ namespace fs {
 
   namespace util {
     /// Check whether a string ends with the given suffix.
+    /// @private
     inline bool ends_with(std::string const & value, std::string const & suffix) {
         if (suffix.size() > value.size()) return false;
         return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
     }
 
     /// Check whether a string starts with the given prefix.
+    /// @private
     inline bool starts_with(std::string const & value, std::string const & prefix) {
         if (prefix.length() > value.length()) return false;
         return value.rfind(prefix, 0) == 0;
@@ -44,8 +46,19 @@ namespace fs {
 
     /// Construct a UNIX file system path from the given path_components.
     /// @details Any trailing or leading slash (path_sep) will be stripped from the individual components and replaced with a single one between two components. If the first path component started with a slash, that slash will be kept (absolute paths are left intact).
-    /// @param path_components init list of strings, the path components.
-    /// @throws std::invalid_argument on empty path_components
+    /// @param path_components init list of strings, the path components
+    /// @param path_sep path separator to use, typically `/` on Unix-based system.
+    /// @throws std::invalid_argument on empty
+    /// @returns string representation of the path, using the `path_sep`.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// std::string p = fs::fullpath({"path", "to", "file.txt"});
+    /// // Gives: "path/to/file.txt"
+    /// std::string p = fs::fullpath({"/path", "to", "file.txt"});
+    /// // Gives: "/path/to/file.txt"
+    /// @endcode
     std::string fullpath( std::initializer_list<std::string> path_components, std::string path_sep = std::string("/") ) {
       std::string fp;
       if(path_components.size() == 0) {
@@ -77,6 +90,8 @@ namespace fs {
     }
 
     /// Write the given text representation (any string) to a file.
+    /// @param filename the file to which to write, will be overwritten if exists
+    /// @param rep the string to write to the file
     /// @throws st::runtime_error if the file cannot be opened.
     void str_to_file(const std::string& filename, const std::string rep) {
       std::ofstream ofs;
@@ -105,7 +120,7 @@ namespace fs {
   /// MRI data type representing a 16 bit signed integer.
   const int MRI_SHORT = 4;
 
-  // Declarations, should go to a header file.
+  // Forward declarations.
   int _fread3(std::istream&);
   template <typename T> T _freadt(std::istream&);
   std::string _freadstringnewline(std::istream&);
@@ -116,9 +131,9 @@ namespace fs {
 
   /// Models a triangular mesh, used for brain surface meshes.
   ///
-  /// Represents a vertex-indexed mesh. The n vertices are stored as 3D point coordinates (x,y,z) in a vector
-  /// of length 3n, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
-  /// The m faces are stored as a vector of 3m integers, where 3 consecutive values represent the 3 vertices (by index)
+  /// Represents a vertex-indexed mesh. The `n` vertices are stored as 3D point coordinates (x,y,z) in a vector
+  /// of length `3n`, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
+  /// The `m` faces are stored as a vector of `3m` integers, where 3 consecutive values represent the 3 vertices (by index)
   /// making up the respective face. Vertex indices are 0-based.
   struct Mesh {
 
@@ -133,8 +148,50 @@ namespace fs {
     std::vector<float> vertices;
     std::vector<int32_t> faces;
 
+    /// Construct and return a simple cube mesh.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// size_t nv = surface.num_vertices(); // 8
+    /// @endcode
+    static fs::Mesh construct_cube() {
+      fs::Mesh mesh;
+      mesh.vertices = { 1.0, 1.0, 1.0,
+                        1.0, 1.0, -1.0,
+                        1.0, -1.0, 1.0,
+                        1.0, -1.0, -1.0,
+                      -1.0, 1.0, 1.0,
+                      -1.0, 1.0, -1.0,
+                      -1.0, -1.0, 1.0,
+                      -1.0, -1.0, -1.0 };
+      mesh.faces = { 0, 2, 3,
+                    3 ,1, 0,
+                    4, 6, 7,
+                    7, 5, 4,
+                    0, 4, 5,
+                    5, 1, 0,
+                    2, 6, 7,
+                    7, 3, 2,
+                    0, 4, 6,
+                    6, 2, 0,
+                    1, 5, 7,
+                    7, 3, 1 };
+      return mesh;
+    }
+
 
     /// Return string representing the mesh in Wavefront Object (.obj) format.
+    /// @retuns Wavefront Object string representation of the mesh, including vertices and faces.
+    /// @see fs::Mesh::to_obj_file is a shortcut if you want to export the string representation to a file.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::str mesh_repr_off = surface.to_obj();
+    /// @endcode
     std::string to_obj() const {
       std::stringstream objs;
       for(size_t vidx=0; vidx<this->vertices.size(); vidx+=3) { // vertex coords
@@ -148,7 +205,17 @@ namespace fs {
 
 
     /// Export this mesh to a file in Wavefront OBJ format.
+    /// @param filename path to the output file, will be overwritten if existing.
     /// @throws st::runtime_error if the target file cannot be opened.
+    /// @see fs::Mesh::to_obj if you want the string representation (without writing it to a file).
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// const std::string out_path = fs::fullpath({"/tmp", "mesh.obj"});
+    /// surface.to_obj(out_path);
+    /// @endcode
     void to_obj_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_obj());
     }
@@ -156,6 +223,9 @@ namespace fs {
 
     /// Read a brainmesh from a Wavefront object format stream.
     /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
+    /// @param mesh pointer to fs:Mesh instance to be filled.
+    /// @param is stream holding a text representation of a mesh in Wavefront object format.
+    /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
     static void from_obj(Mesh* mesh, std::ifstream* is) {
       std::string line;
@@ -228,8 +298,18 @@ namespace fs {
 
     /// Read a brainmesh from a Wavefront object format mesh file.
     /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
+    /// @see There exists an overloaded version that reads from a stream.
+    /// @param mesh pointer to fs:Mesh instance to be filled.
+    /// @param filename path to input wavefront obj mesh to be read.
     /// @throws std::runtime_error if the file cannot be read.
     /// @throws std::domain_error if the file format is invalid.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface;
+    /// fs::Mesh::from_obj(&surface, "mesh.obj");
+    /// @endcode
     static void from_obj(Mesh* mesh, const std::string& filename) {
       std::ifstream input(filename);
       if(input.is_open()) {
@@ -242,6 +322,7 @@ namespace fs {
 
 
     /// Read a brainmesh from an Object File format (OFF) stream.
+    /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
     static void from_off(Mesh* mesh, std::ifstream* is) {
       std::string line;
@@ -317,9 +398,19 @@ namespace fs {
 
 
     /// Read a brainmesh from an OFF format mesh file.
+    /// @see There exists an overloaded version that reads from a stream.
     /// @details The OFF is the Object File Format (file extension .off) is a simple text-based mesh file format. Not to be confused with the Wavefront Object format (.obj).
+    /// @param mesh pointer to fs:Mesh instance to be filled.
+    /// @param filename path to input wavefront obj mesh to be read.
     /// @throws std::runtime_error if the file cannot be read.
     /// @throws std::domain_error if the file format is invalid.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface;
+    /// fs::Mesh::from_off(&surface, "mesh.off");
+    /// @endcode
     static void from_off(Mesh* mesh, const std::string& filename) {
       std::ifstream input(filename);
       if(input.is_open()) {
@@ -332,6 +423,7 @@ namespace fs {
 
 
     /// Read a brainmesh from a Stanford PLY format stream.
+    /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
     static void from_ply(Mesh* mesh, std::ifstream* is) {
       std::string line;
@@ -413,8 +505,18 @@ namespace fs {
     }
 
     /// Read a brainmesh from a Stanford PLY format mesh file.
+    /// @details The PLY format exists in text and binary forms, and the binary form can be little endian or big endian. This file reads the ASCII text format version.
+    /// @param mesh pointer to fs:Mesh instance to be filled.
+    /// @param filename path to input wavefront obj mesh to be read.
     /// @throws std::runtime_error if the file cannot be read.
     /// @throws std::domain_error if the file format is invalid.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface;
+    /// fs::Mesh::from_ply(&surface, "mesh.ply");
+    /// @endcode
     static void from_ply(Mesh* mesh, const std::string& filename) {
       std::ifstream input(filename);
       if(input.is_open()) {
@@ -427,11 +529,27 @@ namespace fs {
 
 
     /// Return the number of vertices in this mesh.
+    /// @return the vertex count
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// size_t nv = surface.num_vertices();
+    /// @endcode
     size_t num_vertices() const {
       return(this->vertices.size() / 3);
     }
 
     /// Return the number of faces in this mesh.
+    /// @return the face count
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// size_t nv = surface.num_faces();
+    /// @endcode
     size_t num_faces() const {
       return(this->faces.size() / 3);
     }
@@ -440,6 +558,14 @@ namespace fs {
     /// @param i the row index, valid values are 0..num_faces.
     /// @param j the column index, valid values are 0..2 (for the 3 vertices of a face).
     /// @throws std::range_error on invalid index
+    /// @return vertex index of vertex `j` of face `i`
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// int first_face_third_vert = surface.fm_at(0, 2);
+    /// @endcode
     const int32_t& fm_at(const size_t i, const size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->faces.size()-1) {
@@ -450,7 +576,15 @@ namespace fs {
 
 
     /// Get all vertex indices of the face, given by its index.
+    /// @param face the face index
+    /// @returns vector of length 3, the vertex indices of the face.
     /// @throws std::range_error on invalid index
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// auto first_face_verts = surface.face_vertices(0);
+    /// @endcode
     std::vector<int32_t> face_vertices(const size_t face) const {
       if(face > this->num_faces()-1) {
         throw std::range_error("Index " + std::to_string(face) + " into Mesh.faces out of bounds, max valid index is " + std::to_string(this->num_faces()-1) + ".\n");
@@ -463,6 +597,8 @@ namespace fs {
     }
 
     /// Get all coordinates of the vertex, given by its index.
+    /// @param vertex the vertex index
+    /// @returns vector of length 3, the x,y,z coordinates of the vertex.
     /// @throws std::range_error on invalid index
     std::vector<float> vertex_coords(const size_t vertex) const {
       if(vertex > this->num_vertices()-1) {
