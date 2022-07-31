@@ -409,11 +409,34 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE(cmax_entry == Approx(106.1743));
     }
 
-    SECTION("Writing and re-reading FreeSurfer surf files works.") {
-
+    SECTION("Writing and re-reading FreeSurfer surf files works based on vertices and faces vectors.") {
 
         const std::string out_surf_file = "examples/read_surf/lh.white_exported";;
         fs::write_surf(out_surf_file, surface.vertices, surface.faces);
+        fs::Mesh surface2;
+        fs::read_mesh(&surface2, out_surf_file);
+
+        // Check vertex and face countss
+        REQUIRE( surface2.vertices.size() == surface.vertices.size());
+        REQUIRE( surface2.faces.size() == surface.faces.size());
+
+        // Check face vertex indices
+        int vmin_entry = *std::min_element(surface2.faces.begin(), surface2.faces.end()); // could use minmax for single call
+        int vmax_entry = *std::max_element(surface2.faces.begin(), surface2.faces.end());
+        REQUIRE(vmin_entry == 0);
+        REQUIRE(vmax_entry == 149243);
+
+        // The range of vertex coordinates is correct"
+        float cmin_entry = *std::min_element(surface2.vertices.begin(), surface2.vertices.end()); // could use minmax for single call
+        float cmax_entry = *std::max_element(surface2.vertices.begin(), surface2.vertices.end());
+        REQUIRE(cmin_entry == Approx(-108.6204));
+        REQUIRE(cmax_entry == Approx(106.1743));
+    }
+
+    SECTION("Writing and re-reading FreeSurfer surf files works based Mesh instance.") {
+
+        const std::string out_surf_file = "examples/read_surf/lh.white_exported";;
+        fs::write_surf(out_surf_file, surface);
         fs::Mesh surface2;
         fs::read_mesh(&surface2, out_surf_file);
 

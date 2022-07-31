@@ -1614,6 +1614,22 @@ namespace fs {
     }
   }
 
+  /// @brief Write a mesh to a binary file in FreeSurfer surf format.
+  /// @details A surf file contains a vertex index representation of a mesh, i.e., the vertices and faces vectors.
+  /// @param filename The path to the output file.
+  /// @param mesh The `Mesh` instance to write.
+  /// @throws std::runtime_error if the file cannot be opened.
+  void write_surf(const std::string& filename, const Mesh& mesh) {
+    std::ofstream ofs;
+    ofs.open(filename, std::ofstream::out | std::ofstream::binary);
+    if(ofs.is_open()) {
+      write_surf(ofs, mesh.vertices, mesh.faces);
+      ofs.close();
+    } else {
+      throw std::runtime_error("Unable to open surf file '" + filename + "' for writing.\n");
+    }
+  }
+
 
 
   /// @brief Read a FreeSurfer ASCII label from a stream.
