@@ -5,7 +5,7 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
 ## Features
 
 * read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
-* read FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
+* read and write FreeSurfer brain surface meshes from binary surf format files (like `$SUBJECTS_DIR/surf/lh.white`).
   - can also import triangular meshes from the following standard mesh file formats:
     * Wavefront object format (.obj)
     * Stanford PLY format (.ply, ascii version)
