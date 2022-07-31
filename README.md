@@ -19,7 +19,7 @@ Supported data types for the MGH format include:
 * `MRI_INT`: 32 bit signed int
 * `MRI_FLOAT`: 32 bit signed float and
 * `MRI_UCHAR`: 8 bit unsigned int.
- 
+
 
 #### A note on the MGZ format
 
@@ -33,14 +33,14 @@ The MGZ format is just a gzipped version of the MGH format. While the MGZ format
 
  This library was written from scratch in C++. It is **not** based on the FreeSurfer C code and does not use the same data structures that are used in FreeSurfer.
 
-## Usage 
+## Usage
 
 ### Examples
 
 Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place. Then use the functions:
 
 ```cpp
-// filename: main.cpp. To compile with g++ run: 
+// filename: main.cpp. To compile with g++ run:
 //     g++ -I<path_to_directory_containing_libfs.h> main.cpp -o read_curv_data
 #include "libfs.h"
 #include <iostream>
@@ -50,12 +50,12 @@ Just download the file [include/libfs.h](./include/libfs.h) and drop it whereeve
 int main(int argc, char** argv) {
     std::string curv_fname = "lh.thickness";
     std::vector<float> data = fs::read_curv_data(curv_fname);
-    std::cout << "Received " << data.size() << " per-vertex values.\n"; 
+    std::cout << "Received " << data.size() << " per-vertex values.\n";
     exit(0);
 }
 ```
 
-See the [examples directory](./examples/) for some programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). 
+See the [examples directory](./examples/) for some programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp).
 
 
 ### Building your programs
@@ -120,7 +120,17 @@ cmake .
 make doc
 ```
 
-The documentation will be built and can be found in `doc_built/` afterwards. The recommended way to browse it is to open `doc_built/html/index.html` with your favorite webbrowser.
+or with:
+
+```
+doxygen
+```
+
+The documentation will be built and can be found in `doc_built/` afterwards. The recommended way to browse it is to open `doc_built/html/index.html` with your favorite webbrowser, e.g.:
+
+```
+firefox doc_built/html/index.html
+```
 
 
 ## Author and Getting help
