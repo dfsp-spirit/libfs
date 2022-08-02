@@ -55,7 +55,19 @@ int main(int argc, char** argv) {
 }
 ```
 
-See the [examples directory](./examples/) for some programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp).
+#### Full example programs
+
+See the [examples directory](./examples/) for some full demo programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). Other examples include:
+
+* [examples/read_annot/read_annot.cpp](./examples/read_annot/read_annot.cpp): demo program that reads a FreeSurfer cortical parcellation file (atlas mapped to a subject)
+* [examples/read_curv/read_curv.cpp](./examples/read_curv/read_curv.cpp): demo program that reads a FreeSurfer per-vertex data file, containing one value for every vertex of a matching surface, in surface vertex order (e.g., cortical thickness at that vertex)
+* [examples/read_label/read_label.cpp](./examples/read_label/read_label.cpp): demo program that reads a FreeSurfer label file, assigning one value to a subset of vertices (e.g., 1 to all vertices in a certain region, and 0 to all others).
+* [examples/read_mgh/read_mgh.cpp](./examples/read_mgh/read_mgh.cpp): demo program that reads a FreeSurfer MGH file, containing a 3D or 4D image.
+* [examples/read_mgz/read_mgz.cpp](./examples/read_mgz/read_mgz.cpp): demo program that reads a FreeSurfer MGZ file, containing a compressed 3D or 4D image.
+* [examples/read_surf/read_surf.cpp](./examples/read_surf/read_surf.cpp): demo program that reads a FreeSurfer cortical mesh (a.k.a. brain surface) file.
+
+
+You can run the script [examples/run_all_examples.bash](./examples/run_all_examples.bash) to run all example files.
 
 
 ### Building your programs
