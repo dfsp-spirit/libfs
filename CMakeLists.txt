@@ -20,10 +20,28 @@ if( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
 endif()
 
 
+##### Build the demo app executable. #####
+
+set(SOURCE_FILES_DEMO src/demo_main.cpp include/libfs.h)
+add_executable(demo_libfs ${SOURCE_FILES_DEMO})
+
+set_property(TARGET demo_libfs PROPERTY CXX_STANDARD 11)
+set_property(TARGET demo_libfs PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET demo_libfs PROPERTY CXX_EXTENSIONS OFF)
+
+
+if( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
+    target_compile_options( demo_libfs PRIVATE -Wall -Wextra -pedantic -Werror )
+endif()
+if( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
+	target_compile_options( demo_libfs PRIVATE /W4 /WX )
+endif()
+
+
 ##### Build the documentation using Doxygen. One needs to run 'make doc' to actually do this. #####
 
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION "Create and install the HTML based API        
+option(BUILD_DOCUMENTATION "Create and install the HTML based API
 documentation (requires Doxygen)" ${DOXYGEN_FOUND})
 
 if(BUILD_DOCUMENTATION)
