@@ -227,6 +227,14 @@ namespace fs {
     /// @param is stream holding a text representation of a mesh in Wavefront object format.
     /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface;
+    /// const std::string in_path = fs::fullpath({"/tmp", "mesh.obj"});
+    /// fs::Mesh::from_obj(&surface, in_path);
+    /// @endcode
     static void from_obj(Mesh* mesh, std::ifstream* is) {
       std::string line;
       int line_idx = -1;
@@ -579,6 +587,7 @@ namespace fs {
     /// @param face the face index
     /// @returns vector of length 3, the vertex indices of the face.
     /// @throws std::range_error on invalid index
+    ///
     /// #### Examples
     ///
     /// @code
@@ -600,6 +609,13 @@ namespace fs {
     /// @param vertex the vertex index
     /// @returns vector of length 3, the x,y,z coordinates of the vertex.
     /// @throws std::range_error on invalid index
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// auto coords = surface.vertex_coords(0);
+    /// @endcode
     std::vector<float> vertex_coords(const size_t vertex) const {
       if(vertex > this->num_vertices()-1) {
         throw std::range_error("Index " + std::to_string(vertex) + " into Mesh.vertices out of bounds, max valid index is " + std::to_string(this->num_vertices()-1) + ".\n");
