@@ -1006,7 +1006,7 @@ namespace fs {
       std::vector<short> data = _read_mgh_data_short(&mgh_header, filename);
       mgh->data.data_mri_short = data;
     } else {
-      if(_ends_with(filename, ".mgz")) {
+      if(fs::util::ends_with(filename, ".mgz")) {
         std::cout << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported directly. You can ignore this message if you wrapped a gz stream.\n";
       }
       throw std::runtime_error("Not reading MGH data from file '" + filename + "', data type " + std::to_string(mgh->header.dtype) + " not supported yet.\n");
@@ -1194,6 +1194,7 @@ namespace fs {
   /// Read arbitrary MGH data from a stream. The stream must be open and at the beginning of the MGH data.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   template <typename T>
   std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::istream* is) {
     int num_values = mgh_header->num_values();
@@ -1208,6 +1209,7 @@ namespace fs {
   /// Read MRI_FLOAT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<float> _read_mgh_data_float(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_FLOAT) {
       std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
@@ -1218,6 +1220,7 @@ namespace fs {
   /// Read MRI_FLOAT data from an MGH stream
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<float> _read_mgh_data_float(MghHeader* mgh_header, std::istream* is) {
     if(mgh_header->dtype != MRI_FLOAT) {
       std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
@@ -1228,6 +1231,7 @@ namespace fs {
   /// Read MRI_UCHAR data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_UCHAR) {
       std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
@@ -1238,6 +1242,7 @@ namespace fs {
   /// Read MRI_UCHAR data from an MGH stream
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<uint8_t> _read_mgh_data_uchar(MghHeader* mgh_header, std::istream* is) {
     if(mgh_header->dtype != MRI_UCHAR) {
       std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
@@ -1456,6 +1461,7 @@ namespace fs {
   /// Swap endianness of a value.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   template <typename T>
   T _swap_endian(T u) {
       static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -1477,6 +1483,7 @@ namespace fs {
   /// Read a big endian value from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   template <typename T>
   T _freadt(std::istream& is) {
     T t;
@@ -1490,6 +1497,7 @@ namespace fs {
   /// Read 3 big endian bytes as a single integer from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   int _fread3(std::istream& is) {
     uint32_t i;
     is.read(reinterpret_cast<char*>(&i), 3);
@@ -1503,6 +1511,7 @@ namespace fs {
   /// Write a value to a stream as big endian.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   template <typename T>
   void _fwritet(std::ostream& os, T t) {
     if(! _is_bigendian()) {
@@ -1515,6 +1524,7 @@ namespace fs {
   // Write big endian 24 bit integer to a stream, extracted from the first 3 bytes of an unsigned 32 bit integer.
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   void _fwritei3(std::ostream& os, uint32_t i) {
     unsigned char b1 = ( i >> 16) & 255;
     unsigned char b2 = ( i >> 8) & 255;
@@ -1535,6 +1545,7 @@ namespace fs {
   /// Read a '\n'-terminated ASCII string from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::string _freadstringnewline(std::istream &is) {
     std::string s;
     std::getline(is, s, '\n');
@@ -1543,6 +1554,7 @@ namespace fs {
 
   /// Read a fixed length C-style string from an open binary stream. This does not care about trailing NULL bytes or anything, it just reads the given length of bytes.
   /// @throws std::out_of_range if length is not positive
+  /// @private
   std::string _freadfixedlengthstring(std::istream &is, int32_t length, bool strip_last_char=true) {
     if(length <= 0) {
       throw std::out_of_range("Parameter 'length' must be a positive integer.\n");
@@ -1554,18 +1566,6 @@ namespace fs {
       str = str.substr(0, length-1);
     }
     return str;
-  }
-
-  /// Check whether a string ends with the given suffix.
-  ///
-  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
-  /// https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c
-  bool _ends_with (std::string const &fullString, std::string const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
   }
 
 
