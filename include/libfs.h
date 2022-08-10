@@ -92,7 +92,7 @@ namespace fs {
     /// Write the given text representation (any string) to a file.
     /// @param filename the file to which to write, will be overwritten if exists
     /// @param rep the string to write to the file
-    /// @throws st::runtime_error if the file cannot be opened.
+    /// @throws std::runtime_error if the file cannot be opened.
     void str_to_file(const std::string& filename, const std::string rep) {
       std::ofstream ofs;
       ofs.open(filename, std::ofstream::out);
@@ -206,7 +206,7 @@ namespace fs {
 
     /// Export this mesh to a file in Wavefront OBJ format.
     /// @param filename path to the output file, will be overwritten if existing.
-    /// @throws st::runtime_error if the target file cannot be opened.
+    /// @throws std::runtime_error if the target file cannot be opened.
     /// @see fs::Mesh::to_obj if you want the string representation (without writing it to a file).
     ///
     /// #### Examples
@@ -680,13 +680,13 @@ namespace fs {
     }
 
     /// Export this mesh to a file in Stanford PLY format.
-    /// @throws st::runtime_error if the target file cannot be opened.
+    /// @throws std::runtime_error if the target file cannot be opened.
     void to_ply_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_ply());
     }
 
     /// Export this mesh to a file in Stanford PLY format with vertex colors.
-    /// @throws st::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    /// @throws std::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
     void to_ply_file(const std::string& filename, const std::vector<uint8_t> col) const {
       fs::util::str_to_file(filename, this->to_ply(col));
     }
@@ -729,13 +729,13 @@ namespace fs {
     }
 
     /// Export this mesh to a file in OFF format.
-    /// @throws st::runtime_error if the target file cannot be opened.
+    /// @throws std::runtime_error if the target file cannot be opened.
     void to_off_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_off());
     }
 
     /// Export this mesh to a file in OFF format with vertex colors (COFF).
-    /// @throws st::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    /// @throws std::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
     void to_off_file(const std::string& filename, const std::vector<uint8_t> col) const {
       fs::util::str_to_file(filename, this->to_off(col));
     }
