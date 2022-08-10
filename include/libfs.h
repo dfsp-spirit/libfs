@@ -1292,6 +1292,13 @@ namespace fs {
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. The format will be determined from the file extension as follows. File names ending with '.obj' are loaded as Wavefront OBJ files. File names ending with '.ply' are loaded as Stanford PLY files in format version 'ascii 1.0'. All other files are loaded as FreeSurfer binary surf files.
   /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::mesh surface;
+  /// fs::read_mesh(&surface, "subject1/surf/lh.thickness");
+  /// @endcode
   void read_mesh(Mesh* surface, const std::string& filename) {
     if(fs::util::ends_with(filename, ".obj")) {
       fs::Mesh::from_obj(surface, filename);
@@ -1308,6 +1315,8 @@ namespace fs {
   /// Determine the endianness of the system.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @return boolean, whether the current system is big endian.
+  /// @private
   bool _is_bigendian() {
     short int number = 0x1;
     char *numPtr = (char*)&number;
@@ -1345,6 +1354,13 @@ namespace fs {
   /// @param curv A Curv instance to be filled.
   /// @param filename Path to a file from which to read the curv data.
   /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Curv curv;
+  /// fs::read_curv(&curv, "examples/read_curv/lh.thickness");
+  /// @endcode
   void read_curv(Curv* curv, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
@@ -1356,6 +1372,7 @@ namespace fs {
   }
 
   /// Read an Annot Colortable from a stream.
+  /// @private
   void _read_annot_colortable(Colortable* colortable, std::istream *is, int32_t num_entries) {
     int32_t num_chars_orig_filename = _freadt<int32_t>(*is);  // The number of characters of the file this annot was built from.
 
@@ -1386,6 +1403,7 @@ namespace fs {
   }
 
   /// Compute the vector index for treating a vector of length n*m as a matrix with n rows and m columns.
+  /// @private
   size_t _vidx_2d(size_t row, size_t column, size_t row_length=3) {
     return (row+1)*row_length -row_length + column;
   }
@@ -1436,6 +1454,14 @@ namespace fs {
   /// @param filename Path to the label file that should be read.
   /// @see There exists an overload to read from a stream instead.
   /// @throws runtime_error if the file cannot be opened, domain_error if the file format version is not supported or the file is missing the color table.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// std::string annot_fname = "lh.aparc.annot";
+  /// fs::Annot annot;
+  /// fs::read_annot(&annot, annot_fname);
+  /// @endcode
   void read_annot(Annot* annot, const std::string& filename) {
     std::ifstream is(filename);
     if(is.is_open()) {
@@ -1452,6 +1478,13 @@ namespace fs {
   /// @param filename Path to a file from which to read the curv data.
   /// @return a vector of float values, one per vertex.
   /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// std::string curv_fname = "lh.thickness";
+  /// std::vector<float> data = fs::read_curv_data(curv_fname);
+  /// @endcode
   std::vector<float> read_curv_data(const std::string& filename) {
     Curv curv;
     read_curv(&curv, filename);
