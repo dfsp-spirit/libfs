@@ -1379,7 +1379,7 @@ namespace fs {
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
   /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.
-  /// @see read_mesh, a generalized version that supports other file formats as well.
+  /// @see fs::read_mesh, a generalized version that supports other mesh file formats as well.
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
