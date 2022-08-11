@@ -200,8 +200,8 @@ namespace fs {
     /// Construct an empty Mesh.
     Mesh() {}
 
-    std::vector<float> vertices;
-    std::vector<int32_t> faces;
+    std::vector<float> vertices;  ///< *n x 3* vector of the *x*,*y*,*z* coordinates for the *n* vertices. The x,y,z coordinates for a single vertex form consecutive entries.
+    std::vector<int32_t> faces;  ///< *n x 3* vector of the 3 vertex indices for the *n* triangles or faces. The 3 vertices of a single face form consecutive entries.
 
     /// Construct and return a simple cube mesh.
     ///
@@ -995,55 +995,58 @@ namespace fs {
 
   /// Models the header of an MGH file.
   struct MghHeader {
-    int32_t dim1length;
-    int32_t dim2length;
-    int32_t dim3length;
-    int32_t dim4length;
+    int32_t dim1length;  ///< size of data along 1st dimension
+    int32_t dim2length;  ///< size of data along 2nd dimension
+    int32_t dim3length;  ///< size of data along 3rd dimension
+    int32_t dim4length;  ///< size of data along 4th dimension
 
-    int32_t dtype;
-    int32_t dof;
-    int16_t ras_good_flag;
+    int32_t dtype;  ///< the MRI data type
+    int32_t dof;  ///< typically ignored
+    int16_t ras_good_flag; ///< flag indicating whether the data in the RAS fields (Mdc, Pxyz_c) are valid. 1 means valid, everything else means invalid.
 
     /// Compute the number of values based on the dim*length header fields.
     size_t num_values() const {
       return((size_t) dim1length * dim2length * dim3length * dim4length);
     }
 
-    float xsize;
-    float ysize;
-    float zsize;
-    std::vector<float> Mdc;
-    std::vector<float> Pxyz_c;
+    float xsize;  ///< size of voxels along 1st axis (x or r)
+    float ysize;  ///< size of voxels along 2nd axis (y or a)
+    float zsize;  ///< size of voxels along 3rd axis (z or s)
+    std::vector<float> Mdc;  ///< matrix
+    std::vector<float> Pxyz_c;  ///< x,y,z coordinates of central vertex
   };
 
   /// Models the data of an MGH file. Currently these are 1D vectors, but one can compute the 4D array using the dimXlength fields of the respective MghHeader.
   struct MghData {
     MghData() {}
-    MghData(std::vector<int32_t> curv_data) { data_mri_int = curv_data; }
-    explicit MghData(std::vector<uint8_t> curv_data) { data_mri_uchar = curv_data; }
-    explicit MghData(std::vector<short> curv_data) { data_mri_short = curv_data; }
-    MghData(std::vector<float> curv_data) { data_mri_float = curv_data; }
-    std::vector<int32_t> data_mri_int;
-    std::vector<uint8_t> data_mri_uchar;
-    std::vector<float> data_mri_float;
-    std::vector<short> data_mri_short;
+    MghData(std::vector<int32_t> curv_data) { data_mri_int = curv_data; }  ///< constructor to create MghData from MRI_INT (int32_t) data.
+    explicit MghData(std::vector<uint8_t> curv_data) { data_mri_uchar = curv_data; }  ///< constructor to create MghData from MRI_UCHAR (uint8_t) data.
+    explicit MghData(std::vector<short> curv_data) { data_mri_short = curv_data; }  ///< constructor to create MghData from MRI_SHORT (short) data.
+    MghData(std::vector<float> curv_data) { data_mri_float = curv_data; }  ///< constructor to create MghData from MRI_FLOAT (float) data.
+    std::vector<int32_t> data_mri_int;  ///< data of type MRI_INT, check the dtype to see whether this is relevant for this instance.
+    std::vector<uint8_t> data_mri_uchar;  ///< data of type MRI_UCHAR, check the dtype to see whether this is relevant for this instance.
+    std::vector<float> data_mri_float;  ///< data of type MRI_FLOAT, check the dtype to see whether this is relevant for this instance.
+    std::vector<short> data_mri_short;  ///< data of type MRI_SHORT, check the dtype to see whether this is relevant for this instance.
   };
 
   /// Models a whole MGH file.
   struct Mgh {
-    MghHeader header;
-    MghData data;
+    MghHeader header;  ///< Header for this MGH instance.
+    MghData data;  ///< 4D data for this MGH instance.
   };
 
   /// A simple 4D array datastructure, useful for representing volume data.
   template<class T>
   struct Array4D {
+    /// Constructor for creating an empty 4D array of the given dimensions.
     Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) :
       d1(d1), d2(d2), d3(d3), d4(d4), data(d1*d2*d3*d4) {}
 
+    /// Constructor for creating an empty 4D array based on dimensions specified in an fs::MghHeader.
     Array4D(MghHeader *mgh_header) :
       d1(mgh_header->dim1length), d2(mgh_header->dim2length), d3(mgh_header->dim3length), d4(mgh_header->dim4length), data(d1*d2*d3*d4) {}
 
+    /// Constructor for creating an empty 4D array based on dimensions specified in the header of an fs::Mgh. Does not init the data.
     Array4D(Mgh *mgh) : // This does NOT init the data atm.
       d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1*d2*d3*d4) {}
 
@@ -1066,11 +1069,11 @@ namespace fs {
       return(d1*d2*d3*d4);
     }
 
-    unsigned int d1;
-    unsigned int d2;
-    unsigned int d3;
-    unsigned int d4;
-    std::vector<T> data;
+    unsigned int d1;  ///< size of data along 1st dimension
+    unsigned int d2;  ///< size of data along 2nd dimension
+    unsigned int d3;  ///< size of data along 3rd dimension
+    unsigned int d4;  ///< size of data along 4th dimension
+    std::vector<T> data;  ///< the data, as a 1D vector. Use fs::Array4D::at for easy access in 4D.
   };
 
   // More declarations, should also go to separate header.
@@ -1870,11 +1873,11 @@ namespace fs {
 
   /// Models a FreeSurfer label.
   struct Label {
-    std::vector<int> vertex;
-    std::vector<float> coord_x;
-    std::vector<float> coord_y;
-    std::vector<float> coord_z;
-    std::vector<float> value;
+    std::vector<int> vertex;  ///< vertex indices for the data in this label if it is a surface label. These are indices into the vertices of a surface mesh to which this label belongs.
+    std::vector<float> coord_x;  ///< x coordinates of the vertices in case of a surface label, or voxels coordinates for a volume label.
+    std::vector<float> coord_y;  ///< y coordinates of the vertices in case of a surface label, or voxels coordinates for a volume label.
+    std::vector<float> coord_z;  ///< z coordinates of the vertices in case of a surface label, or voxels coordinates for a volume label.
+    std::vector<float> value;  ///< the value of the label, can represent continuous data like a p-value, or sometimes simply 1.0 or 0.0 to mark a certain area.
 
     /// Compute for each vertex of the surface whether it is inside the label.
     std::vector<bool> vert_in_label(size_t surface_num_verts) const {
