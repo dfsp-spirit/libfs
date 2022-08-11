@@ -20,9 +20,9 @@
  * All relevant functions are in the file include/libfs.h and only a few utility functions are class
  * members, so the best place to start is to open the documentation for libfs.h in the Files section above.
  *
- * \subsection intro-examples Examples
+ * \subsection intro-examples A note on the API doc examples
  *
- * The examples in the doc strings of the functions only show data preparation and the function call. Typically you
+ * The examples in the doc strings of the libfs.h functions usually only show data preparation and the function call itself. Typically you
  * will get a working program out of them by wrapping them into something like:
  *
  * @code
@@ -30,16 +30,19 @@
  * #include <string>
  * #include <iostream>
  * #include <vector>
+ * // maybe more includes for some examples here.
  *
  * int main(int argc, char** argv) {
  *      // Demo code goes here
  * }
  * @endcode
  *
+ * To see full demo programs and compilation instructions, check the <a href="https://github.com/dfsp-spirit/libfs/tree/main/examples">examples/ directory</a> in the GitHub repository linked below.
+ *
  *
  * \subsection intro-website The libfs project website
  *
- * The project page for fslib can be found at https://github.com/dfsp-spirit/libfs
+ * The project page for libfs can be found at https://github.com/dfsp-spirit/libfs
  *
  */
 
