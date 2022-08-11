@@ -173,12 +173,23 @@ namespace fs {
   size_t _vidx_2d(size_t, size_t, size_t);
   struct MghHeader;
 
-  /// Models a triangular mesh, used for brain surface meshes.
+  /// @brief Models a triangular mesh, used for brain surface meshes.
   ///
-  /// Represents a vertex-indexed mesh. The `n` vertices are stored as 3D point coordinates (x,y,z) in a vector
+  /// @details Represents a vertex-indexed mesh. The `n` vertices are stored as 3D point coordinates (x,y,z) in a vector
   /// of length `3n`, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
   /// The `m` faces are stored as a vector of `3m` integers, where 3 consecutive values represent the 3 vertices (by index)
   /// making up the respective face. Vertex indices are 0-based.
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mesh surface = fs::Mesh::construct_cube();
+  /// size_t nv = surface.num_vertices(); // 8
+  /// auto first_face_verts = surface.face_vertices(0);
+  /// int first_face_third_vert = surface.fm_at(0, 2);
+  /// size_t nf = surface.num_faces();
+  /// size_t nv = surface.num_vertices();
+  /// surface.to_obj("cube_out.obj");
+  /// @endcode
   struct Mesh {
 
     /// Construct a Mesh from the given vertices and faces.
@@ -227,7 +238,7 @@ namespace fs {
 
 
     /// Return string representing the mesh in Wavefront Object (.obj) format.
-    /// @retuns Wavefront Object string representation of the mesh, including vertices and faces.
+    /// @return Wavefront Object string representation of the mesh, including vertices and faces.
     /// @see fs::Mesh::to_obj_file is a shortcut if you want to export the string representation to a file.
     ///
     /// #### Examples
@@ -258,7 +269,7 @@ namespace fs {
     /// @code
     /// fs::Mesh surface = fs::Mesh::construct_cube();
     /// const std::string out_path = fs::fullpath({"/tmp", "mesh.obj"});
-    /// surface.to_obj(out_path);
+    /// surface.to_obj_file(out_path);
     /// @endcode
     void to_obj_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_obj());
@@ -671,10 +682,19 @@ namespace fs {
       return(vc);
     }
 
-    /// @brief Retrieve a coordinate of a vertex, treating the vertices vector as an nx3 matrix.
+    /// @brief Retrieve a single (x, y, or z) coordinate of a vertex, treating the vertices vector as an nx3 matrix.
     /// @param i the row index, valid values are 0..num_vertices.
     /// @param j the column index, valid values are 0..2 (for the x,y,z coordinates).
     /// @throws std::range_error on invalid index
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// float v5_x = surface.vm_at(5, 0);
+    /// float v5_y = surface.vm_at(5, 1);
+    /// float v5_z = surface.vm_at(5, 2);
+    /// @endcode
     const float& vm_at(const size_t i, const size_t j) const {
       size_t idx = _vidx_2d(i, j, 3);
       if(idx > this->vertices.size()-1) {
@@ -684,6 +704,13 @@ namespace fs {
     }
 
     /// Return string representing the mesh in PLY format. Overload that works without passing a color vector.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::string ply_rep = surface.to_ply();
+    /// @endcode
     std::string to_ply() const {
       std::vector<uint8_t> empty_col;
       return(this->to_ply(empty_col));
@@ -692,6 +719,13 @@ namespace fs {
     /// Return string representing the mesh in PLY format.
     /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
     /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::string ply_rep = surface.to_ply();
+    /// @endcode
     std::string to_ply(const std::vector<uint8_t> col) const {
       bool use_vertex_colors = col.size() != 0;
       std::stringstream plys;
@@ -725,6 +759,13 @@ namespace fs {
 
     /// Export this mesh to a file in Stanford PLY format.
     /// @throws std::runtime_error if the target file cannot be opened.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// surface.to_ply_file("mesh.ply");
+    /// @endcode
     void to_ply_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_ply());
     }
@@ -736,6 +777,13 @@ namespace fs {
     }
 
     /// Return string representing the mesh in OFF format. Overload that works without passing a color vector.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::string off_rep = surface.to_off();
+    /// @endcode
     std::string to_off() const {
       std::vector<uint8_t> empty_col;
       return(this->to_off(empty_col));
@@ -774,6 +822,13 @@ namespace fs {
 
     /// Export this mesh to a file in OFF format.
     /// @throws std::runtime_error if the target file cannot be opened.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// surface.to_off_file("mesh.off");
+    /// @endcode
     void to_off_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_off());
     }
@@ -797,11 +852,17 @@ namespace fs {
     Curv() :
       num_faces(100000), num_vertices(0), num_values_per_vertex(1) {}
 
+    /// The number of faces of the mesh to which this belongs, typically irrelevant and ignored.
     int32_t num_faces;
-    std::vector<float> data;
-    int32_t num_vertices;
-    int32_t num_values_per_vertex;
 
+    /// The curvature data, one value per vertex. Something like the cortical thickness at each vertex.
+    std::vector<float> data;
+
+    /// The number of vertices of the mesh to which this belongs. Can be deduced from length of 'data'.
+    int32_t num_vertices;
+
+    /// The number of values per vertex, stored in this file. Almost all apps (including FreeSurfer itself) only support a value of 1 here. Ignored by most apps, and assumed to be 1.
+    int32_t num_values_per_vertex;
   };
 
   /// The colortable from an Annot file, can be used for parcellations and integer labels. Typically each index (in all fields) describes a brain region.
