@@ -1782,11 +1782,11 @@ namespace fs {
 
   /// @brief Write a mesh to a stream in FreeSurfer surf format.
   /// @details A surf file contains a vertex index representation of a mesh, i.e., the vertices and faces vectors.
-  /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   /// @param vertices vector of float, length 3n for n vertices. The 3D coordinates of the vertices, typically from `<Mesh_instance>.vertices`.
   /// @param faces vector of int, length 3n for n faces. The 3 vertex indices for each face, typically from `<Mesh_instance>.faces`.
+  /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   /// @throws std::runtime_error if the file cannot be opened.
-  void write_surf(std::ostream& os, std::vector<float> vertices, std::vector<int32_t> faces) {
+  void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, std::ostream& os) {
     const uint32_t SURF_TRIS_MAGIC = 16777214;
     _fwritei3(os, SURF_TRIS_MAGIC);
     std::string created_and_comment_lines = "Created by fslib\n\n";
@@ -1803,15 +1803,22 @@ namespace fs {
 
   /// @brief Write a mesh to a binary file in FreeSurfer surf format.
   /// @details A surf file contains a vertex index representation of a mesh, i.e., the vertices and faces vectors.
-  /// @param filename The path to the output file.
   /// @param vertices vector of float, length 3n for n vertices. The 3D coordinates of the vertices, typically from `<Mesh_instance>.vertices`.
   /// @param faces vector of int, length 3n for n faces. The 3 vertex indices for each face, typically from `<Mesh_instance>.faces`.
+  /// @param filename The path to the output file.
   /// @throws std::runtime_error if the file cannot be opened.
-  void write_surf(const std::string& filename, std::vector<float> vertices, std::vector<int32_t> faces) {
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mesh surface = fs::Mesh::construct_cube();
+  /// fs::write_surf(surface.vertices, surface.faces, "lh.cube")
+  /// @endcode
+  void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {
-      write_surf(ofs, vertices, faces);
+      write_surf(vertices, faces, ofs);
       ofs.close();
     } else {
       throw std::runtime_error("Unable to open surf file '" + filename + "' for writing.\n");
@@ -1820,14 +1827,21 @@ namespace fs {
 
   /// @brief Write a mesh to a binary file in FreeSurfer surf format.
   /// @details A surf file contains a vertex index representation of a mesh, i.e., the vertices and faces vectors.
-  /// @param filename The path to the output file.
   /// @param mesh The `Mesh` instance to write.
+  /// @param filename The path to the output file.
   /// @throws std::runtime_error if the file cannot be opened.
-  void write_surf(const std::string& filename, const Mesh& mesh) {
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mesh surface = fs::Mesh::construct_cube();
+  /// fs::write_surf(surface, "lh.cube")
+  /// @endcode
+  void write_surf(const Mesh& mesh, const std::string& filename ) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
     if(ofs.is_open()) {
-      write_surf(ofs, mesh.vertices, mesh.faces);
+      write_surf(mesh.vertices, mesh.faces, ofs);
       ofs.close();
     } else {
       throw std::runtime_error("Unable to open surf file '" + filename + "' for writing.\n");
@@ -1887,6 +1901,13 @@ namespace fs {
   /// @param filename Path to the label file that should be read.
   /// @see There exists an overload to read from a stream instead.
   /// @throws std::domain_error if the label data format is incorrect, std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Label label;
+  /// fs::read_label(&label, "subject1/label/lh.cortex.label")
+  /// @endcode
   void read_label(Label* label, const std::string& filename) {
     std::ifstream infile(filename);
     if(infile.is_open()) {
@@ -1913,9 +1934,18 @@ namespace fs {
 
 
   /// Write label data to a file.
-  ///
-  /// See also: swrite_label to write to a stream.
+  /// @param label an fs::Label instance
+  /// @param filename Path to the label file that should be written.
+  /// @see There exists an overload to write to a stream.
   /// @throws std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Label label;
+  /// fs::read_label(&label, "subject1/label/lh.cortex.label")
+  /// fs::write_label(label, "out.label")
+  /// @endcode
   void write_label(const Label& label, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out);

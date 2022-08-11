@@ -412,7 +412,7 @@ TEST_CASE( "Importing and exporting meshes works" ) {
     SECTION("Writing and re-reading FreeSurfer surf files works based on vertices and faces vectors.") {
 
         const std::string out_surf_file = "examples/read_surf/lh.white_exported";;
-        fs::write_surf(out_surf_file, surface.vertices, surface.faces);
+        fs::write_surf(surface.vertices, surface.faces, out_surf_file);
         fs::Mesh surface2;
         fs::read_mesh(&surface2, out_surf_file);
 
@@ -436,7 +436,7 @@ TEST_CASE( "Importing and exporting meshes works" ) {
     SECTION("Writing and re-reading FreeSurfer surf files works based Mesh instance.") {
 
         const std::string out_surf_file = "examples/read_surf/lh.white_exported";;
-        fs::write_surf(out_surf_file, surface);
+        fs::write_surf(surface, out_surf_file);
         fs::Mesh surface2;
         fs::read_mesh(&surface2, out_surf_file);
 
