@@ -1030,6 +1030,13 @@ namespace fs {
   /// @param filename Path to the input MGH file.
   /// @see There exists an overloaded version that reads from a stream.
   /// @throws runtime_error if the file uses an unsupported MRI data type.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mgh mgh;
+  /// fs::read_mgh(&mgh, "somebrain.mgh");
+  /// @endcode
   void read_mgh(Mgh* mgh, const std::string& filename) {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
@@ -1057,6 +1064,12 @@ namespace fs {
   /// Read a vector of subject identifiers from a FreeSurfer subjects file.
   /// @param filename a text file that contains one subject identifier per line.
   /// @throws runtime_error if the file cannot be read
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// std::vector<std::string> subjects = fs::read_subjectsfile("subjects.txt");
+  /// @endcode
   std::vector<std::string> read_subjectsfile(const std::string& filename) {
     std::vector<std::string> subjects;
     std::ifstream input(filename);
@@ -1152,6 +1165,7 @@ namespace fs {
   /// Read MRI_INT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_INT) {
       std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
@@ -1162,6 +1176,7 @@ namespace fs {
   /// Read MRI_INT data from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<int32_t> _read_mgh_data_int(MghHeader* mgh_header, std::istream* is) {
     if(mgh_header->dtype != MRI_INT) {
       std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
@@ -1172,6 +1187,7 @@ namespace fs {
   /// Read MRI_SHORT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<short> _read_mgh_data_short(MghHeader* mgh_header, const std::string& filename) {
     if(mgh_header->dtype != MRI_SHORT) {
       std::cerr << "Expected MRI data type " << MRI_SHORT << ", but found " << mgh_header->dtype << ".\n";
@@ -1182,6 +1198,7 @@ namespace fs {
   /// Read MRI_SHORT data from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
   std::vector<short> _read_mgh_data_short(MghHeader* mgh_header, std::istream* is) {
     if(mgh_header->dtype != MRI_SHORT) {
       std::cerr << "Expected MRI data type " << MRI_SHORT << ", but found " << mgh_header->dtype << ".\n";
@@ -1212,6 +1229,7 @@ namespace fs {
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @throws runtime_error if the file cannot be opened
+  /// @private
   template <typename T>
   std::vector<T> _read_mgh_data(MghHeader* mgh_header, const std::string& filename) {
     std::ifstream ifs;
@@ -1666,6 +1684,14 @@ namespace fs {
   /// @param curv_data the data to write.
   /// @param num_faces the value for the header field `num_faces`. This is not needed afaik and typically ignored.
   /// @throws std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// std::vector<float> data = fs::read_curv_data("lh.thickness");
+  /// // Do something with 'data' here, maybe?
+  /// fs::write_curv("output.curv", data);
+  /// @endcode
   void write_curv(const std::string& filename, std::vector<float> curv_data, const int32_t num_faces = 100000) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -1758,6 +1784,15 @@ namespace fs {
   /// @param filename Path to an output file to which to write.
   /// @see There exists an overload to write to a stream.
   /// @throws std::runtime_error if the file cannot be opened, std::logic_error if the mgh header and data are inconsistent, std::domain_error if the given MRI data type is unknown or unsupported.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mgh mgh;
+  /// fs::read_mgh(&mgh, "somebrain.mgh");
+  /// // Do something with 'mgh' here, maybe?
+  /// fs::write_mgh(mgh, "output.mgh");
+  /// @endcode
   void write_mgh(const Mgh& mgh, const std::string& filename) {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
