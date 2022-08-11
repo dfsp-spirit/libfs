@@ -20,6 +20,25 @@
  * All relevant functions are in the file include/libfs.h and only a few utility functions are class
  * members, so the best place to start is to open the documentation for libfs.h in the Files section above.
  *
+ * \subsection intro-examples Examples
+ *
+ * The examples in the doc strings of the functions only show data preparation and the function call. Typically you
+ * will get a working program out of them by wrapping them into something like:
+ *
+ * @code
+ * #include "libfs.h"
+ * #include <string>
+ * #include <iostream>
+ * #include <vector>
+ *
+ * int main(int argc, char** argv) {
+ *      // Demo code goes here
+ * }
+ * @endcode
+ *
+ *
+ * \subsection intro-website The libfs project website
+ *
  * The project page for fslib can be found at https://github.com/dfsp-spirit/libfs
  *
  */
