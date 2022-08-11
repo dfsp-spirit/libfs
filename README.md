@@ -79,7 +79,7 @@ Compilation instructions for g++ and clang are at the top of each example source
 
 ### Full API documentation
 
-The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://codedocs.xyz/dfsp-spirit/libfs/).
+The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://codedocs.xyz/dfsp-spirit/libfs/). The API docs contain usage examples for many important functions.
 
 
 ### Conventions
