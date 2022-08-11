@@ -53,6 +53,12 @@ namespace fs {
   namespace util {
     /// @brief Check whether a string ends with the given suffix.
     /// @private
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// bool ev = fs::util::ends_with("freesurfer", "surfer"); // true
+    /// @endcode
     inline bool ends_with(std::string const & value, std::string const & suffix) {
         if (suffix.size() > value.size()) return false;
         return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
@@ -60,6 +66,12 @@ namespace fs {
 
     /// @brief Check whether a string ends with one of the given suffixes.
     /// @private
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// bool ev = fs::util::ends_with("freesurfer", {"surfer", "not"}); // true
+    /// @endcode
     inline bool ends_with(std::string const & value, std::initializer_list<std::string> suffixes) {
       for (auto suffix : suffixes) {
         if (ends_with(value, suffix)) {
@@ -71,6 +83,12 @@ namespace fs {
 
     /// @brief Check whether a string starts with the given prefix.
     /// @private
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// bool ev = fs::util::starts_with("freesurfer", "free"); // true
+    /// @endcode
     inline bool starts_with(std::string const & value, std::string const & prefix) {
         if (prefix.length() > value.length()) return false;
         return value.rfind(prefix, 0) == 0;
@@ -78,6 +96,12 @@ namespace fs {
 
     /// @brief Check whether a string starts with one of the given prefixes.
     /// @private
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// bool ev = fs::util::starts_with("freesurfer", {"free", "not"}); // true
+    /// @endcode
     inline bool starts_with(std::string const & value, std::initializer_list<std::string> prefixes) {
       for (auto prefix : prefixes) {
         if (starts_with(value, prefix)) {
@@ -137,6 +161,12 @@ namespace fs {
     /// @param filename the file to which to write, will be overwritten if exists
     /// @param rep the string to write to the file
     /// @throws std::runtime_error if the file cannot be opened.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::util::str_to_file("thoughts.txt", "blah, blah, blah");
+    /// @endcode
     void str_to_file(const std::string& filename, const std::string rep) {
       std::ofstream ofs;
       ofs.open(filename, std::ofstream::out);
@@ -1380,6 +1410,13 @@ namespace fs {
   /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
   /// @throws runtime_error if the file cannot be opened, domain_error if the surf file magic mismatches.
   /// @see fs::read_mesh, a generalized version that supports other mesh file formats as well.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mesh surface;
+  /// fs::read_surf(&surface, "lh.white");
+  /// @endcode
   void read_surf(Mesh* surface, const std::string& filename) {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
