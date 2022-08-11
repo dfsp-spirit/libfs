@@ -55,11 +55,33 @@ namespace fs {
         return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
     }
 
+    /// Check whether a string ends with one of the given suffixes.
+    /// @private
+    inline bool ends_with(std::string const & value, std::initializer_list<std::string> suffixes) {
+      for (auto suffix : suffixes) {
+        if (ends_with(value, suffix)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     /// Check whether a string starts with the given prefix.
     /// @private
     inline bool starts_with(std::string const & value, std::string const & prefix) {
         if (prefix.length() > value.length()) return false;
         return value.rfind(prefix, 0) == 0;
+    }
+
+    /// Check whether a string starts with one of the given prefixes.
+    /// @private
+    inline bool starts_with(std::string const & value, std::initializer_list<std::string> prefixes) {
+      for (auto prefix : prefixes) {
+        if (starts_with(value, prefix)) {
+          return true;
+        }
+      }
+      return false;
     }
 
 
@@ -1812,7 +1834,7 @@ namespace fs {
   ///
   /// @code
   /// fs::Mesh surface = fs::Mesh::construct_cube();
-  /// fs::write_surf(surface.vertices, surface.faces, "lh.cube")
+  /// fs::write_surf(surface.vertices, surface.faces, "lh.cube");
   /// @endcode
   void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, const std::string& filename) {
     std::ofstream ofs;
@@ -1825,6 +1847,7 @@ namespace fs {
     }
   }
 
+
   /// @brief Write a mesh to a binary file in FreeSurfer surf format.
   /// @details A surf file contains a vertex index representation of a mesh, i.e., the vertices and faces vectors.
   /// @param mesh The `Mesh` instance to write.
@@ -1835,7 +1858,7 @@ namespace fs {
   ///
   /// @code
   /// fs::Mesh surface = fs::Mesh::construct_cube();
-  /// fs::write_surf(surface, "lh.cube")
+  /// fs::write_surf(surface, "lh.cube");
   /// @endcode
   void write_surf(const Mesh& mesh, const std::string& filename ) {
     std::ofstream ofs;
@@ -1847,7 +1870,6 @@ namespace fs {
       throw std::runtime_error("Unable to open surf file '" + filename + "' for writing.\n");
     }
   }
-
 
 
   /// @brief Read a FreeSurfer ASCII label from a stream.
@@ -1906,7 +1928,7 @@ namespace fs {
   ///
   /// @code
   /// fs::Label label;
-  /// fs::read_label(&label, "subject1/label/lh.cortex.label")
+  /// fs::read_label(&label, "subject1/label/lh.cortex.label");
   /// @endcode
   void read_label(Label* label, const std::string& filename) {
     std::ifstream infile(filename);
@@ -1943,8 +1965,8 @@ namespace fs {
   ///
   /// @code
   /// fs::Label label;
-  /// fs::read_label(&label, "subject1/label/lh.cortex.label")
-  /// fs::write_label(label, "out.label")
+  /// fs::read_label(&label, "subject1/label/lh.cortex.label");
+  /// fs::write_label(label, "out.label");
   /// @endcode
   void write_label(const Label& label, const std::string& filename) {
     std::ofstream ofs;
@@ -1954,6 +1976,33 @@ namespace fs {
       ofs.close();
     } else {
       throw std::runtime_error("Unable to open label file '" + filename + "' for writing.\n");
+    }
+  }
+
+  /// @brief Write a mesh to a file in different formats.
+  /// @details The output format will be auto-determined from the file extension.
+  /// @param mesh The fs::Mesh instance to write.
+  /// @param filename The path to the output file.
+  /// @throws std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mesh surface = fs::Mesh::construct_cube();
+  /// fs::write_mesh(surface, "cube.ply");
+  /// fs::write_mesh(surface, "cube.off");
+  /// fs::write_mesh(surface, "cube.obj");
+  /// fs::write_mesh(surface, "cube");  // writes FS surf format.
+  /// @endcode
+  void write_mesh(const Mesh& mesh, const std::string& filename ) {
+    if (fs::util::ends_with(filename, {".ply", ".PLY"})) {
+      mesh.to_ply_file(filename);
+    } else if (fs::util::ends_with(filename, {".obj", ".OBJ"})) {
+      mesh.to_obj_file(filename);
+    } else if (fs::util::ends_with(filename, {".off", ".OFF"})) {
+      mesh.to_off_file(filename);
+    } else {
+      fs::write_surf(mesh, filename);
     }
   }
 
