@@ -237,7 +237,7 @@ namespace fs {
     }
 
 
-    /// Return string representing the mesh in Wavefront Object (.obj) format.
+    /// @brief Return string representing the mesh in Wavefront Object (.obj) format.
     /// @return Wavefront Object string representation of the mesh, including vertices and faces.
     /// @see fs::Mesh::to_obj_file is a shortcut if you want to export the string representation to a file.
     ///
@@ -259,7 +259,7 @@ namespace fs {
     }
 
 
-    /// Export this mesh to a file in Wavefront OBJ format.
+    /// @brief Export this mesh to a file in Wavefront OBJ format.
     /// @param filename path to the output file, will be overwritten if existing.
     /// @throws std::runtime_error if the target file cannot be opened.
     /// @see fs::Mesh::to_obj if you want the string representation (without writing it to a file).
@@ -276,7 +276,7 @@ namespace fs {
     }
 
 
-    /// Read a brainmesh from a Wavefront object format stream.
+    /// @brief Read a brainmesh from a Wavefront object format stream.
     /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
     /// @param mesh pointer to fs:Mesh instance to be filled.
     /// @param is stream holding a text representation of a mesh in Wavefront object format.
@@ -359,7 +359,7 @@ namespace fs {
     }
 
 
-    /// Read a brainmesh from a Wavefront object format mesh file.
+    /// @brief Read a brainmesh from a Wavefront object format mesh file.
     /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
     /// @see There exists an overloaded version that reads from a stream.
     /// @param mesh pointer to fs:Mesh instance to be filled.
@@ -384,7 +384,7 @@ namespace fs {
     }
 
 
-    /// Read a brainmesh from an Object File format (OFF) stream.
+    /// @brief Read a brainmesh from an Object File format (OFF) stream.
     /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
     static void from_off(Mesh* mesh, std::ifstream* is) {
@@ -460,7 +460,7 @@ namespace fs {
     }
 
 
-    /// Read a brainmesh from an OFF format mesh file.
+    /// @brief Read a brainmesh from an OFF format mesh file.
     /// @see There exists an overloaded version that reads from a stream.
     /// @details The OFF is the Object File Format (file extension .off) is a simple text-based mesh file format. Not to be confused with the Wavefront Object format (.obj).
     /// @param mesh pointer to fs:Mesh instance to be filled.
@@ -485,7 +485,7 @@ namespace fs {
     }
 
 
-    /// Read a brainmesh from a Stanford PLY format stream.
+    /// @brief Read a brainmesh from a Stanford PLY format stream.
     /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
     static void from_ply(Mesh* mesh, std::ifstream* is) {
@@ -567,7 +567,7 @@ namespace fs {
       mesh->faces = faces;
     }
 
-    /// Read a brainmesh from a Stanford PLY format mesh file.
+    /// @brief Read a brainmesh from a Stanford PLY format mesh file.
     /// @details The PLY format exists in text and binary forms, and the binary form can be little endian or big endian. This file reads the ASCII text format version.
     /// @param mesh pointer to fs:Mesh instance to be filled.
     /// @param filename path to input wavefront obj mesh to be read.
@@ -591,7 +591,7 @@ namespace fs {
     }
 
 
-    /// Return the number of vertices in this mesh.
+    /// @brief Return the number of vertices in this mesh.
     /// @return the vertex count
     ///
     /// #### Examples
@@ -604,7 +604,7 @@ namespace fs {
       return(this->vertices.size() / 3);
     }
 
-    /// Return the number of faces in this mesh.
+    /// @brief Return the number of faces in this mesh.
     /// @return the face count
     ///
     /// #### Examples
@@ -638,7 +638,7 @@ namespace fs {
     }
 
 
-    /// Get all vertex indices of the face, given by its index.
+    /// @brief Get all vertex indices of the face, given by its index.
     /// @param face the face index
     /// @returns vector of length 3, the vertex indices of the face.
     /// @throws std::range_error on invalid index
@@ -660,7 +660,7 @@ namespace fs {
       return(fv);
     }
 
-    /// Get all coordinates of the vertex, given by its index.
+    /// @brief Get all coordinates of the vertex, given by its index.
     /// @param vertex the vertex index
     /// @returns vector of length 3, the x,y,z coordinates of the vertex.
     /// @throws std::range_error on invalid index
@@ -703,7 +703,7 @@ namespace fs {
       return(this->vertices[idx]);
     }
 
-    /// Return string representing the mesh in PLY format. Overload that works without passing a color vector.
+    /// @brief Return string representing the mesh in PLY format. Overload that works without passing a color vector.
     ///
     /// #### Examples
     ///
@@ -716,7 +716,7 @@ namespace fs {
       return(this->to_ply(empty_col));
     }
 
-    /// Return string representing the mesh in PLY format.
+    /// @brief Return string representing the mesh in PLY format.
     /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
     /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices.
     ///
@@ -757,7 +757,7 @@ namespace fs {
       return(plys.str());
     }
 
-    /// Export this mesh to a file in Stanford PLY format.
+    /// @brief Export this mesh to a file in Stanford PLY format.
     /// @throws std::runtime_error if the target file cannot be opened.
     ///
     /// #### Examples
@@ -770,13 +770,13 @@ namespace fs {
       fs::util::str_to_file(filename, this->to_ply());
     }
 
-    /// Export this mesh to a file in Stanford PLY format with vertex colors.
+    /// @brief Export this mesh to a file in Stanford PLY format with vertex colors.
     /// @throws std::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
     void to_ply_file(const std::string& filename, const std::vector<uint8_t> col) const {
       fs::util::str_to_file(filename, this->to_ply(col));
     }
 
-    /// Return string representing the mesh in OFF format. Overload that works without passing a color vector.
+    /// @brief Return string representing the mesh in OFF format. Overload that works without passing a color vector.
     ///
     /// #### Examples
     ///
@@ -789,7 +789,7 @@ namespace fs {
       return(this->to_off(empty_col));
     }
 
-    /// Return string representing the mesh in PLY format.
+    /// @brief Return string representing the mesh in PLY format.
     /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
     /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices.
     std::string to_off(const std::vector<uint8_t> col) const {
@@ -820,7 +820,7 @@ namespace fs {
       return(offs.str());
     }
 
-    /// Export this mesh to a file in OFF format.
+    /// @brief Export this mesh to a file in OFF format.
     /// @throws std::runtime_error if the target file cannot be opened.
     ///
     /// #### Examples
@@ -833,7 +833,7 @@ namespace fs {
       fs::util::str_to_file(filename, this->to_off());
     }
 
-    /// Export this mesh to a file in OFF format with vertex colors (COFF).
+    /// @brief Export this mesh to a file in OFF format with vertex colors (COFF).
     /// @throws std::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
     void to_off_file(const std::string& filename, const std::vector<uint8_t> col) const {
       fs::util::str_to_file(filename, this->to_off(col));
@@ -875,7 +875,7 @@ namespace fs {
     std::vector<int32_t> a;   ///< alpha channel of RGBA color
     std::vector<int32_t> label;   ///< label integer computed from rgba values. Maps to the Annot.vertex_label field.
 
-    /// Get the number of enties (regions) in this Colortable.
+    /// @brief Get the number of enties (regions) in this Colortable.
     size_t num_entries() const {
       size_t num_ids = this->id.size();
       if(this->name.size() != num_ids || this->r.size() != num_ids || this->g.size() != num_ids || this->b.size() != num_ids || this->a.size() != num_ids || this->label.size() != num_ids) {
@@ -884,7 +884,7 @@ namespace fs {
       return num_ids;
     }
 
-    /// Get the index of a region in the Colortable by region name. Returns a negative value if the region is not found.
+    /// @brief Get the index of a region in the Colortable by region name. Returns a negative value if the region is not found.
     int32_t get_region_idx(const std::string& query_name) const {
       for(size_t i = 0; i<this->num_entries(); i++) {
         if(this->name[i] == query_name) {
@@ -894,7 +894,7 @@ namespace fs {
       return(-1);
     }
 
-    /// Get the index of a region in the Colortable by label. Returns a negative value if the region is not found.
+    /// @brief Get the index of a region in the Colortable by label. Returns a negative value if the region is not found.
     int32_t get_region_idx(int32_t query_label) const {
       for(size_t i = 0; i<this->num_entries(); i++) {
         if(this->label[i] == query_label) {
@@ -913,7 +913,7 @@ namespace fs {
     std::vector<int32_t> vertex_labels;   ///< The label code for each vertex, defining the region it belongs to. Check in the Colortable for a region that has this label.
     Colortable colortable;  ///< A Colortable defining the regions (most importantly, the region name and visualization color).
 
-    /// Get all vertices of a region given by name in the brain surface parcellation. Returns an integer vector, the vertex indices.
+    /// @brief Get all vertices of a region given by name in the brain surface parcellation. Returns an integer vector, the vertex indices.
     std::vector<int32_t> region_vertices(const std::string& region_name) const {
       int32_t region_idx = this->colortable.get_region_idx(region_name);
       if(region_idx >= 0) {
@@ -925,7 +925,7 @@ namespace fs {
       }
     }
 
-    /// Get all vertices of a region given by label in the brain surface parcellation. Returns an integer vector, the vertex indices.
+    /// @brief Get all vertices of a region given by label in the brain surface parcellation. Returns an integer vector, the vertex indices.
     std::vector<int32_t> region_vertices(int32_t region_label) const {
       std::vector<int32_t> reg_verts;
       for(size_t i=0; i<this->vertex_labels.size(); i++) {
@@ -936,7 +936,7 @@ namespace fs {
       return(reg_verts);
     }
 
-    /// Get the vertex colors as an array of uchar values, 3 consecutive values are the red, green and blue channel values for a single vertex.
+    /// @brief Get the vertex colors as an array of uchar values, 3 consecutive values are the red, green and blue channel values for a single vertex.
     /// @param alpha whether to include the alpha channel and return 4 values per vertex instead of 3.
     std::vector<uint8_t> vertex_colors(bool alpha = false) const {
       int num_channels = alpha ? 4 : 3;
@@ -954,7 +954,7 @@ namespace fs {
       return(col);
     }
 
-    /// Get the number of vertices of this parcellation (or the associated surface).
+    /// @brief Get the number of vertices of this parcellation (or the associated surface).
     /// @throws std::runtime_error on invalid annot
     size_t num_vertices() const {
       size_t nv = this->vertex_indices.size();
@@ -964,7 +964,7 @@ namespace fs {
       return nv;
     }
 
-    /// Compute the region indices in the Colortable for all vertices in this brain surface parcellation. With the region indices, it becomes very easy to obtain all region names, labels, and color channel values from the Colortable.
+    /// @brief Compute the region indices in the Colortable for all vertices in this brain surface parcellation. With the region indices, it becomes very easy to obtain all region names, labels, and color channel values from the Colortable.
     /// @see The function `vertex_region_names` uses this function to get the region names for all vertices.
     std::vector<size_t> vertex_regions() const {
       std::vector<size_t> vert_reg;
@@ -981,7 +981,7 @@ namespace fs {
       return vert_reg;
     }
 
-    /// Compute the region names in the Colortable for all vertices in this brain surface parcellation.
+    /// @brief Compute the region names in the Colortable for all vertices in this brain surface parcellation.
     std::vector<std::string> vertex_region_names() const {
       std::vector<std::string> region_names;
       std::vector<size_t> vertex_region_indices = this->vertex_regions();
@@ -1004,7 +1004,7 @@ namespace fs {
     int32_t dof;  ///< typically ignored
     int16_t ras_good_flag; ///< flag indicating whether the data in the RAS fields (Mdc, Pxyz_c) are valid. 1 means valid, everything else means invalid.
 
-    /// Compute the number of values based on the dim*length header fields.
+    /// @brief Compute the number of values based on the dim*length header fields.
     size_t num_values() const {
       return((size_t) dim1length * dim2length * dim3length * dim4length);
     }
