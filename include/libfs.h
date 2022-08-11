@@ -51,14 +51,14 @@
 namespace fs {
 
   namespace util {
-    /// Check whether a string ends with the given suffix.
+    /// @brief Check whether a string ends with the given suffix.
     /// @private
     inline bool ends_with(std::string const & value, std::string const & suffix) {
         if (suffix.size() > value.size()) return false;
         return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
     }
 
-    /// Check whether a string ends with one of the given suffixes.
+    /// @brief Check whether a string ends with one of the given suffixes.
     /// @private
     inline bool ends_with(std::string const & value, std::initializer_list<std::string> suffixes) {
       for (auto suffix : suffixes) {
@@ -69,14 +69,14 @@ namespace fs {
       return false;
     }
 
-    /// Check whether a string starts with the given prefix.
+    /// @brief Check whether a string starts with the given prefix.
     /// @private
     inline bool starts_with(std::string const & value, std::string const & prefix) {
         if (prefix.length() > value.length()) return false;
         return value.rfind(prefix, 0) == 0;
     }
 
-    /// Check whether a string starts with one of the given prefixes.
+    /// @brief Check whether a string starts with one of the given prefixes.
     /// @private
     inline bool starts_with(std::string const & value, std::initializer_list<std::string> prefixes) {
       for (auto prefix : prefixes) {
@@ -88,7 +88,7 @@ namespace fs {
     }
 
 
-    /// Construct a UNIX file system path from the given path_components.
+    /// @brief Construct a UNIX file system path from the given path_components.
     /// @details Any trailing or leading slash (path_sep) will be stripped from the individual components and replaced with a single one between two components. If the first path component started with a slash, that slash will be kept (absolute paths are left intact).
     /// @param path_components init list of strings, the path components
     /// @param path_sep path separator to use, typically `/` on Unix-based system.
@@ -133,7 +133,7 @@ namespace fs {
       return fp;
     }
 
-    /// Write the given text representation (any string) to a file.
+    /// @brief Write the given text representation (any string) to a file.
     /// @param filename the file to which to write, will be overwritten if exists
     /// @param rep the string to write to the file
     /// @throws std::runtime_error if the file cannot be opened.
@@ -1035,7 +1035,8 @@ namespace fs {
     MghData data;  ///< 4D data for this MGH instance.
   };
 
-  /// A simple 4D array datastructure, useful for representing volume data.
+  /// @brief A simple 4D array datastructure, useful for representing volume data.
+  /// @details By convention, for FreeSurfer data, the order of the 4 dimensions is: *time*, *x*, *y*, *z*.
   template<class T>
   struct Array4D {
     /// Constructor for creating an empty 4D array of the given dimensions.
@@ -1091,8 +1092,7 @@ namespace fs {
   std::vector<float> _read_mgh_data_float(MghHeader*, std::istream*);
 
 
-  /// Read a FreeSurfer volume file in MGH format into the given Mgh struct.
-  ///
+  /// @brief Read a FreeSurfer volume file in MGH format into the given Mgh struct.
   /// @param mgh An Mgh instance that should be filled with the data from the filename.
   /// @param filename Path to the input MGH file.
   /// @see There exists an overloaded version that reads from a stream.
@@ -1128,7 +1128,7 @@ namespace fs {
     }
   }
 
-  /// Read a vector of subject identifiers from a FreeSurfer subjects file.
+  /// @brief Read a vector of subject identifiers from a FreeSurfer subjects file.
   /// @param filename a text file that contains one subject identifier per line.
   /// @throws runtime_error if the file cannot be read
   ///
@@ -1152,8 +1152,7 @@ namespace fs {
     return(subjects);
   }
 
-  /// Read MGH data from a stream.
-  ///
+  /// @brief Read MGH data from a stream.
   /// @param mgh An Mgh instance that should be filled with the data from the stream.
   /// @param is Pointer to an open istream from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a file.
@@ -1179,8 +1178,7 @@ namespace fs {
     }
   }
 
-  /// Read an MGH header from a stream.
-  ///
+  /// @brief Read an MGH header from a stream.
   /// @param mgh_header An MghHeader instance that should be filled with the data from the stream.
   /// @param is Pointer to an open istream from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a file.
@@ -1229,7 +1227,7 @@ namespace fs {
     (void)discarded; // Suppress warnings about unused variable.
   }
 
-  /// Read MRI_INT data from MGH file
+  /// @brief Read MRI_INT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1240,7 +1238,7 @@ namespace fs {
     return(_read_mgh_data<int32_t>(mgh_header, filename));
   }
 
-  /// Read MRI_INT data from a stream.
+  /// @brief Read MRI_INT data from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1251,7 +1249,7 @@ namespace fs {
     return(_read_mgh_data<int32_t>(mgh_header, is));
   }
 
-  /// Read MRI_SHORT data from MGH file
+  /// @brief Read MRI_SHORT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1262,7 +1260,7 @@ namespace fs {
     return(_read_mgh_data<short>(mgh_header, filename));
   }
 
-  /// Read MRI_SHORT data from a stream.
+  /// @brief Read MRI_SHORT data from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1274,7 +1272,7 @@ namespace fs {
   }
 
 
-  /// Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
+  /// @brief Read the header of a FreeSurfer volume file in MGH format into the given MghHeader struct.
   ///
   /// @param mgh_header An MghHeader instance that should be filled with the data from the file.
   /// @param filename Path to the file from which to read the MGH data.
@@ -1292,7 +1290,7 @@ namespace fs {
   }
 
 
-  /// Read arbitrary MGH data from a file.
+  /// @brief Read arbitrary MGH data from a file.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @throws runtime_error if the file cannot be opened
@@ -1317,7 +1315,7 @@ namespace fs {
   }
 
 
-  /// Read arbitrary MGH data from a stream. The stream must be open and at the beginning of the MGH data.
+  /// @brief Read arbitrary MGH data from a stream. The stream must be open and at the beginning of the MGH data.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1332,7 +1330,7 @@ namespace fs {
   }
 
 
-  /// Read MRI_FLOAT data from MGH file
+  /// @brief Read MRI_FLOAT data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1343,7 +1341,7 @@ namespace fs {
     return(_read_mgh_data<float>(mgh_header, filename));
   }
 
-  /// Read MRI_FLOAT data from an MGH stream
+  /// @brief Read MRI_FLOAT data from an MGH stream
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1354,7 +1352,7 @@ namespace fs {
     return(_read_mgh_data<float>(mgh_header, is));
   }
 
-  /// Read MRI_UCHAR data from MGH file
+  /// @brief Read MRI_UCHAR data from MGH file
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1365,7 +1363,7 @@ namespace fs {
     return(_read_mgh_data<uint8_t>(mgh_header, filename));
   }
 
-  /// Read MRI_UCHAR data from an MGH stream
+  /// @brief Read MRI_UCHAR data from an MGH stream
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
@@ -1376,7 +1374,7 @@ namespace fs {
     return(_read_mgh_data<uint8_t>(mgh_header, is));
   }
 
-  /// Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
+  /// @brief Read a brain mesh from a file in binary FreeSurfer 'surf' format into the given Mesh instance.
   ///
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. Must be in binary FreeSurfer surf format. An example file is `surf/lh.white`.
@@ -1413,7 +1411,7 @@ namespace fs {
   }
 
 
-  /// Read a triangular mesh from a surf, obj, or ply file into the given Mesh instance.
+  /// @brief Read a triangular mesh from a surf, obj, or ply file into the given Mesh instance.
   ///
   /// @param surface a Mesh instance representing a vertex-indexed tri-mesh. This will be filled.
   /// @param filename The path to the file from which to read the mesh. The format will be determined from the file extension as follows. File names ending with '.obj' are loaded as Wavefront OBJ files. File names ending with '.ply' are loaded as Stanford PLY files in format version 'ascii 1.0'. All other files are loaded as FreeSurfer binary surf files.
@@ -1438,7 +1436,7 @@ namespace fs {
   }
 
 
-  /// Determine the endianness of the system.
+  /// @brief Determine the endianness of the system.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @return boolean, whether the current system is big endian.
@@ -2043,8 +2041,7 @@ namespace fs {
   }
 
 
-  /// Write label data to a stream.
-  ///
+  /// @brief Write label data to a stream.
   /// @param label The label to write.
   /// @param os An open output stream.
   /// @see There exists an onverload of this function to write a label to a file.
@@ -2057,7 +2054,7 @@ namespace fs {
   }
 
 
-  /// Write label data to a file.
+  /// @brief Write label data to a file.
   /// @param label an fs::Label instance
   /// @param filename Path to the label file that should be written.
   /// @see There exists an overload to write to a stream.
