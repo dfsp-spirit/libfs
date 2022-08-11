@@ -42,7 +42,7 @@
  *
  * \subsection intro-website The libfs project website
  *
- * The project page for libfs can be found at https://github.com/dfsp-spirit/libfs
+ * The project page for libfs can be found at https://github.com/dfsp-spirit/libfs. It contains information on all documentation available for libfs.
  *
  */
 
