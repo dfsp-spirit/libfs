@@ -31,7 +31,7 @@ The MGZ format is just a gzipped version of the MGH format. While the MGZ format
 
 #### What `libfs` is **not**
 
- This library was written from scratch in C++. It is **not** based on the FreeSurfer C code and does not use the same data structures that are used in FreeSurfer.
+This library was written from scratch in C++. It is **not** based on the FreeSurfer C code and does not use the same data structures that are used in FreeSurfer. Note that libfs also does **not** allow you to call FreeSurfer functions from your programs.
 
 ## Usage
 
