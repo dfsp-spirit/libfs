@@ -19,6 +19,7 @@ Supported data types for the MGH format include:
 * `MRI_INT`: 32 bit signed int
 * `MRI_FLOAT`: 32 bit signed float and
 * `MRI_UCHAR`: 8 bit unsigned int.
+* `MRI_SHORT`: 16 bit signed int.
 
 
 #### A note on the MGZ format
