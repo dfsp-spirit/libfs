@@ -41,12 +41,12 @@ endif()
 ##### Build the documentation using Doxygen. One needs to run 'make doc' to actually do this. #####
 
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION "Create and install the HTML based API
-documentation (requires Doxygen)" ${DOXYGEN_FOUND})
-
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ON)
 if(BUILD_DOCUMENTATION)
     if(NOT DOXYGEN_FOUND)
-         message(FATAL_ERROR "Doxygen is needed to build the documentation.")
+        message(FATAL_ERROR "Doxygen not found, cannot build the documentation.")
+    else()
+        message("Doxygen found, building docs.")
     endif()
 
     set(doxyfile_in ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
@@ -61,4 +61,6 @@ if(BUILD_DOCUMENTATION)
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                       COMMENT "Generating API documentation with Doxygen"
                       VERBATIM)
+else()
+    message("Not building docs")
 endif()
