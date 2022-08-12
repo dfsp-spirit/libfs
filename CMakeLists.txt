@@ -40,6 +40,7 @@ endif()
 
 ##### Build the documentation using Doxygen. One needs to run 'make doc' to actually do this. #####
 
+## Hint: if this does not work anymore on your system after software changes, delete the 'CMakeCache.txt' file and try again.
 find_package(Doxygen)
 option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ON)
 if(BUILD_DOCUMENTATION)
