@@ -114,14 +114,23 @@ cmake .
 make
 ./run_libfs_tests
 ```
-Note that the only thing that's being built is the test binary.
+Note that the only things that are being built are the test binary `run_libfs_tests` and the demo application, `demo_libfs`.
 
 
-### Running all examples
+### Running all mini examples
 
-In the repo root, just run `./examples/run_all_examples.bash` from your system shell.
+The examples are small, stand-alone programs in the `examples/` directory. Each example demonstrates how to interact with a certain file type.
+
+In the repo root, just run `./examples/run_all_examples.bash` from your system shell. This script will also compile them (requires `g++`).
 
 Note that the `read_mgz` example requires `zlib`.
+
+
+### Running the demo app
+
+The demo app `demo_libfs` is a slightly larger app that is build using cmake, like you would build a larger project that uses libfs.
+
+To build it, see the instructions in the `Running the tests` section above, which will also build the demo app, `demo_libfs`.
 
 
 ### Building the documentation locally
