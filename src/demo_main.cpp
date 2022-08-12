@@ -30,5 +30,25 @@ int main(int argc, char** argv) {
             std::cerr << "Environment variable 'SUBJECTS_DIR' not set, must specify 'subjects_dir' command line argument in that case.\n";
         }
     }
-    std::cout << "Using subject data from '" << fs::util::fullpath({subjects_dir, subject_id}) << "'.\n";
+    std::string sdd = fs::util::fullpath({subjects_dir, subject_id});  // 'sdd' stands for 'subject data dir'
+    std::cout << "Using subject data from '" << sdd << "'.\n";
+
+    std::vector<std::string> hemis = { "lh", "rh" };
+    std::vector<std::string> surfaces = { "white", "pial" };
+
+    std::string surf_file;
+    fs::Mesh mesh;
+
+    for (std::string surf : surfaces) {
+        for (std::string hemi : hemis) {
+            surf_file = fs::util::fullpath({sdd, "surf", (hemi + "." + surf)});
+            if(fs::util::file_exists(surf_file)) {
+                fs::read_surf(&mesh, surf_file);
+                std::cout << "Found " << hemi << " mesh of " << surf << " surface containing " << mesh.num_vertices() << " vertices and "<< mesh.num_faces() << " faces.\n";
+            } else {
+                std::cout << "Missing " << hemi << " mesh of " << surf << " surface at '" << surf_file << "'.\n";
+            }
+        }
+    }
+
 }
