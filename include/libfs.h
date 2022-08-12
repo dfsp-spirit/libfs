@@ -111,6 +111,16 @@ namespace fs {
       return false;
     }
 
+    /// @brief Check whether a file exists (can be read) at given path.
+    inline bool file_exists(const std::string& name) {
+    if (FILE *file = fopen(name.c_str(), "r")) {
+        fclose(file);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 
     /// @brief Construct a UNIX file system path from the given path_components.
     /// @details Any trailing or leading slash (path_sep) will be stripped from the individual components and replaced with a single one between two components. If the first path component started with a slash, that slash will be kept (absolute paths are left intact).
