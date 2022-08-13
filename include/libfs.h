@@ -112,6 +112,8 @@ namespace fs {
     }
 
     /// @brief Check whether a file exists (can be read) at given path.
+    /// @details You should not rely on this as a pre-check when considering to open a file due
+    ///          to race conditions, just try-catch open in that case.
     inline bool file_exists(const std::string& name) {
     if (FILE *file = fopen(name.c_str(), "r")) {
         fclose(file);
@@ -132,9 +134,9 @@ namespace fs {
     /// #### Examples
     ///
     /// @code
-    /// std::string p = fs::fullpath({"path", "to", "file.txt"});
+    /// std::string p = fs::util::fullpath({"path", "to", "file.txt"});
     /// // Gives: "path/to/file.txt"
-    /// std::string p = fs::fullpath({"/path", "to", "file.txt"});
+    /// std::string p = fs::util::fullpath({"/path", "to", "file.txt"});
     /// // Gives: "/path/to/file.txt"
     /// @endcode
     std::string fullpath( std::initializer_list<std::string> path_components, std::string path_sep = std::string("/") ) {
@@ -308,7 +310,7 @@ namespace fs {
     ///
     /// @code
     /// fs::Mesh surface = fs::Mesh::construct_cube();
-    /// const std::string out_path = fs::fullpath({"/tmp", "mesh.obj"});
+    /// const std::string out_path = fs::util::fullpath({"/tmp", "mesh.obj"});
     /// surface.to_obj_file(out_path);
     /// @endcode
     void to_obj_file(const std::string& filename) const {
@@ -327,7 +329,7 @@ namespace fs {
     ///
     /// @code
     /// fs::Mesh surface;
-    /// const std::string in_path = fs::fullpath({"/tmp", "mesh.obj"});
+    /// const std::string in_path = fs::util::fullpath({"/tmp", "mesh.obj"});
     /// fs::Mesh::from_obj(&surface, in_path);
     /// @endcode
     static void from_obj(Mesh* mesh, std::ifstream* is) {
