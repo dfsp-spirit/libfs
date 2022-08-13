@@ -1,6 +1,43 @@
 fslib Changes
 ===============
 
-2022-07-31: add support for writing FreeSurfer brain meshes in surf format, see function write_surf.
-2022-07-31: add support for constructing basic meshes, see fs::Mesh::construct_cube(). Mainly for examples.
-2022-07-31: extend various doc strings with examples
+WIP:
+-----
+* Finish API documentation: all members and functions documented, many with example usage in the doc string.
+* Add support for writing FreeSurfer brain meshes in surf format, see function fs::write_surf().
+* Add support for constructing basic meshes, see fs::Mesh::construct_cube(). Mainly for examples.
+* Add general wrapper function for writing meshes in different formats, auto-detected from file extension, see fs::write_mesh().
+
+
+v0.2.2: Exceptions for the world
+---------------------------------
+* Add read_subjectsfile function.
+* Throw exceptions in all places where exit() was still being called. Document potentially thrown exceptions in function doc strings.
+* Fix mesh indexing bug.
+
+
+v0.2.1: Annot support and much better docs
+-------------------------------------------
+* Finish rough first version of API documentation.
+* Add structs Annot and Colortable with many convenience member functions that model brain parcellations.
+* Add support for reading brain surface parcellations from annot files.
+* Add example for reading annot files.
+
+
+ v0.2.0 Streaming and MGZ support
+----------------------------------
+* BREAKING: change order of arguments for all functions reading streams.
+* BREAKING: rename all sread_ function to read_ and use overloading.
+* Add stream-based versions for reading various formats, including MGH. This allows for MGZ support, see examples/read_mgz/.
+* Add many new member functions to structs and use them throughout the library.
+* Add Curv struct and new read_curv function that reads into it.
+* BREAKING: rename old read_curv function that reads only the data part to read_curv_data.
+
+
+ v0.1: Initial release
+-----------------------
+* Read and write FreeSurfer per-vertex data from and to binary curv format files (like $SUBJECTS_DIR/surf/lh.thickness).
+* Read FreeSurfer brain surface meshes from binary surf format files (like $SUBJECTS_DIR/surf/lh.white).
+* Read FreeSurfer ASCII label files (like $SUBJECTS_DIR/label/lh.cortex.label).
+* Read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like $SUBJECTS_DIR/mri/brain.mgh or $SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh).
+
