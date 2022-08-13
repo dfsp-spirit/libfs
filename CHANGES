@@ -1,8 +1,8 @@
 fslib Changes
 ===============
 
-WIP:
------
+v0.3.0: Fully documented
+-------------------------
 * Finish API documentation: all members and functions documented, many with example usage in the doc string.
 * Add support for writing FreeSurfer brain meshes in surf format, see function `fs::write_surf`.
 * Add support for constructing basic meshes, see `fs::Mesh::construct_cube`. Mainly for examples.
