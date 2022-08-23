@@ -245,7 +245,8 @@ namespace fs {
     std::vector<float> vertices;  ///< *n x 3* vector of the *x*,*y*,*z* coordinates for the *n* vertices. The x,y,z coordinates for a single vertex form consecutive entries.
     std::vector<int32_t> faces;  ///< *n x 3* vector of the 3 vertex indices for the *n* triangles or faces. The 3 vertices of a single face form consecutive entries.
 
-    /// Construct and return a simple cube mesh.
+    /// @brief Construct and return a simple cube mesh.
+    /// @return mesh representing a cube.
     ///
     /// #### Examples
     ///
@@ -275,6 +276,67 @@ namespace fs {
                     6, 2, 0,
                     1, 5, 7,
                     7, 3, 1 };
+      return mesh;
+    }
+
+    /// @brief Construct and return a simple planar grid mesh.
+    /// @param nx number of vertices in x direction
+    /// @param ny number of vertices in y direction
+    /// @param distx distance between vertices in x direction
+    /// @param disty distance between vertices in y direction
+    /// @return mesh representing a flat grid.
+    /// @throws std::invalid_argument error if nx or ny are < 2.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_grid();
+    /// size_t nv = surface.num_vertices();
+    /// @endcode
+    static fs::Mesh construct_grid(const size_t nx = 5, const size_t ny = 5, const float distx = 1.0, const float disty = 1.0) {
+      if(nx < 2 || ny < 2) {
+        throw std::runtime_error("Parameters nx and ny must be at least 2.");
+      }
+      fs::Mesh mesh;
+      size_t num_vertices = nx * ny;
+      size_t num_faces = (nx - 1 * ny - 1) * 2;
+      std::vector<float> vertices(num_vertices);
+      std::vector<int> faces(num_faces);
+
+      // Create vertices.
+      float cur_x, cur_y, cur_z;
+      cur_x = cur_y = cur_z = 0.0;
+      for(size_t i = 0; i < nx; i++) {
+        for(size_t j = 0; j < ny; j++) {
+          vertices.push_back(cur_x);
+          vertices.push_back(cur_y);
+          vertices.push_back(cur_z);
+          cur_y += disty;
+        }
+        cur_x += distx;
+      }
+
+      // Create faces.
+      size_t source_idx = 0;
+      size_t num_grid_cells = num_faces/2;
+      for(size_t i = 0; i < num_grid_cells; i++) {
+        // Add the upper left triangle of this grid cell.
+        faces.push_back(source_idx);
+        faces.push_back(source_idx + nx + 1);
+        faces.push_back(source_idx + 1);
+        // Add the lower right triangle of this grid cell.
+        faces.push_back(source_idx);
+        faces.push_back(source_idx + nx + 1);
+        faces.push_back(source_idx + nx);
+        // Go to next source vertex, but do not use the last ones in row or column as source.
+        source_idx++;
+        if(source_idx % ny == 0 || source_idx >= num_vertices - ny) {
+          source_idx++;  // Skip top one in each column and the entire last column (last one in each row).
+        }
+      }
+
+      mesh.vertices = vertices;
+      mesh.faces = faces;
       return mesh;
     }
 
