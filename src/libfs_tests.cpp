@@ -512,6 +512,20 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE(min_vertex_idx == 0);
         REQUIRE(max_vertex_idx == 19);
     }
+
+    SECTION("Constructing a pyramid works.") {
+
+        fs::Mesh surface2 = fs::Mesh::construct_pyramid();
+
+        // Check vertex and face counts
+        REQUIRE( surface2.num_vertices() == 5);
+        REQUIRE( surface2.num_faces() == 6);
+
+        int min_vertex_idx = *std::min_element(surface2.faces.begin(), surface2.faces.end());
+        int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
+        REQUIRE(min_vertex_idx == 0);
+        REQUIRE(max_vertex_idx == 4);
+    }
 }
 
 
