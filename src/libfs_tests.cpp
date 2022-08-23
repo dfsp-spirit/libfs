@@ -461,9 +461,56 @@ TEST_CASE( "Importing and exporting meshes works" ) {
 
         fs::Mesh surface2 = fs::Mesh::construct_cube();
 
-        // Check vertex and face countss
+        // Check vertex and face counts
         REQUIRE( surface2.num_vertices() == 8);
         REQUIRE( surface2.num_faces() == 12);
+
+        int min_vertex_idx = *std::min_element(surface2.faces.begin(), surface2.faces.end());
+        int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
+        REQUIRE(min_vertex_idx == 0);
+        REQUIRE(max_vertex_idx == 7);
+    }
+
+    SECTION("Constructing a 2D grid Mesh instance with custom settings works.") {
+
+        fs::Mesh surface2 = fs::Mesh::construct_grid(3, 5, 1.0, 1.0);
+
+        // Check vertex and face counts
+        REQUIRE( surface2.num_vertices() == 15);
+        REQUIRE( surface2.num_faces() == 16);
+
+        int min_vertex_idx = *std::min_element(surface2.faces.begin(), surface2.faces.end());
+        int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
+        REQUIRE(min_vertex_idx == 0);
+        REQUIRE(max_vertex_idx == 14);
+    }
+
+    SECTION("Constructing a 2D grid Mesh instance with custom settings and nx > ny works.") {
+
+        fs::Mesh surface2 = fs::Mesh::construct_grid(5, 3, 1.0, 1.0);
+
+        // Check vertex and face counts
+        REQUIRE( surface2.num_vertices() == 15);
+        REQUIRE( surface2.num_faces() == 16);
+
+        int min_vertex_idx = *std::min_element(surface2.faces.begin(), surface2.faces.end());
+        int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
+        REQUIRE(min_vertex_idx == 0);
+        REQUIRE(max_vertex_idx == 14);
+    }
+
+    SECTION("Constructing a 2D grid Mesh instance with default settings works.") {
+
+        fs::Mesh surface2 = fs::Mesh::construct_grid();
+
+        // Check vertex and face counts
+        REQUIRE( surface2.num_vertices() == 20);
+        REQUIRE( surface2.num_faces() == 24);
+
+        int min_vertex_idx = *std::min_element(surface2.faces.begin(), surface2.faces.end());
+        int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
+        REQUIRE(min_vertex_idx == 0);
+        REQUIRE(max_vertex_idx == 19);
     }
 }
 

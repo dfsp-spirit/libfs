@@ -293,15 +293,17 @@ namespace fs {
     /// fs::Mesh surface = fs::Mesh::construct_grid();
     /// size_t nv = surface.num_vertices();
     /// @endcode
-    static fs::Mesh construct_grid(const size_t nx = 5, const size_t ny = 5, const float distx = 1.0, const float disty = 1.0) {
+    static fs::Mesh construct_grid(const size_t nx = 4, const size_t ny = 5, const float distx = 1.0, const float disty = 1.0) {
       if(nx < 2 || ny < 2) {
         throw std::runtime_error("Parameters nx and ny must be at least 2.");
       }
       fs::Mesh mesh;
       size_t num_vertices = nx * ny;
-      size_t num_faces = (nx - 1 * ny - 1) * 2;
-      std::vector<float> vertices(num_vertices);
-      std::vector<int> faces(num_faces);
+      size_t num_faces = ((nx - 1) * (ny - 1)) * 2;
+      std::vector<float> vertices;
+      vertices.reserve(num_vertices * 3);
+      std::vector<int> faces;
+      faces.reserve(num_faces * 3);
 
       // Create vertices.
       float cur_x, cur_y, cur_z;
@@ -317,22 +319,19 @@ namespace fs {
       }
 
       // Create faces.
-      size_t source_idx = 0;
-      size_t num_grid_cells = num_faces/2;
-      for(size_t i = 0; i < num_grid_cells; i++) {
-        // Add the upper left triangle of this grid cell.
-        faces.push_back(source_idx);
-        faces.push_back(source_idx + nx + 1);
-        faces.push_back(source_idx + 1);
-        // Add the lower right triangle of this grid cell.
-        faces.push_back(source_idx);
-        faces.push_back(source_idx + nx + 1);
-        faces.push_back(source_idx + nx);
-        // Go to next source vertex, but do not use the last ones in row or column as source.
-        source_idx++;
-        if(source_idx % ny == 0 || source_idx >= num_vertices - ny) {
-          source_idx++;  // Skip top one in each column and the entire last column (last one in each row).
+      for(size_t i = 0; i < num_vertices; i++) {
+        if((i+1) % ny == 0 || i >= num_vertices - ny) {
+          // Do not use the last ones in row or column as source.
+          continue;
         }
+        // Add the upper left triangle of this grid cell.
+        faces.push_back(i);
+        faces.push_back(i + ny + 1);
+        faces.push_back(i + 1);
+        // Add the lower right triangle of this grid cell.
+        faces.push_back(i);
+        faces.push_back(i + ny + 1);
+        faces.push_back(i + ny);
       }
 
       mesh.vertices = vertices;
