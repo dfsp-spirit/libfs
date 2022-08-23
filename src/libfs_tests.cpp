@@ -521,6 +521,10 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         REQUIRE( surface2.num_vertices() == 5);
         REQUIRE( surface2.num_faces() == 6);
 
+        // Note: To have a look at the constructed mesh, uncomment the next line,
+        //       and then run 'meshlab pyramid.ply' from your sytem shell.
+        //surface2.to_ply_file("pyramid.ply");
+
         int min_vertex_idx = *std::min_element(surface2.faces.begin(), surface2.faces.end());
         int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
         REQUIRE(min_vertex_idx == 0);
