@@ -1,6 +1,12 @@
 fslib Changes
 ===============
 
+WIP
+----
+* Add `fs::Mesh::construct_grid` function to construct 2D grids.
+* Add `fs::Mesh::construct_pyramid` function.
+
+
 v0.3.0: Fully documented
 -------------------------
 * Finish API documentation: all members and functions documented, many with example usage in the doc string.
