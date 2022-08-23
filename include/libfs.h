@@ -246,7 +246,7 @@ namespace fs {
     std::vector<int32_t> faces;  ///< *n x 3* vector of the 3 vertex indices for the *n* triangles or faces. The 3 vertices of a single face form consecutive entries.
 
     /// @brief Construct and return a simple cube mesh.
-    /// @return mesh representing a cube.
+    /// @return fs::Mesh instance representing a cube.
     ///
     /// #### Examples
     ///
@@ -280,12 +280,13 @@ namespace fs {
     }
 
     /// @brief Construct and return a simple planar grid mesh.
+    /// @details This is a 2D rectangular grid embedded in 3D. Each rectangular cell consists of 2 triangular faces. The height (z coordinate) for all vertices is `0.0`.
     /// @param nx number of vertices in x direction
     /// @param ny number of vertices in y direction
     /// @param distx distance between vertices in x direction
     /// @param disty distance between vertices in y direction
-    /// @return mesh representing a flat grid.
-    /// @throws std::invalid_argument error if nx or ny are < 2.
+    /// @return fs::Mesh instance representing a flat grid.
+    /// @throws std::invalid_argument error if `nx` or `ny` are `< 2`.
     ///
     /// #### Examples
     ///
