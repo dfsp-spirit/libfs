@@ -2118,7 +2118,7 @@ namespace fs {
     }
   }
 
-
+/*
   /// @brief Read a FreeSurfer ASCII label from a stream.
   /// @details A label is a list of vertices (for a surface label, given by index) or voxels (for a volume label, given by the xyz coordinates) and one floating point value per vertex/voxel. Sometimes a label is only used to define a set of vertices/voxels (like a certain brain region), and the values are irrelevant (and typically left at 0.0).
   /// @param label A Label instance that should be filled.
@@ -2162,14 +2162,14 @@ namespace fs {
       throw std::domain_error("Expected " + std::to_string(num_entries) + " entries in all Label vectors, but some did not match.\n");
     }
   }
-
+ */
   /// @brief Read a FreeSurfer ASCII label from a stream.
   /// @details A label is a list of vertices (for a surface label, given by index) or voxels (for a volume label, given by the xyz coordinates) and one floating point value per vertex/voxel. Sometimes a label is only used to define a set of vertices/voxels (like a certain brain region), and the values are irrelevant (and typically left at 0.0).
   /// @param label A Label instance that should be filled.
   /// @param is An open stream from which to read the label.
   /// @see There exists an overload to read from a file instead.
   /// @throws std::domain_error if the label data format is incorrect
-  void read_label(Label* label, std::istringstream* is) {
+  void read_label(Label* label, std::istream* is) {
     std::string line;
     int line_idx = -1;
     size_t num_entries_header = 0;  // number of vertices/voxels according to header
