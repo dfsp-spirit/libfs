@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <sstream>
+#include <iostream>
+#include <string>
 
 
 TEST_CASE( "Reading the demo curv file with read_curv_data works" ) {
@@ -563,6 +566,22 @@ TEST_CASE( "Reading the demo label file works" ) {
         REQUIRE( num_in == label_num_entries);
     }
 }
+
+TEST_CASE( "Reading label data from a stream works" ) {
+    SECTION("One can compute whether the vertices of the surface are part of the label." ) {
+        std::string label_contents = "#!ascii label  , from subject  vox2ras=TkReg\n";
+        label_contents += "2\n";
+        label_contents += "0  -1.852  -107.983  22.770 0.0000000000\n";
+        label_contents += "1  -2.139  -108.102  22.826 0.0000000000\n";
+        std::istringstream label_str(label_contents);
+
+        fs::Label label2;
+        fs::read_label(&label2, &label_str);
+        REQUIRE( label2.vertex.size() == 2);
+    }
+}
+
+
 
 
 TEST_CASE( "Reading the demo annot file works" ) {
