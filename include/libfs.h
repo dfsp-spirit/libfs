@@ -423,7 +423,7 @@ namespace fs {
     /// const std::string in_path = fs::util::fullpath({"/tmp", "mesh.obj"});
     /// fs::Mesh::from_obj(&surface, in_path);
     /// @endcode
-    static void from_obj(Mesh* mesh, std::ifstream* is) {
+    static void from_obj(Mesh* mesh, std::istream* is) {
       std::string line;
       int line_idx = -1;
 
@@ -519,11 +519,11 @@ namespace fs {
 
     /// @brief Read a brainmesh from an Object File format (OFF) stream.
     /// @param mesh pointer to fs:Mesh instance to be filled.
-    /// @param is open stream from which to read data
+    /// @param is An open std::istream or derived class stream from which to read the data, e.g., std::ifstream or std::istringstream.
     /// @param source_filename optional, used in error messages only. The source file name, if any.
     /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
-    static void from_off(Mesh* mesh, std::ifstream* is, const std::string& source_filename="") {
+    static void from_off(Mesh* mesh, std::istream* is, const std::string& source_filename="") {
 
       std::string msg_source_file_part = source_filename.empty() ? "" : "'" + source_filename + "'";
 
@@ -625,9 +625,11 @@ namespace fs {
 
 
     /// @brief Read a brainmesh from a Stanford PLY format stream.
+    /// @param mesh pointer to fs:Mesh instance to be filled.
+    /// @param is An open std::istream or derived class stream from which to read the data, e.g., std::ifstream or std::istringstream.
     /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
-    static void from_ply(Mesh* mesh, std::ifstream* is) {
+    static void from_ply(Mesh* mesh, std::istream* is) {
       std::string line;
       int line_idx = -1;
       int noncomment_line_idx = -1;
