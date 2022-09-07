@@ -2031,11 +2031,9 @@ namespace fs {
       if(surface_num_verts < this->vertex.size()) { // nonsense, so we warn (but don't throw, maybe the user really wants this).
         std::cerr << "Invalid number of vertices for surface, must be at least " << this->vertex.size() << "\n";
       }
-      std::vector<bool> is_in;
-      for(size_t i=0; i <surface_num_verts; i++) {
-        is_in.push_back(false);
-      }
-      for(size_t i=0; i <this->vertex.size(); i++) {
+      std::vector<bool> is_in = std::vector<bool>(surface_num_verts, false);
+
+      for(size_t i=0; i < this->vertex.size(); i++) {
         is_in[this->vertex[i]] = true;
       }
       return(is_in);
