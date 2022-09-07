@@ -1,4 +1,7 @@
 
+
+#define LIBFS_DBG_WARNING
+
 #include "libfs.h"
 #include "catch.hpp"
 #include <vector>
