@@ -44,26 +44,24 @@
  *
  * The project page for libfs can be found at https://github.com/dfsp-spirit/libfs. It contains information on all documentation available for libfs.
  *
- */
-
-
-/*
- * HOWTO: Using debug output in libfs
- * -----------------------------------
  *
- * Define *one* of the following debug levels in your application, *before* including 'libfs.h':
  *
- *  - LIBFS_DBG_NONE         // not recommended, disables everything.
- *  - LIBFS_DBG_CRITICAL
- *  - LIBFS_DBG_ERROR
- *  - LIBFS_DBG_WARNING
- *  - LIBFS_DBG_IMPORTANT
- *  - LIBFS_DBG_INFO
- *  - LIBFS_DBG_VERBOSE
- *  - LIBFS_DBG_EXCESSIVE
+ * \subsection logging Logging with libfs
  *
- *  If you define nothing at all, we will define LIBFS_DBG_WARNING for you.
- *  (Define LIBFS_DBG_NONE to prevent that.)
+ * You can define the output produced by libfs from your application. To do so,
+ * define *one* of the following debug levels in your application, *before* including 'libfs.h':
+ *
+ *  - LIBFS_DBG_NONE         // not recommended, disables everything including output of errors.
+ *  - LIBFS_DBG_CRITICAL     // print only crtical errors that will raise an expection and most likely cause application to stop (unless caught).
+ *  - LIBFS_DBG_ERROR        // prints errors (and more severe things).
+ *  - LIBFS_DBG_WARNING      // the default, prints warnings (and more severe things).
+ *  - LIBFS_DBG_IMPORTANT    // prints important messages that may indicate atypical behaviour.
+ *  - LIBFS_DBG_INFO         // prints info messages, like what is currently being done.
+ *  - LIBFS_DBG_VERBOSE      // prints info messages inside loops, may considerable slow down apps and litter stdout.
+ *  - LIBFS_DBG_EXCESSIVE    // prints info messages in nested loops, will considerable slow down apps and quickly litter stdout.
+ *
+ *  If you define nothing at all, libfs defines LIBFS_DBG_WARNING for you. (Define LIBFS_DBG_NONE to prevent that.)
+ *  Currently, all debug output goes to `stdout`, typically the terminal.
  *
  */
 

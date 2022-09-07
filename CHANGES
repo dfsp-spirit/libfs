@@ -5,6 +5,7 @@ WIP
 ----
 * Add `fs::Mesh::construct_grid` function to construct 2D grids.
 * Add `fs::Mesh::construct_pyramid` function.
+* Add option to control logging via log levels. See API docs main page for usage info.
 
 
 v0.3.0: Fully documented
