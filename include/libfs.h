@@ -39,29 +39,36 @@
  *
  * To see full demo programs and compilation instructions, check the <a href="https://github.com/dfsp-spirit/libfs/tree/main/examples">examples/ directory</a> in the GitHub repository linked below.
  *
+ * \subsection logging Logging with libfs
+ *
+ * You can define the output produced by libfs from your application. To do so,
+ * `#define` _one_ of the following debug levels in your application, *before* including 'libfs.h':
+ *
+ *  - `LIBFS_DBG_CRITICAL`     // print only crtical errors that will raise an expection and most likely cause application to stop (unless caught).
+ *  - `LIBFS_DBG_ERROR`        // prints errors (and more severe things).
+ *  - `LIBFS_DBG_WARNING`      // the default, prints warnings (and more severe things).
+ *  - `LIBFS_DBG_IMPORTANT`    // prints important messages that may indicate atypical behaviour.
+ *  - `LIBFS_DBG_INFO`         // prints info messages, like what is currently being done.
+ *  - `LIBFS_DBG_VERBOSE`      // prints info messages inside loops, may considerable slow down apps and litter stdout.
+ *  - `LIBFS_DBG_EXCESSIVE`    // prints info messages in nested loops, will considerable slow down apps and quickly litter stdout.
+ *
+ *
+ * Things you should know about logging and controlling libfs output:
+ *
+ *   - The debug levels are ordered in the list above, and defining a single one will automatically enable
+ * all levels of higher importance (e.g., defining `LIBFS_DBG_WARNING` also enables `LIBFS_DBG_ERROR` and `LIBFS_DBG_CRITICAL`).
+ *   - If you define nothing at all, libfs defaults to `LIBFS_DBG_WARNING`.
+ *   - If you do not want any ouput from libfs, define `LIBFS_DBG_NONE`. This is not recommended though, as it completely disabled
+ *     all output, including critical error messages. This means that your application may terminate without any message,
+ *     and is only advisable if you are very sure that you catch all possible exceptions and then produce an error message
+ *     for users in your application code.
+ *   - Currently all debug output goes to `stdout`, i.e., typically to the terminal.
+ *
  *
  * \subsection intro-website The libfs project website
  *
  * The project page for libfs can be found at https://github.com/dfsp-spirit/libfs. It contains information on all documentation available for libfs.
  *
- *
- *
- * \subsection logging Logging with libfs
- *
- * You can define the output produced by libfs from your application. To do so,
- * define *one* of the following debug levels in your application, *before* including 'libfs.h':
- *
- *  - LIBFS_DBG_NONE         // not recommended, disables everything including output of errors.
- *  - LIBFS_DBG_CRITICAL     // print only crtical errors that will raise an expection and most likely cause application to stop (unless caught).
- *  - LIBFS_DBG_ERROR        // prints errors (and more severe things).
- *  - LIBFS_DBG_WARNING      // the default, prints warnings (and more severe things).
- *  - LIBFS_DBG_IMPORTANT    // prints important messages that may indicate atypical behaviour.
- *  - LIBFS_DBG_INFO         // prints info messages, like what is currently being done.
- *  - LIBFS_DBG_VERBOSE      // prints info messages inside loops, may considerable slow down apps and litter stdout.
- *  - LIBFS_DBG_EXCESSIVE    // prints info messages in nested loops, will considerable slow down apps and quickly litter stdout.
- *
- *  If you define nothing at all, libfs defines LIBFS_DBG_WARNING for you. (Define LIBFS_DBG_NONE to prevent that.)
- *  Currently, all debug output goes to `stdout`, typically the terminal.
  *
  */
 

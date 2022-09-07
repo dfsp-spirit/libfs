@@ -1,5 +1,7 @@
 // The main for the libfs demo app.
 
+#define LIBFS_DBG_INFO
+
 #include "libfs.h"
 
 #include <string>
