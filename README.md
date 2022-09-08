@@ -91,6 +91,7 @@ The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://
   - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
   - Functions that write data to files are called `write_*`, e.g., `write_curv` and `write_mgh`.
 * Most `read_*`/`write_*` functions are overloaded and accept either a `const std::string& filename` argument or a `std::istream *is`/`std::ostream *os` as a source/sink. This allows you to pass streams and bring your own gunzip (see [examples/read_mgz/](./examples/read_mgz/)).
+* You can control the output of libfs by defining a log level for libfs before importing the libfs header file, see the API docs for details. An example can be seen at the very top of the [demo app](./src/demo_main.cpp).
 
 
 ## Development
