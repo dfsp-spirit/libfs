@@ -469,6 +469,54 @@ namespace fs {
       return(objs.str());
     }
 
+    /// @brief Return adjacency matrix representation of this mesh.
+    /// @return boolean 2D matrix, where true means an edge between the respective vertex pair exists, and false mean it does not.
+    /// @see fs::Mesh::to_rep_adjlist gives you an adjacency list instead.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<std::vector<bool>> adjm = surface.as_adjmatrix();
+    /// @endcode
+    std::vector<std::vector<bool>> as_adjmatrix() const {
+      std::vector<std::vector<bool>> adjm = std::vector<std::vector<bool>>(this->num_vertices(), std::vector<bool>(this->num_vertices(), false));
+      for(size_t fidx=0; fidx<this->faces.size(); fidx+=3) { // faces: vertex indices
+        adjm[faces[fidx]][faces[fidx+1]] = true;
+        adjm[faces[fidx+1]][faces[fidx]] = true;
+        adjm[faces[fidx+1]][faces[fidx+2]] = true;
+        adjm[faces[fidx+2]][faces[fidx+1]] = true;
+        adjm[faces[fidx+2]][faces[fidx]] = true;
+        adjm[faces[fidx]][faces[fidx+2]] = true;
+      }
+      return adjm;
+    }
+
+    /// @brief Return adjacency list representation of this mesh.
+    /// @return vector of vectors, where the outer vector has size this->num_vertices. The inner vector at index N contains the M neighbors of vertex n, as vertex indices.
+    /// @see fs::Mesh::to_rep_adjmatrix gives you an adjacency matrix instead.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<std::vector<size_t>> adjl = surface.as_adjlist();
+    /// @endcode
+    std::vector<std::vector<size_t>> as_adjlist() const {
+      std::vector<std::vector<bool>> adjm = this->as_adjmatrix();
+      std::vector<std::vector<size_t>> adjl = std::vector<std::vector<size_t>>(this->num_vertices(), std::vector<size_t>());
+      size_t nv = adjm.size();
+      for (size_t i = 0; i < nv; i++) {
+          for (size_t j = i+1; j < nv; j++) {
+              if (adjm[i][j] == true) {
+                  adjl[i].push_back(j);
+                  adjl[j].push_back(i);
+              }
+          }
+      }
+      return adjl;
+    }
+
 
     /// @brief Export this mesh to a file in Wavefront OBJ format.
     /// @param filename path to the output file, will be overwritten if existing.

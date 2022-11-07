@@ -244,6 +244,26 @@ TEST_CASE( "Reading the demo surface file works" ) {
     }
 }
 
+TEST_CASE( "Computing adjacency list and adjacency matrix representations for meshes works." ) {
+
+    fs::Mesh surface;
+    fs::read_surf(&surface, "examples/read_surf/lh.white");
+
+    SECTION("The adjacency matrix for the mesh can be computed." ) {
+        std::vector<std::vector <bool>> adjm = surface.as_adjmatrix();
+        REQUIRE(adjm.size() == surface.num_vertices());
+        for(size_t i = 0; i < surface.num_vertices(); i++) {
+            REQUIRE(adjm[i].size() == surface.num_vertices());
+        }
+    }
+
+    SECTION("The adjacency list for the mesh can be computed." ) {
+        std::vector<std::vector <size_t>> adjl = surface.as_adjlist();
+        REQUIRE(adjl.size() == surface.num_vertices());
+    }
+}
+
+
 
 TEST_CASE( "Importing and exporting meshes works" ) {
 
