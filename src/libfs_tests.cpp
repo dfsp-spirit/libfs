@@ -255,11 +255,40 @@ TEST_CASE( "Computing adjacency list and adjacency matrix representations for me
         for(size_t i = 0; i < surface.num_vertices(); i++) {
             REQUIRE(adjm[i].size() == surface.num_vertices());
         }
+
+        // Compute min and max number of neighbors from adj matrix.
+        size_t min_neigh = 100000;
+        size_t max_neigh = 0;
+        size_t num_this_row;
+        for(size_t i = 0; i < adjm.size(); i++) {
+            num_this_row = 0;
+            for(size_t j = 0; j < adjm[i].size(); j++) {
+                if(adjm[i][j]) {
+                    num_this_row++;
+                }
+            }
+            min_neigh = num_this_row < min_neigh ? num_this_row : min_neigh;
+            max_neigh = num_this_row > max_neigh ? num_this_row : max_neigh;
+        }
+        REQUIRE(min_neigh == 6);
+        REQUIRE(max_neigh == 7);
     }
 
     SECTION("The adjacency list for the mesh can be computed." ) {
         std::vector<std::vector <size_t>> adjl = surface.as_adjlist();
         REQUIRE(adjl.size() == surface.num_vertices());
+
+        // Compute min and max number of neighbors from adj list.
+        size_t min_neigh = 100000;
+        size_t max_neigh = 0;
+        size_t num_this_row;
+        for(size_t i = 0; i < adjl.size(); i++) {
+            num_this_row = adjl[i].size();
+            min_neigh = num_this_row < min_neigh ? num_this_row : min_neigh;
+            max_neigh = num_this_row > max_neigh ? num_this_row : max_neigh;
+        }
+        REQUIRE(min_neigh == 6);
+        REQUIRE(max_neigh == 7);
     }
 }
 
