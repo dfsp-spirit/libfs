@@ -292,6 +292,19 @@ TEST_CASE( "Computing adjacency list and adjacency matrix representations for me
     }
 }
 
+TEST_CASE( "Smoothing per-vertex data for meshes works." ) {
+
+    fs::Mesh surface = fs::Mesh::construct_cube();
+    std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
+
+    SECTION("The per-vertex data can be smoothed." ) {
+        std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
+        REQUIRE(pvd_smooth.size() == pvd.size());
+    }
+}
+
+
+
 
 
 TEST_CASE( "Importing and exporting meshes works" ) {

@@ -517,6 +517,41 @@ namespace fs {
       return adjl;
     }
 
+    /// @brief Smooth given per-vertex data using nearest neighbor smoothing.
+    /// @param pvd vector of per-vertex data values, one value per mesh vertex.
+    /// @param num_iter number of iterations of smoothing to perform.
+    /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
+    /// std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
+    /// @endcode
+    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1) const {
+
+      std::vector<std::vector<size_t>> adjlist = this->as_adjlist();
+      std::vector<float> current_pvd_source = std::vector<float>(pvd);
+      std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size());
+      float val_sum;
+      size_t num_neigh;
+      for(size_t i = 0; i < num_iter; i++) {
+        for(size_t v_idx = 0; v_idx < adjlist.size(); v_idx++) {
+          val_sum = current_pvd_source[v_idx];
+          num_neigh = adjlist[v_idx].size();
+          for(size_t neigh_rel_idx = 0; neigh_rel_idx < num_neigh; neigh_rel_idx++) {
+            val_sum += current_pvd_source[adjlist[v_idx][neigh_rel_idx]] / (num_neigh+1);
+          }
+          current_pvd_smoothed[v_idx] = val_sum;
+        }
+        if(i < num_iter - 1) {
+          current_pvd_source = current_pvd_smoothed;
+        }
+      }
+      return current_pvd_smoothed;
+    }
+
 
     /// @brief Export this mesh to a file in Wavefront OBJ format.
     /// @param filename path to the output file, will be overwritten if existing.
