@@ -8,6 +8,8 @@
 #include <cassert>
 #include <sstream>
 #include <stdexcept>
+#include <map>
+#include <bits/stdc++.h>
 
 /// @file
 ///
@@ -472,6 +474,7 @@ namespace fs {
     /// @brief Return adjacency matrix representation of this mesh.
     /// @return boolean 2D matrix, where true means an edge between the respective vertex pair exists, and false mean it does not.
     /// @see fs::Mesh::to_rep_adjlist gives you an adjacency list instead.
+    /// @note This requires a lot of memory for large meshes.
     ///
     /// #### Examples
     ///
@@ -492,7 +495,43 @@ namespace fs {
       return adjm;
     }
 
+    /// @brief Hash function for 2-tuples of `<size_t, sizt_t>`, used to hash an edge of a graph or mesh.
+    struct _tupleHashFunction {
+      size_t operator()(const std::tuple<size_t , size_t>&x) const {
+        return std::get<0>(x) ^ std::get<1>(x);
+      }
+    };
+
+    /// @brief Datastructure for storing, and quickly querying the existence of, mesh edges.
+    typedef std::unordered_set<std::tuple<size_t, size_t>, _tupleHashFunction> edge_set;
+
+    /// @brief Return edge list representation of this mesh.
+    /// @return unordered set of 2-tuples, where each tuple represents an edge, given as a pair of vertex indices. Each edge occurs twice in the list, once as `make_tuple(i,j)` and once as `make_tuple(j,i)`.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// edge_set edges = surface.as_edgelist();
+    /// size_t num_undirected_edges = edg es.size() / 2;
+    /// @endcode
+    edge_set as_edgelist() const {
+      edge_set edges;
+      for(size_t fidx=0; fidx<this->faces.size(); fidx+=3) { // faces: vertex indices
+        edges.insert(std::make_tuple(faces[fidx], faces[fidx+1]));
+        edges.insert(std::make_tuple(faces[fidx+1], faces[fidx]));
+
+        edges.insert(std::make_tuple(faces[fidx+1], faces[fidx+2]));
+        edges.insert(std::make_tuple(faces[fidx+2], faces[fidx+1]));
+
+        edges.insert(std::make_tuple(faces[fidx], faces[fidx+2]));
+        edges.insert(std::make_tuple(faces[fidx+2], faces[fidx]));
+      }
+      return edges;
+    }
+
     /// @brief Return adjacency list representation of this mesh.
+    /// @param via_matrix whether the computation should be done via an  step involving an adjacency matrix, or via an edge set. Leaving this at `true` temporarily requires a lot of memory for large meshes, but is faster.
     /// @return vector of vectors, where the outer vector has size this->num_vertices. The inner vector at index N contains the M neighbors of vertex n, as vertex indices.
     /// @see fs::Mesh::to_rep_adjmatrix gives you an adjacency matrix instead.
     ///
@@ -501,8 +540,12 @@ namespace fs {
     /// @code
     /// fs::Mesh surface = fs::Mesh::construct_cube();
     /// std::vector<std::vector<size_t>> adjl = surface.as_adjlist();
+    /// std::vector<std::vector<size_t>> adjl1 = surface.as_adjlist(true);
     /// @endcode
-    std::vector<std::vector<size_t>> as_adjlist() const {
+    std::vector<std::vector<size_t>> as_adjlist(const bool via_matrix=true) const {
+      if(! via_matrix) {
+        return(this->_as_adjlist_via_edgeset());
+      }
       std::vector<std::vector<bool>> adjm = this->as_adjmatrix();
       std::vector<std::vector<size_t>> adjl = std::vector<std::vector<size_t>>(this->num_vertices(), std::vector<size_t>());
       size_t nv = adjm.size();
@@ -517,9 +560,29 @@ namespace fs {
       return adjl;
     }
 
+    /// @brief Return adjacency list representation of this mesh via edge list.
+    /// @return vector of vectors, where the outer vector has size this->num_vertices. The inner vector at index N contains the M neighbors of vertex n, as vertex indices.
+    /// @see fs::Mesh::to_rep_adjmatrix gives you an adjacency matrix instead.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<std::vector<size_t>> adjl = surface.as_adjlist();
+    /// @endcode
+    std::vector<std::vector<size_t>> _as_adjlist_via_edgeset() const {
+      edge_set edges = this->as_edgelist();
+      std::vector<std::vector<size_t>> adjl = std::vector<std::vector<size_t>>(this->num_vertices(), std::vector<size_t>());
+      for (const auto& e: edges) {
+        adjl[std::get<0>(e)].push_back(std::get<1>(e));
+      }
+      return adjl;
+    }
+
     /// @brief Smooth given per-vertex data using nearest neighbor smoothing.
     /// @param pvd vector of per-vertex data values, one value per mesh vertex.
     /// @param num_iter number of iterations of smoothing to perform.
+    /// @param via_matrix passed on to `this->as_asjlist()`, whether to construct the adjacency list of the mesh using an intermediate step involving an adjacency matrix, as opposed to using an edge set. The latter is slower but requires less memory.
     /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
     ///
     /// #### Examples
@@ -529,19 +592,37 @@ namespace fs {
     /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
     /// std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
     /// @endcode
-    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1) const {
+    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1, const bool via_matrix=true) const {
 
-      std::vector<std::vector<size_t>> adjlist = this->as_adjlist();
+      const std::vector<std::vector<size_t>> adjlist = this->as_adjlist(via_matrix);
+      return fs::Mesh::smooth_pvd_nn(adjlist, pvd, num_iter);
+    }
+
+    /// @brief Smooth given per-vertex data using nearest neighbor smoothing based on adjacency list mesh represenation.
+    /// @param mesh_adj the mesh, given as an adjacency list. The outer vector has size num_vertices, and the inner vectors sizes are the number of neighbors of the respective vertex.
+    /// @param pvd vector of per-vertex data values, one value per mesh vertex.
+    /// @param num_iter number of iterations of smoothing to perform.
+    /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<std::vector<size_t>> mesh_adj = surface.as_adjlist();
+    /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
+    /// std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
+    /// @endcode
+    static std::vector<float> smooth_pvd_nn(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1) {
       std::vector<float> current_pvd_source = std::vector<float>(pvd);
       std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size());
       float val_sum;
       size_t num_neigh;
       for(size_t i = 0; i < num_iter; i++) {
-        for(size_t v_idx = 0; v_idx < adjlist.size(); v_idx++) {
+        for(size_t v_idx = 0; v_idx < mesh_adj.size(); v_idx++) {
           val_sum = current_pvd_source[v_idx];
-          num_neigh = adjlist[v_idx].size();
+          num_neigh = mesh_adj[v_idx].size();
           for(size_t neigh_rel_idx = 0; neigh_rel_idx < num_neigh; neigh_rel_idx++) {
-            val_sum += current_pvd_source[adjlist[v_idx][neigh_rel_idx]] / (num_neigh+1);
+            val_sum += current_pvd_source[mesh_adj[v_idx][neigh_rel_idx]] / (num_neigh+1);
           }
           current_pvd_smoothed[v_idx] = val_sum;
         }

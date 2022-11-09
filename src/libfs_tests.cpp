@@ -244,10 +244,9 @@ TEST_CASE( "Reading the demo surface file works" ) {
     }
 }
 
-TEST_CASE( "Computing adjacency list and adjacency matrix representations for meshes works." ) {
+TEST_CASE( "Computing alternative representations for meshes works." ) {
 
-    fs::Mesh surface;
-    fs::read_surf(&surface, "examples/read_surf/lh.white");
+    fs::Mesh surface = fs::Mesh::construct_cube();
 
     SECTION("The adjacency matrix for the mesh can be computed." ) {
         std::vector<std::vector <bool>> adjm = surface.as_adjmatrix();
@@ -257,7 +256,7 @@ TEST_CASE( "Computing adjacency list and adjacency matrix representations for me
         }
 
         // Compute min and max number of neighbors from adj matrix.
-        size_t min_neigh = 100000;
+        size_t min_neigh = (size_t)-1;  // Init with size_t max value.
         size_t max_neigh = 0;
         size_t num_this_row;
         for(size_t i = 0; i < adjm.size(); i++) {
@@ -270,16 +269,16 @@ TEST_CASE( "Computing adjacency list and adjacency matrix representations for me
             min_neigh = num_this_row < min_neigh ? num_this_row : min_neigh;
             max_neigh = num_this_row > max_neigh ? num_this_row : max_neigh;
         }
-        REQUIRE(min_neigh == 6);
-        REQUIRE(max_neigh == 7);
+        REQUIRE(min_neigh == 4);
+        REQUIRE(max_neigh == 6);
     }
 
-    SECTION("The adjacency list for the mesh can be computed." ) {
-        std::vector<std::vector <size_t>> adjl = surface.as_adjlist();
+    SECTION("The adjacency list for the mesh can be computed via a matrix." ) {
+        std::vector<std::vector <size_t>> adjl = surface.as_adjlist(true);
         REQUIRE(adjl.size() == surface.num_vertices());
 
         // Compute min and max number of neighbors from adj list.
-        size_t min_neigh = 100000;
+        size_t min_neigh = (size_t)-1;  // Init with size_t max value.
         size_t max_neigh = 0;
         size_t num_this_row;
         for(size_t i = 0; i < adjl.size(); i++) {
@@ -287,8 +286,32 @@ TEST_CASE( "Computing adjacency list and adjacency matrix representations for me
             min_neigh = num_this_row < min_neigh ? num_this_row : min_neigh;
             max_neigh = num_this_row > max_neigh ? num_this_row : max_neigh;
         }
-        REQUIRE(min_neigh == 6);
-        REQUIRE(max_neigh == 7);
+        REQUIRE(min_neigh == 4);
+        REQUIRE(max_neigh == 6);
+    }
+
+    SECTION("The adjacency list for the mesh can be computed via an edge set." ) {
+        std::vector<std::vector <size_t>> adjl = surface.as_adjlist(false);
+        REQUIRE(adjl.size() == surface.num_vertices());
+
+        // Compute min and max number of neighbors from adj list.
+        size_t min_neigh = (size_t)-1;  // Init with size_t max value.
+        size_t max_neigh = 0;
+        size_t num_this_row;
+        for(size_t i = 0; i < adjl.size(); i++) {
+            num_this_row = adjl[i].size();
+            min_neigh = num_this_row < min_neigh ? num_this_row : min_neigh;
+            max_neigh = num_this_row > max_neigh ? num_this_row : max_neigh;
+        }
+        REQUIRE(min_neigh == 4);
+        REQUIRE(max_neigh == 6);
+    }
+
+    SECTION("The edge list for the mesh can be computed." ) {
+        fs::Mesh::edge_set edges = surface.as_edgelist();
+        REQUIRE(edges.size() == 36);  // Each edge occurs twice, as i->j and j->i.
+        std::tuple<size_t, size_t> e = std::make_tuple(0, 1);
+        REQUIRE(edges.count(e));  // Make sure edge is contained.
     }
 }
 
@@ -297,10 +320,19 @@ TEST_CASE( "Smoothing per-vertex data for meshes works." ) {
     fs::Mesh surface = fs::Mesh::construct_cube();
     std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
 
-    SECTION("The per-vertex data can be smoothed." ) {
+    SECTION("The per-vertex data can be smoothed using a class method." ) {
         std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
         REQUIRE(pvd_smooth.size() == pvd.size());
     }
+
+
+    SECTION("The per-vertex data can be smoothed using the static method and a pre-computed adj list." ) {
+        std::vector<std::vector<size_t>> mesh_adj = surface.as_adjlist();
+        std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
+        std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
+        REQUIRE(pvd_smooth.size() == pvd.size());
+    }
+
 }
 
 
