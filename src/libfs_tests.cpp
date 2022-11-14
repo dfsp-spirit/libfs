@@ -336,9 +336,6 @@ TEST_CASE( "Smoothing per-vertex data for meshes works." ) {
 }
 
 
-
-
-
 TEST_CASE( "Importing and exporting meshes works" ) {
 
     fs::Mesh surface;
@@ -679,8 +676,6 @@ TEST_CASE( "Reading label data from a stream works" ) {
 }
 
 
-
-
 TEST_CASE( "Reading the demo annot file works" ) {
 
     fs::Annot annot;
@@ -771,6 +766,34 @@ TEST_CASE( "The util functions work" ) {
         REQUIRE( fs::util::fullpath({"/a/", "/b/"}) == "/a/b");
         REQUIRE( fs::util::fullpath({"/a/", "/b"}) == "/a/b");
         REQUIRE( fs::util::fullpath({"/a/", "b/"}) == "/a/b");
+    }
+
+    SECTION("The v2d function works with floats." ) {
+        std::vector<float> input = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 };
+        std::vector<std::vector<float>> res = fs::util::v2d(input, 2);
+        REQUIRE(res.size() == 3); // 3 rows, 2 columns.
+        REQUIRE(res[0].size() == 2);  // 1rst row
+        REQUIRE(res[1].size() == 2);  // 2nd row
+        REQUIRE(res[2].size() == 2);  // 3rd row
+    }
+
+    SECTION("The v2d function works with ints and 7 elements." ) {
+        std::vector<int> input = { 1, 2, 3, 4, 5, 6, 7 };
+        std::vector<std::vector<int>> res = fs::util::v2d(input, 2);
+        REQUIRE(res.size() == 4); // 4 rows, 2 columns.
+        REQUIRE(res[0].size() == 2);  // 1rst row
+        REQUIRE(res[1].size() == 2);  // 2nd row
+        REQUIRE(res[2].size() == 2);  // 3rd row
+        REQUIRE(res[3].size() == 1);  // 4th row
+
+        // Check order of values.
+        REQUIRE(res[0][0] == 1);
+        REQUIRE(res[0][1] == 2);
+        REQUIRE(res[1][0] == 3);
+        REQUIRE(res[1][1] == 4);
+        REQUIRE(res[2][0] == 5);
+        REQUIRE(res[2][1] == 6);
+        REQUIRE(res[3][0] == 7);
     }
 
 

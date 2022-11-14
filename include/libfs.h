@@ -158,6 +158,31 @@ namespace fs {
       return false;
     }
 
+
+    /// @brief Turn 1D vector into 2D vector.
+    /// @param values the input 1D vector.
+    /// @param num_cols number of columns for the returned 2D vector.
+    /// @return 2D vector with `num_cols` columns.
+    /// @private
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// std::vector<float> input = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 };
+    /// std::vector<std::vector<float>> res = fs::util::v2d(input, 2);
+    /// @endcode
+    template <typename T>
+    std::vector<std::vector <T>> v2d(std::vector<T> values, size_t num_cols) {
+    std::vector<std::vector <T>> result;
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        if (i % num_cols == 0) {
+          result.resize(result.size() + 1);
+        }
+        result[i / num_cols].push_back(values[i]);
+    }
+    return result;
+}
+
     /// @brief Check whether a string starts with the given prefix.
     /// @private
     ///
