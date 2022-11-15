@@ -796,6 +796,14 @@ TEST_CASE( "The util functions work" ) {
         REQUIRE(res[3][0] == 7);
     }
 
-
+    SECTION("The vflatten function works.") {
+        std::vector<int> input1d = { 1, 2, 3, 4, 5, 6, 7 };
+        std::vector<std::vector<int>> input2d = fs::util::v2d(input1d, 2);
+        std::vector<int> res = fs::util::vflatten(input2d);
+        REQUIRE(res.size() == input1d.size());
+        for(size_t i = 0; i < res.size(); i++) {
+            REQUIRE(res[i] == input1d[i]);
+        }
+    }
 }
 

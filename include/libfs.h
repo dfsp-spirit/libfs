@@ -173,18 +173,48 @@ namespace fs {
     /// @endcode
     template <typename T>
     std::vector<std::vector <T>> v2d(std::vector<T> values, size_t num_cols) {
-    std::vector<std::vector <T>> result;
-    for (std::size_t i = 0; i < values.size(); ++i) {
-        if (i % num_cols == 0) {
-          result.resize(result.size() + 1);
-        }
-        result[i / num_cols].push_back(values[i]);
+      std::vector<std::vector <T>> result;
+      for (std::size_t i = 0; i < values.size(); ++i) {
+          if (i % num_cols == 0) {
+            result.resize(result.size() + 1);
+          }
+          result[i / num_cols].push_back(values[i]);
+      }
+      return result;
     }
-    return result;
-}
+
+    /// @brief Flatten 2D vector.
+    /// @param values the input 2D vector.
+    /// @return 1D vector.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// std::vector<float> input = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0 };
+    /// std::vector<std::vector<float>> res = fs::util::v2d(input, 2);
+    /// @endcode
+    template <typename T>
+    std::vector<T> vflatten(std::vector<std::vector <T>> values) {
+      size_t total_size = 0;
+      for (std::size_t i = 0; i < values.size(); i++) {
+        total_size += values[i].size();
+      }
+
+      std::vector <T> result = std::vector<T>(total_size);
+      size_t cur_idx = 0;
+      for (std::size_t i = 0; i < values.size(); i++) {
+        for (std::size_t j = 0; j < values[i].size(); j++) {
+          result[cur_idx] = values[i][j];
+          cur_idx++;
+        }
+      }
+      return result;
+    }
 
     /// @brief Check whether a string starts with the given prefix.
     /// @private
+    /// @note This is a private function, users should call the overloaded version that accepts
+    ///       a vector of prefixes instead.
     ///
     /// #### Examples
     ///
@@ -197,7 +227,9 @@ namespace fs {
     }
 
     /// @brief Check whether a string starts with one of the given prefixes.
-    /// @private
+    /// @param value the string for which to check whether it starts with any of the prefixes
+    /// @param prefixes the prefixes to consider
+    /// @returns whether the string starts with one of the prefixes.
     ///
     /// #### Examples
     ///
@@ -215,7 +247,15 @@ namespace fs {
 
     /// @brief Check whether a file exists (can be read) at given path.
     /// @details You should not rely on this as a pre-check when considering to open a file due
-    ///          to race conditions, just try-catch open in that case.
+    ///          to race conditions, just try-catch open in that case. This is intended to check
+    ///          whether a certain software run succeeded, by checking whether the key expected
+    ///          output files exist.
+    /// @param name the filename that should be checked.
+    /// #### Examples
+    ///
+    /// @code
+    /// bool exists = fs::util::file_exists("./study1/subject1/label/lh.aparc.annot");
+    /// @endcode
     inline bool file_exists(const std::string& name) {
     if (FILE *file = fopen(name.c_str(), "r")) {
         fclose(file);
