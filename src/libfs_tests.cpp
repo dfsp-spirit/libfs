@@ -164,6 +164,33 @@ TEST_CASE( "Writing and re-reading an MGH file with MRI_SHORT data works" ) {
     }
 }
 
+TEST_CASE( "Meshes can be constructed" ) {
+
+    SECTION("Meshed can be constructed from 1D vectors." ) {
+        std::vector<float> vertices = {1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0 };
+        std::vector<int32_t> faces = {0, 0, 0, 1, 1, 1, 2, 2, 2, 0, 1, 2 };
+        fs::Mesh surface = fs::Mesh(vertices, faces);
+        REQUIRE(surface.num_vertices() == 3);
+        REQUIRE(surface.num_faces() == 4);
+    }
+
+    SECTION("Meshed can be constructed from 2D vectors." ) {
+        std::vector<std::vector<float>> vertices = std::vector<std::vector<float>>();
+        vertices.push_back({1.0, 1.0, 1.0});
+        vertices.push_back({2.0, 2.0, 2.0});
+        vertices.push_back({3.0, 3.0, 3.0});
+
+        std::vector<std::vector<int32_t>> faces = std::vector<std::vector<int32_t>>();
+        faces.push_back({0, 0, 0});
+        faces.push_back({1, 1, 1});
+        faces.push_back({2, 2, 2});
+        faces.push_back({0, 1, 2});
+
+        fs::Mesh surface = fs::Mesh(vertices, faces);
+        REQUIRE(surface.num_vertices() == 3);
+        REQUIRE(surface.num_faces() == 4);
+    }
+}
 
 TEST_CASE( "Reading the demo surface file works" ) {
 

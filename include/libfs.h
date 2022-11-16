@@ -384,6 +384,11 @@ namespace fs {
       vertices = cvertices; faces = cfaces;
     }
 
+    // Construct from 2D vectors (Nx3).
+    Mesh(std::vector<std::vector<float>> cvertices, std::vector<std::vector<int32_t>> cfaces) {
+      vertices = util::vflatten(cvertices); faces = util::vflatten(cfaces);
+    }
+
     /// Construct an empty Mesh.
     Mesh() {}
 
