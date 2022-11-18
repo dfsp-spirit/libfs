@@ -643,7 +643,7 @@ namespace fs {
     std::vector<std::vector<size_t>> _as_adjlist_via_edgeset() const {
       edge_set edges = this->as_edgelist();
       std::vector<std::vector<size_t>> adjl = std::vector<std::vector<size_t>>(this->num_vertices(), std::vector<size_t>());
-      for (const auto& e: edges) {
+      for (const std::tuple<size_t, size_t> e: edges) {
         adjl[std::get<0>(e)].push_back(std::get<1>(e));
       }
       return adjl;
