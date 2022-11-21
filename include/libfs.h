@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <map>
 #include <unordered_set>
+#include <cmath>
 
 /// @file
 ///
@@ -643,7 +644,7 @@ namespace fs {
     std::vector<std::vector<size_t>> _as_adjlist_via_edgeset() const {
       edge_set edges = this->as_edgelist();
       std::vector<std::vector<size_t>> adjl = std::vector<std::vector<size_t>>(this->num_vertices(), std::vector<size_t>());
-      for (const std::tuple<size_t, size_t> e: edges) {
+      for (const std::tuple<size_t, size_t> &e: edges) {
         adjl[std::get<0>(e)].push_back(std::get<1>(e));
       }
       return adjl;
@@ -653,6 +654,7 @@ namespace fs {
     /// @param pvd vector of per-vertex data values, one value per mesh vertex.
     /// @param num_iter number of iterations of smoothing to perform.
     /// @param via_matrix passed on to `this->as_asjlist()`, whether to construct the adjacency list of the mesh using an intermediate step involving an adjacency matrix, as opposed to using an edge set. The latter is slower but requires less memory.
+    /// @param with_nan whether you need support for NAN values in `pvd`. A bit slower if active.
     /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
     ///
     /// #### Examples
@@ -662,16 +664,17 @@ namespace fs {
     /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
     /// std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
     /// @endcode
-    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1, const bool via_matrix=true) const {
+    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1, const bool via_matrix=true, const bool with_nan=true) const {
 
       const std::vector<std::vector<size_t>> adjlist = this->as_adjlist(via_matrix);
-      return fs::Mesh::smooth_pvd_nn(adjlist, pvd, num_iter);
+      return fs::Mesh::smooth_pvd_nn(adjlist, pvd, num_iter, with_nan);
     }
 
     /// @brief Smooth given per-vertex data using nearest neighbor smoothing based on adjacency list mesh represenation.
     /// @param mesh_adj the mesh, given as an adjacency list. The outer vector has size num_vertices, and the inner vectors sizes are the number of neighbors of the respective vertex.
-    /// @param pvd vector of per-vertex data values, one value per mesh vertex.
+    /// @param pvd vector of per-vertex data values, one value per mesh vertex. Must not include NAN values. See `smooth_pvd_nn_nan` if you need support for NAN values.
     /// @param num_iter number of iterations of smoothing to perform.
+    /// @param with_nan whether you need support for NAN values in `pvd`. A bit slower if active.
     /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
     ///
     /// #### Examples
@@ -682,7 +685,10 @@ namespace fs {
     /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
     /// std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
     /// @endcode
-    static std::vector<float> smooth_pvd_nn(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1) {
+    static std::vector<float> smooth_pvd_nn(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1, const bool with_nan=true) {
+      if (with_nan) {
+        return fs::Mesh::_smooth_pvd_nn_nan(mesh_adj, pvd, num_iter);
+      }
       std::vector<float> current_pvd_source = std::vector<float>(pvd);
       std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size());
       float val_sum;
@@ -695,6 +701,56 @@ namespace fs {
             val_sum += current_pvd_source[mesh_adj[v_idx][neigh_rel_idx]] / (num_neigh+1);
           }
           current_pvd_smoothed[v_idx] = val_sum;
+        }
+        if(i < num_iter - 1) {
+          current_pvd_source = current_pvd_smoothed;
+        }
+      }
+      return current_pvd_smoothed;
+    }
+
+    /// @brief Smooth given per-vertex data including NAN values using nearest neighbor smoothing based on adjacency list mesh representation.
+    /// @private
+    /// @param mesh_adj the mesh, given as an adjacency list. The outer vector has size num_vertices, and the inner vectors sizes are the number of neighbors of the respective vertex.
+    /// @param pvd vector of per-vertex data values, one value per mesh vertex. Must not include NAN values. See `smooth_pvd_nn_nan` if you need support for NAN values.
+    /// @param num_iter number of iterations of smoothing to perform.
+    /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
+    /// @note This function is private, users should call `fs::Mesh::smooth_pvd_nn` instead.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<std::vector<size_t>> mesh_adj = surface.as_adjlist();
+    /// std::vector<float> pvd = {1.0, 1.1, 1.2, NAN, 1.4, 1.5, 1.6, 1.7};
+    /// std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
+    /// @endcode
+    static std::vector<float> _smooth_pvd_nn_nan(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1) {
+      std::vector<float> current_pvd_source = std::vector<float>(pvd);
+      std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size());
+      float val_sum;
+      size_t num_neigh;
+      size_t num_non_nan_values;
+      float neigh_val;
+      for(size_t i = 0; i < num_iter; i++) {
+        for(size_t v_idx = 0; v_idx < mesh_adj.size(); v_idx++) {
+          if(std::isnan(current_pvd_source[v_idx])) {
+            current_pvd_smoothed[v_idx] = NAN;
+            continue;
+          }
+          val_sum = current_pvd_source[v_idx];
+          num_non_nan_values = 1;  // If we get here, the source vertex value is not NAN.
+          num_neigh = mesh_adj[v_idx].size();
+          for(size_t neigh_rel_idx = 0; neigh_rel_idx < num_neigh; neigh_rel_idx++) {
+            neigh_val = current_pvd_source[mesh_adj[v_idx][neigh_rel_idx]];
+            if(std::isnan(neigh_val)) {
+              continue;
+            } else {
+              val_sum += neigh_val;
+              num_non_nan_values++;
+            }
+          }
+          current_pvd_smoothed[v_idx] = val_sum / (float)num_non_nan_values;
         }
         if(i < num_iter - 1) {
           current_pvd_source = current_pvd_smoothed;

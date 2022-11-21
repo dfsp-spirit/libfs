@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iostream>
 #include <string>
+#include <cmath>
 
 
 TEST_CASE( "Reading the demo curv file with read_curv_data works" ) {
@@ -358,6 +359,14 @@ TEST_CASE( "Smoothing per-vertex data for meshes works." ) {
         std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
         std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
         REQUIRE(pvd_smooth.size() == pvd.size());
+    }
+
+    SECTION("Per-vertex data including NANs can be smoothed using the static method and a pre-computed adj list." ) {
+        std::vector<std::vector<size_t>> mesh_adj = surface.as_adjlist();
+        std::vector<float> pvd = {1.0, 1.1, 1.2, NAN, 1.4, 1.5, 1.6, 1.7};
+        std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
+        REQUIRE(pvd_smooth.size() == pvd.size());
+        REQUIRE(std::isnan(pvd_smooth[3]));
     }
 
 }
