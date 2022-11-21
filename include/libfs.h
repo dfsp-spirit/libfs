@@ -686,17 +686,21 @@ namespace fs {
     /// std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
     /// @endcode
     static std::vector<float> smooth_pvd_nn(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1, const bool with_nan=true) {
+      assert(pvd.size() == mesh_adj.size());
       if (with_nan) {
         return fs::Mesh::_smooth_pvd_nn_nan(mesh_adj, pvd, num_iter);
       }
       std::vector<float> current_pvd_source = std::vector<float>(pvd);
-      std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size());
+      std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size(), 0.0f);
+
+      assert(current_pvd_source.size() == current_pvd_smoothed.size());
+
       float val_sum;
       size_t num_neigh;
       for(size_t i = 0; i < num_iter; i++) {
         for(size_t v_idx = 0; v_idx < mesh_adj.size(); v_idx++) {
-          val_sum = current_pvd_source[v_idx];
           num_neigh = mesh_adj[v_idx].size();
+          val_sum = current_pvd_source[v_idx] / (num_neigh+1);
           for(size_t neigh_rel_idx = 0; neigh_rel_idx < num_neigh; neigh_rel_idx++) {
             val_sum += current_pvd_source[mesh_adj[v_idx][neigh_rel_idx]] / (num_neigh+1);
           }
@@ -727,7 +731,10 @@ namespace fs {
     /// @endcode
     static std::vector<float> _smooth_pvd_nn_nan(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1) {
       std::vector<float> current_pvd_source = std::vector<float>(pvd);
-      std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size());
+      std::vector<float> current_pvd_smoothed = std::vector<float>(pvd.size(), 0.0f);
+
+      assert(current_pvd_source.size() == current_pvd_smoothed.size());
+
       float val_sum;
       size_t num_neigh;
       size_t num_non_nan_values;
