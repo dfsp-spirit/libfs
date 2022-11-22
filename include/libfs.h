@@ -2403,12 +2403,42 @@ namespace fs {
   }
 
   /// Models a FreeSurfer label.
+  /// Can be a surface or volume label.
+  /// A label contains entries for a subset of the vertices of a mesh (or the voxels of a volume).
+  /// For a surface label, the 'vertex' field contains a vertex index, the coord_* fields may contain the vertex coordinates, and the value field may contain some per-vertex descriptor or analysis result, like a p-value.
+  /// For a volume label, the 'vertex' field contains a running number, the coord_* fields contain (as floats) the voxel R,A,S indices, and the value field may contain some per-voxel descriptor or analysis result, like a p-value.
+  /// Note: The variable names herre assume this is a surface label, do not let that confuse you when working with volume labels.
   struct Label {
+
+    /// @brief Default constructor for a label.
+    Label() {}
+
+    /// Construct a Label from the given vertices / voxel numbers and values.
+    Label(std::vector<int> vertices, std::vector<float> values) {
+      assert(vertices.size() == values.size());
+      vertex = vertices;
+      value = values;
+      coord_x = std::vector<float>(vertices.size(), 0.0f);
+      coord_y = std::vector<float>(vertices.size(), 0.0f);
+      coord_z = std::vector<float>(vertices.size(), 0.0f);
+    }
+
+    /// Construct a Label from the given vertices / voxel numbers.
+    Label(std::vector<int> vertices) {
+      vertex = vertices;
+      value = std::vector<float>(vertices.size(), 0.0f);
+      coord_x = std::vector<float>(vertices.size(), 0.0f);
+      coord_y = std::vector<float>(vertices.size(), 0.0f);
+      coord_z = std::vector<float>(vertices.size(), 0.0f);
+    }
+
+
+
     std::vector<int> vertex;  ///< vertex indices for the data in this label if it is a surface label. These are indices into the vertices of a surface mesh to which this label belongs.
     std::vector<float> coord_x;  ///< x coordinates of the vertices in case of a surface label, or voxels coordinates for a volume label.
     std::vector<float> coord_y;  ///< y coordinates of the vertices in case of a surface label, or voxels coordinates for a volume label.
     std::vector<float> coord_z;  ///< z coordinates of the vertices in case of a surface label, or voxels coordinates for a volume label.
-    std::vector<float> value;  ///< the value of the label, can represent continuous data like a p-value, or sometimes simply 1.0 or 0.0 to mark a certain area.
+    std::vector<float> value;  ///< the value of the label, can represent continuous data like a p-value, or sometimes simply 1.0 or 0.0 (interpreted as int/bool) to mark vertices inside/outside of a certain area.
 
     /// Compute for each vertex of the surface whether it is inside the label.
     std::vector<bool> vert_in_label(size_t surface_num_verts) const {

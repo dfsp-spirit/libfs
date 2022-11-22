@@ -677,6 +677,21 @@ TEST_CASE( "Reading the demo label file works" ) {
         REQUIRE( label.vertex.size() == label_num_entries);
     }
 
+    SECTION("A label can be constructed from vertex indices." ) {
+        std::vector<int> vertices = { 0, 1, 5, 6, 7 };
+        fs::Label label = fs::Label(vertices);
+        REQUIRE( label.vertex.size() == 5);
+        REQUIRE( label.value.size() == 5);
+    }
+
+    SECTION("A label can be constructed from vertex indices and values." ) {
+        std::vector<int> vertices = { 0, 1, 5, 6, 7 };
+        std::vector<float> values = { 0.0, 0.0, 0.1, 0.1, 0.5 };
+        fs::Label label = fs::Label(vertices, values);
+        REQUIRE( label.vertex.size() == 5);
+        REQUIRE( label.value.size() == 5);
+    }
+
     SECTION("The number of vertices, coordinates and values in the label are identical and correct" ) {
         REQUIRE( label.vertex.size() == label_num_entries);
         REQUIRE( label.coord_x.size() == label_num_entries);
