@@ -316,6 +316,10 @@ TEST_CASE( "Computing alternative representations for meshes works." ) {
         }
         REQUIRE(min_neigh == 4);
         REQUIRE(max_neigh == 6);
+
+        for(size_t vi = 0; vi < adjl.size(); vi++) {
+            REQUIRE(std::find(adjl[vi].begin(), adjl[vi].end(), vi) == adjl[vi].end()); // It must not contain the source vertex.
+        }
     }
 
     SECTION("The adjacency list for the mesh can be computed via an edge set." ) {
@@ -333,6 +337,10 @@ TEST_CASE( "Computing alternative representations for meshes works." ) {
         }
         REQUIRE(min_neigh == 4);
         REQUIRE(max_neigh == 6);
+
+        for(size_t vi = 0; vi < adjl.size(); vi++) {
+            REQUIRE(std::find(adjl[vi].begin(), adjl[vi].end(), vi) == adjl[vi].end()); // It must not contain the source vertex.
+        }
     }
 
     SECTION("The edge list for the mesh can be computed." ) {
@@ -340,6 +348,21 @@ TEST_CASE( "Computing alternative representations for meshes works." ) {
         REQUIRE(edges.size() == 36);  // Each edge occurs twice, as i->j and j->i.
         std::tuple<size_t, size_t> e = std::make_tuple(0, 1);
         REQUIRE(edges.count(e));  // Make sure edge is contained.
+    }
+}
+
+TEST_CASE( "A mesh neighborhood can be expanded." ) {
+
+    fs::Mesh surface = fs::Mesh::construct_cube();
+
+    SECTION("A mesh neighborhood can be expanded." ) {
+        std::vector<std::vector <size_t>> adjl = surface.as_adjlist(true);
+        std::vector<std::vector <size_t>> adjl_ext = fs::Mesh::extend_adj(adjl, 1);
+        REQUIRE(adjl_ext.size() == adjl.size());
+        for(size_t vi = 0; vi < adjl.size(); vi++) {
+            REQUIRE(adjl_ext[vi].size() > adjl[vi].size());  // Neighborhood must have grown.
+            REQUIRE(std::find(adjl_ext[vi].begin(), adjl_ext[vi].end(), vi) == adjl_ext[vi].end()); // It must not contain the source vertex.
+        }
     }
 }
 

@@ -11,6 +11,7 @@
 #include <map>
 #include <unordered_set>
 #include <cmath>
+#include <algorithm>
 
 /// @file
 ///
@@ -766,6 +767,38 @@ namespace fs {
         }
       }
       return current_pvd_smoothed;
+    }
+
+    /// @brief Extend mesh neighborhoods based on mesh adjacency representation.
+    /// @details This function is mainly extended to extend a source neighborhood representation (typically the mesh's `k=1` neighborhood, i.e., the adjacency list of the mesh) to a higher `k`. In a `k=3` neighborhood, the neighorhood around a source vertex includes all vertices in edge distance up to 3 from the source vertex (but not the source vertex itself).
+    /// @param mesh_adj The adjacency list representation of the underlying mesh, the outer vector must have size `N` for a mesh with `N` vertices.
+    /// @param extend_by the number of edges to hop to extend the neighborhoods.
+    /// @param mesh_adj_ext the starting neighborhoods to extend, same representation as `mesh_adj`. The outer vector must have size `N` or `0`. If passed as an empty vector, this will be ignored and a copy of the `mesh_adj` is used as the `start_neighborhoods`.
+    /// @return extended neighborhoods
+    static std::vector<std::vector<size_t>> extend_adj(const std::vector<std::vector<size_t>> mesh_adj, const size_t extend_by=1, std::vector<std::vector<size_t>> mesh_adj_ext=std::vector<std::vector<size_t>>()) {
+      size_t num_vertices = mesh_adj.size();
+      if(mesh_adj_ext.size() == 0) {
+        mesh_adj_ext = mesh_adj;
+      }
+      std::vector<size_t> neighborhood;
+      std::vector<size_t> ext_neighborhood;
+      for(size_t ext_idx = 0; ext_idx < extend_by; ext_idx++) {
+        for(size_t source_vert_idx = 0; source_vert_idx < num_vertices; source_vert_idx++) {
+          neighborhood = mesh_adj_ext[source_vert_idx]; // copy needed so we do not modify during iteration.
+          // Extension: add all neighbors in distance one for all vertices in the neighborhood.
+          for(size_t neigh_vert_rel_idx = 0; neigh_vert_rel_idx < neighborhood.size(); neigh_vert_rel_idx++) {
+            for(size_t canidate_rel_idx = 0; canidate_rel_idx < mesh_adj[neighborhood[neigh_vert_rel_idx]].size(); canidate_rel_idx++) {
+              if(mesh_adj[neighborhood[neigh_vert_rel_idx]][canidate_rel_idx] != source_vert_idx) {
+                mesh_adj_ext[source_vert_idx].push_back(mesh_adj[neighborhood[neigh_vert_rel_idx]][canidate_rel_idx]);
+              }
+            }
+          }
+          // We need to remove duplicates.
+          std::sort(mesh_adj_ext[source_vert_idx].begin(), mesh_adj_ext[source_vert_idx].end());
+          mesh_adj_ext[source_vert_idx].erase(std::unique(mesh_adj_ext[source_vert_idx].begin(), mesh_adj_ext[source_vert_idx].end()), mesh_adj_ext[source_vert_idx].end());
+        }
+      }
+      return mesh_adj_ext;
     }
 
 
