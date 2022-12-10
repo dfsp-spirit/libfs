@@ -655,7 +655,8 @@ namespace fs {
     /// @param pvd vector of per-vertex data values, one value per mesh vertex.
     /// @param num_iter number of iterations of smoothing to perform.
     /// @param via_matrix passed on to `this->as_asjlist()`, whether to construct the adjacency list of the mesh using an intermediate step involving an adjacency matrix, as opposed to using an edge set. The latter is slower but requires less memory.
-    /// @param with_nan whether you need support for NAN values in `pvd`. A bit slower if active.
+    /// @param with_nan whether you need support for NAN values in `pvd`. A bit slower if active. Ignored if `detectnan` is `true`.
+    /// @param detect_nan whether to auto-detect presence of NAN values, ignoring the setting of `with_nan`.
     /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
     ///
     /// #### Examples
@@ -665,17 +666,18 @@ namespace fs {
     /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
     /// std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
     /// @endcode
-    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1, const bool via_matrix=true, const bool with_nan=true) const {
+    std::vector<float> smooth_pvd_nn(const std::vector<float> pvd, const size_t num_iter=1, const bool via_matrix=true, const bool with_nan=true, const bool detect_nan=true) const {
 
       const std::vector<std::vector<size_t>> adjlist = this->as_adjlist(via_matrix);
-      return fs::Mesh::smooth_pvd_nn(adjlist, pvd, num_iter, with_nan);
+      return fs::Mesh::smooth_pvd_nn(adjlist, pvd, num_iter, with_nan, detect_nan);
     }
 
     /// @brief Smooth given per-vertex data using nearest neighbor smoothing based on adjacency list mesh represenation.
     /// @param mesh_adj the mesh, given as an adjacency list. The outer vector has size num_vertices, and the inner vectors sizes are the number of neighbors of the respective vertex.
     /// @param pvd vector of per-vertex data values, one value per mesh vertex. Must not include NAN values. See `smooth_pvd_nn_nan` if you need support for NAN values.
     /// @param num_iter number of iterations of smoothing to perform.
-    /// @param with_nan whether you need support for NAN values in `pvd`. A bit slower if active.
+    /// @param with_nan whether you need support for NAN values in `pvd`. A bit slower if active. Ignored if `detectnan` is `true`.
+    /// @param detect_nan whether to auto-detect presence of NAN values, ignoring the setting of `with_nan`.
     /// @return vector of smoothed per-vertex data values, same length as `pvd` param.
     ///
     /// #### Examples
@@ -686,9 +688,19 @@ namespace fs {
     /// std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
     /// std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
     /// @endcode
-    static std::vector<float> smooth_pvd_nn(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1, const bool with_nan=true) {
+    static std::vector<float> smooth_pvd_nn(const std::vector<std::vector<size_t>> mesh_adj, const std::vector<float> pvd, const size_t num_iter=1, const bool with_nan=true, const bool detect_nan=true) {
       assert(pvd.size() == mesh_adj.size());
-      if (with_nan) {
+      bool final_with_nan = with_nan;
+      if (detect_nan) {
+        final_with_nan = false;
+        for(size_t i=0; i<pvd.size(); i++) {
+          if(std::isnan(pvd[i])) {
+            final_with_nan = true;
+            break;
+          }
+        }
+      }
+      if (final_with_nan) {
         return fs::Mesh::_smooth_pvd_nn_nan(mesh_adj, pvd, num_iter);
       }
       std::vector<float> current_pvd_source;
