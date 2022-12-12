@@ -13,6 +13,8 @@
 #include <cmath>
 #include <algorithm>
 
+#define LIBFS_VERSION "0.1.3"
+
 /// @file
 ///
 /*! \mainpage The libfs API documentation
@@ -575,10 +577,12 @@ namespace fs {
     };
 
     /// @brief Datastructure for storing, and quickly querying the existence of, mesh edges.
+    /// @details This is an unordered set of 2-tuples, where each tuple represents an edge, given as a pair of vertex indices. Each edge occurs twice in the list, once as `make_tuple(i,j)` and once as `make_tuple(j,i)`. Use the API of `std::unordered_set` to interact with it.
     typedef std::unordered_set<std::tuple<size_t, size_t>, _tupleHashFunction> edge_set;
 
     /// @brief Return edge list representation of this mesh.
-    /// @return unordered set of 2-tuples, where each tuple represents an edge, given as a pair of vertex indices. Each edge occurs twice in the list, once as `make_tuple(i,j)` and once as `make_tuple(j,i)`.
+    /// @note While this mesh or graph representation is typically known as an edge list, this function actually returns a set.
+    /// @return an `fs::Mesh::edge_set`, i.e., an unordered set of 2-tuples, where each tuple represents an edge, given as a pair of vertex indices. Each edge occurs twice in the list, once as `make_tuple(i,j)` and once as `make_tuple(j,i)`.
     ///
     /// #### Examples
     ///
