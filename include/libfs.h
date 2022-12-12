@@ -13,7 +13,7 @@
 #include <cmath>
 #include <algorithm>
 
-#define LIBFS_VERSION "0.1.3"
+#define LIBFS_VERSION "0.3.2"
 
 /// @file
 ///
