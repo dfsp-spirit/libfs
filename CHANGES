@@ -1,11 +1,14 @@
 fslib Changes
 ===============
 
-WIP
-----
+
+v0.3.1: Logging and smoothing of per-vertex data
+-------------------------------------------------
 * Add `fs::Mesh::construct_grid` function to construct 2D grids.
 * Add `fs::Mesh::construct_pyramid` function.
 * Add option to control logging via log levels. See API docs main page for usage info.
+* Add support for smoothing per-vertex data on meshes, see new function `fs::Mesh::smooth_pvd_nn`.
+* Related to `fs::Mesh::smooth_pvd_nn`, add new mesh functions `fs::Mesh::as_adjlist`, `fs::Mesh::as_matrix`, and `fs::Mesh::as_edgeset`.
 
 
 v0.3.0: Fully documented
