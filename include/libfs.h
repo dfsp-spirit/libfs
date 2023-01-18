@@ -935,6 +935,9 @@ namespace fs {
     /// fs::Mesh::from_obj(&surface, "mesh.obj");
     /// @endcode
     static void from_obj(Mesh* mesh, const std::string& filename) {
+      #ifdef LIBFS_DBG_INFO
+      std::cout << LIBFS_APPTAG << "Reading brain mesh from Wavefront object format file " << filename << ".\n";
+      #endif
       std::ifstream input(filename);
       if(input.is_open()) {
         Mesh::from_obj(mesh, &input);
@@ -1042,6 +1045,9 @@ namespace fs {
     /// fs::Mesh::from_off(&surface, "mesh.off");
     /// @endcode
     static void from_off(Mesh* mesh, const std::string& filename) {
+      #ifdef LIBFS_DBG_INFO
+      std::cout << LIBFS_APPTAG << "Reading brain mesh from OFF format file " << filename << ".\n";
+      #endif
       std::ifstream input(filename);
       if(input.is_open()) {
         Mesh::from_off(mesh, &input);
@@ -1150,6 +1156,9 @@ namespace fs {
     /// fs::Mesh::from_ply(&surface, "mesh.ply");
     /// @endcode
     static void from_ply(Mesh* mesh, const std::string& filename) {
+      #ifdef LIBFS_DBG_INFO
+      std::cout << LIBFS_APPTAG << "Reading brain mesh from PLY format file " << filename << ".\n";
+      #endif
       std::ifstream input(filename);
       if(input.is_open()) {
         Mesh::from_ply(mesh, &input);
@@ -1187,7 +1196,7 @@ namespace fs {
     }
 
     /// @brief Retrieve a vertex index of a face, treating the faces vector as an nx3 matrix.
-    /// @param i the row index, valid values are 0..num_faces.
+    /// @param i the row index, valid values are 0..num_faces-1.
     /// @param j the column index, valid values are 0..2 (for the 3 vertices of a face).
     /// @throws std::range_error on invalid index
     /// @return vertex index of vertex `j` of face `i`
@@ -1311,6 +1320,10 @@ namespace fs {
       plys << "property list uchar int vertex_index\n";
       plys << "end_header\n";
 
+      #ifdef LIBFS_DBG_DEBUG
+      std::cout << LIBFS_APPTAG << "Writing " << this->vertices.size()/3 << " PLY format vertices.\n";
+      #endif
+
       for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
         plys << vertices[vidx] << " " << vertices[vidx+1] << " " << vertices[vidx+2];
         if(use_vertex_colors) {
@@ -1318,6 +1331,10 @@ namespace fs {
         }
         plys << "\n";
       }
+
+      #ifdef LIBFS_DBG_DEBUG
+      std::cout << LIBFS_APPTAG << "Writing " << this->faces.size()/3 << " PLY format faces.\n";
+      #endif
 
       const int num_vertices_per_face = 3;
       for(size_t fidx=0; fidx<this->faces.size();fidx+=3) { // faces: vertex indices, 0-based
@@ -1336,6 +1353,9 @@ namespace fs {
     /// surface.to_ply_file("mesh.ply");
     /// @endcode
     void to_ply_file(const std::string& filename) const {
+      #ifdef LIBFS_DBG_INFO
+      std::cout << LIBFS_APPTAG << "Writing mesh to PLY file " << filename << ".\n";
+      #endif
       fs::util::str_to_file(filename, this->to_ply());
     }
 
