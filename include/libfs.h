@@ -50,7 +50,7 @@
  * You can define the output produced by libfs from your application. To do so,
  * `#define` _one_ of the following debug levels in your application, *before* including 'libfs.h':
  *
- *  - `LIBFS_DBG_CRITICAL`     // print only crtical errors that will raise an expection and most likely cause application to stop (unless caught).
+ *  - `LIBFS_DBG_CRITICAL`     // print only critical errors that will raise an expection and most likely cause application to stop (unless caught).
  *  - `LIBFS_DBG_ERROR`        // prints errors (and more severe things).
  *  - `LIBFS_DBG_WARNING`      // the default, prints warnings (and more severe things).
  *  - `LIBFS_DBG_IMPORTANT`    // prints important messages that may indicate atypical behaviour.
@@ -64,7 +64,7 @@
  *   - The debug levels are ordered in the list above, and defining a single one will automatically enable
  * all levels of higher importance (e.g., defining `LIBFS_DBG_WARNING` also enables `LIBFS_DBG_ERROR` and `LIBFS_DBG_CRITICAL`).
  *   - If you define nothing at all, libfs defaults to `LIBFS_DBG_WARNING`.
- *   - If you do not want any ouput from libfs, define `LIBFS_DBG_NONE`. This is not recommended though, as it completely disabled
+ *   - If you do not want any ouput from libfs, define `LIBFS_DBG_NONE`. This is not recommended though, as it completely disables
  *     all output, including critical error messages. This means that your application may terminate without any message,
  *     and is only advisable if you are very sure that you catch all possible exceptions and then produce an error message
  *     for users in your application code.
