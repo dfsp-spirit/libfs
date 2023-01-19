@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <cmath>
 #include <algorithm>
+#include <chrono>
 
 #define LIBFS_VERSION "0.3.2"
 
@@ -53,7 +54,6 @@
  *  - `LIBFS_DBG_CRITICAL`     // print only critical errors that will raise an expection and most likely cause application to stop (unless caught).
  *  - `LIBFS_DBG_ERROR`        // prints errors (and more severe things).
  *  - `LIBFS_DBG_WARNING`      // the default, prints warnings (and more severe things).
- *  - `LIBFS_DBG_IMPORTANT`    // prints important messages that may indicate atypical behaviour.
  *  - `LIBFS_DBG_INFO`         // prints info messages, like what is currently being done.
  *  - `LIBFS_DBG_VERBOSE`      // prints info messages inside loops, may considerable slow down apps and litter stdout.
  *  - `LIBFS_DBG_EXCESSIVE`    // prints info messages in nested loops, will considerable slow down apps and quickly litter stdout.
@@ -112,10 +112,6 @@
 #endif
 
 #ifdef LIBFS_DBG_INFO
-#define LIBFS_DBG_IMPORTANT
-#endif
-
-#ifdef LIBFS_DBG_IMPORTANT
 #define LIBFS_DBG_WARNING
 #endif
 
@@ -132,6 +128,53 @@
 namespace fs {
 
   namespace util {
+
+    /// @brief Get current time as string, e.g. for log messages.
+    /// @param t the timepoint to format as a string, typically `std::system_clock::now()`.
+    /// @return the formatted time string.
+    /// #### Examples
+    ///
+    /// @code
+    /// std::string time_rep = fs::util::time_tag(std::chrono::system_clock::now());
+    /// @endcode
+    std::string time_tag(std::chrono::system_clock::time_point t) {
+      auto as_time_t = std::chrono::system_clock::to_time_t(t);
+      struct tm tm;
+      char time_buffer[64];
+      //if (::gmtime_r(&as_time_t, &tm)) {
+      if (::localtime_r(&as_time_t, &tm)) {
+        if (std::strftime(time_buffer, sizeof(time_buffer), "%F %T", &tm)) {
+          return std::string{time_buffer};
+        }
+      }
+      throw std::runtime_error("Failed to get current date as string");
+    }
+
+    /// Logging threshold for critical messages.
+    const std::string LOGTAG_CRITICAL = "CRITICAL";
+
+    /// Logging threshold for error messages.
+    const std::string LOGTAG_ERROR = "ERROR";
+
+    /// Logging threshold for warning messages.
+    const std::string LOGTAG_WARNING = "WARNING";
+
+    /// Logging threshold for warning messages.
+    const std::string LOGTAG_INFO = "INFO";
+
+    /// Logging threshold for warning messages.
+    const std::string LOGTAG_VERBOSE = "VERBOSE";
+
+    /// Logging threshold for warning messages.
+    const std::string LOGTAG_EXCESSIVE = "EXCESSIVE";
+
+    /// @brief Log a message, goes to stdout.
+    /// @param message the message to be logged.
+    /// @param loglevel the log level, one of `fs::util::LOGTAG_*`.
+    inline void log(std::string const & message, std::string const loglevel = "INFO") {
+      std::cout << LIBFS_APPTAG << "[" << loglevel << "] [" << fs::util::time_tag(std::chrono::system_clock::now()) << "] " << message << "\n";
+    }
+
     /// @brief Check whether a string ends with the given suffix.
     /// @private
     ///
@@ -261,13 +304,13 @@ namespace fs {
     /// bool exists = fs::util::file_exists("./study1/subject1/label/lh.aparc.annot");
     /// @endcode
     inline bool file_exists(const std::string& name) {
-    if (FILE *file = fopen(name.c_str(), "r")) {
-        fclose(file);
-        return true;
-    } else {
-        return false;
+      if (FILE *file = fopen(name.c_str(), "r")) {
+          fclose(file);
+          return true;
+      } else {
+          return false;
+      }
     }
-}
 
 
     /// @brief Construct a UNIX file system path from the given path_components.
@@ -338,7 +381,8 @@ namespace fs {
           throw std::runtime_error("Unable to open file '" + filename + "' for writing.\n");
       }
     }
-  }
+
+  }  // End namespace util.
 
 
   // MRI data types, used by the MGH functions.
@@ -1321,7 +1365,8 @@ namespace fs {
       plys << "end_header\n";
 
       #ifdef LIBFS_DBG_DEBUG
-      std::cout << LIBFS_APPTAG << "Writing " << this->vertices.size()/3 << " PLY format vertices.\n";
+      //std::cout << LIBFS_APPTAG << "Writing " << this->vertices.size()/3 << " PLY format vertices.\n";
+      fs::util::log("Writing " + std::to_string(this->vertices.size()/3) + " PLY format vertices.");
       #endif
 
       for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
