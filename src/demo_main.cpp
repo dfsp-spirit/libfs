@@ -1,6 +1,6 @@
 // The main for the libfs demo app.
 
-#define LIBFS_DBG_INFO
+#define LIBFS_DBG_DEBUG
 
 #include "libfs.h"
 
@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
     std::vector<std::string> pvd_measures = { "thickness", "area", "volume" };
 
     std::string surf_file;
+    std::string surf_rep;  // To hold string representations of mesh in different formats.
     fs::Mesh mesh;
 
     for (std::string surf : surfaces) {
@@ -48,6 +49,9 @@ int main(int argc, char** argv) {
             if(fs::util::file_exists(surf_file)) {
                 fs::read_surf(&mesh, surf_file);
                 std::cout << "Found " << hemi << " mesh of " << surf << " surface containing " << mesh.num_vertices() << " vertices and "<< mesh.num_faces() << " faces.\n";
+                surf_rep = mesh.to_ply();
+                surf_rep = mesh.to_off();
+                surf_rep = mesh.to_obj();
             } else {
                 std::cout << "Missing " << hemi << " mesh of " << surf << " surface at '" << surf_file << "'.\n";
             }
