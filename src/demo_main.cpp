@@ -18,8 +18,9 @@ int main(int argc, char** argv) {
         std::cout << "   <subject_id>    : str, the subject identifier of the subject that was pre-processed with FreeSurfer's recon all.\n";
         std::cout << "   <subjects_dir>  : str, the path to the SUBJECTS_DIR, the recon-all output dir for all subjects.\n";
         std::cout << "                     Defaults to env variable SUBJECTS_DIR if omitted (in which case that env var must exist).\n";
-        std::cout << "Example: If you have set subject_id to 'subject1' and subjects_dir to './mystudy', this program expects\n";
+        std::cout << "Note: If you have set subject_id to 'subject1' and subjects_dir to './mystudy', this program expects\n";
         std::cout << "          the following file to exist: './mystudy/subject1/surf/lh.white'.\n";
+        std::cout << "Example: " << argv[0] << "subject1 examples/subjects_dir/\n";
         exit(1);
     }
     subject_id = argv[1];
