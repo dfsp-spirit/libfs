@@ -1365,8 +1365,7 @@ namespace fs {
       plys << "end_header\n";
 
       #ifdef LIBFS_DBG_DEBUG
-      //std::cout << LIBFS_APPTAG << "Writing " << this->vertices.size()/3 << " PLY format vertices.\n";
-      fs::util::log("Writing " + std::to_string(this->vertices.size()/3) + " PLY format vertices.");
+      fs::util::log("Writing " + std::to_string(this->vertices.size()/3) + " PLY format vertices.", "INFO");
       #endif
 
       for(size_t vidx=0; vidx<this->vertices.size();vidx+=3) {  // vertex coords
@@ -1378,7 +1377,7 @@ namespace fs {
       }
 
       #ifdef LIBFS_DBG_DEBUG
-      std::cout << LIBFS_APPTAG << "Writing " << this->faces.size()/3 << " PLY format faces.\n";
+      fs::util::log("Writing " + std::to_string(this->faces.size()/3) + " PLY format faces.", "INFO");
       #endif
 
       const int num_vertices_per_face = 3;
@@ -1399,7 +1398,7 @@ namespace fs {
     /// @endcode
     void to_ply_file(const std::string& filename) const {
       #ifdef LIBFS_DBG_INFO
-      std::cout << LIBFS_APPTAG << "Writing mesh to PLY file " << filename << ".\n";
+      fs::util::log("Writing mesh to PLY file '" + filename + "'.", "INFO");
       #endif
       fs::util::str_to_file(filename, this->to_ply());
     }
@@ -1430,11 +1429,17 @@ namespace fs {
       bool use_vertex_colors = col.size() != 0;
       std::stringstream offs;
       if(use_vertex_colors) {
+        #ifdef LIBFS_DBG_INFO
+        fs::util::log("Writing OFF representation of mesh with vertex colors.", "INFO");
+        #endif
         if(col.size() != this->vertices.size()) {
           throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing OFF file.");
         }
         offs << "COFF\n";
       } else {
+        #ifdef LIBFS_DBG_INFO
+        fs::util::log("Writing OFF representation of mesh without vertex colors.", "INFO");
+        #endif
         offs << "OFF\n";
       }
       offs << this->num_vertices() << " " << this->num_faces() << " 0\n";
