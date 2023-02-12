@@ -158,7 +158,7 @@ firefox doc_built/html/index.html
 
 ## Author and Getting help
 
-The `libfs` library was written by [Tim Schäfer](http://rcmd.org/ts).
+The `libfs` library was written by [Tim Schäfer](https://ts.rcmd.org).
 
 Note that this library is **not** a part of FreeSurfer, and it is **in no way** endorsed by the FreeSurfer developers. Please do not contact them regarding this library, especially not for support. [Open an issue](https://github.com/dfsp-spirit/libfs/issues) in this repo instead.
 
