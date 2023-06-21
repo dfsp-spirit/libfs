@@ -277,7 +277,9 @@ TEST_CASE( "Reading the demo surface file works" ) {
 
         fs::Mesh patch = surface.submesh_vertex(label.vertex);
         REQUIRE(patch.num_vertices() == label.vertex.size());
-        fs::util::str_to_file("lh.cortex.obj", patch.to_obj());
+        REQUIRE(patch.num_faces() < surface.num_faces());
+        REQUIRE(patch.num_faces() == 281410);
+        //fs::util::str_to_file("lh.cortex.obj", patch.to_obj());  // check this mesh visually with meshlab
     }
 }
 
