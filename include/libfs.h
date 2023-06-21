@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <map>
 #include <unordered_set>
+#include <unordered_map>
 #include <cmath>
 #include <algorithm>
 #include <chrono>
@@ -877,6 +878,38 @@ namespace fs {
     void to_obj_file(const std::string& filename) const {
       fs::util::str_to_file(filename, this->to_obj());
     }
+
+    fs::Mesh submesh_vertex(const std::vector<int> &vertex_indices) {
+      fs::Mesh submesh;
+      std::vector<float> new_vertices;
+      std::vector<int> new_faces;
+      std::unordered_map<size_t, size_t> vertex_index_map;
+      size_t new_vertex_idx = 0;
+      for(size_t i = 0; i < vertex_indices.size(); i++) {
+        vertex_index_map[vertex_indices[i]] = new_vertex_idx;
+        new_vertices.push_back(this->vertices[vertex_indices[i]*3]);
+        new_vertices.push_back(this->vertices[vertex_indices[i]*3+1]);
+        new_vertices.push_back(this->vertices[vertex_indices[i]*3+2]);
+        new_vertex_idx++;
+      }
+      int face_v0;
+      int face_v1;
+      int face_v2;
+      for(size_t i = 0; i < this->num_faces(); i++) {
+        face_v0 = this->faces[i*3];
+        face_v1 = this->faces[i*3+1];
+        face_v2 = this->faces[i*3+2];
+        if((vertex_index_map.find(face_v0) != vertex_index_map.end()) && (vertex_index_map.find(face_v1) != vertex_index_map.end()) && (vertex_index_map.find(face_v2) != vertex_index_map.end())) {
+          new_faces.push_back(vertex_index_map[face_v0]);
+          new_faces.push_back(vertex_index_map[face_v1]);
+          new_faces.push_back(vertex_index_map[face_v2]);
+        }
+      }
+      submesh.vertices = new_vertices;
+      submesh.faces = new_faces;
+      return submesh;
+    }
+
 
 
     /// @brief Read a brainmesh from a Wavefront object format stream.

@@ -270,6 +270,15 @@ TEST_CASE( "Reading the demo surface file works" ) {
     SECTION("Trying to access invalid face indices results in an exception." ) {
         REQUIRE_THROWS(surface.fm_at(surface.num_faces(),0));
     }
+
+    SECTION("Using submesh_vertex to compute a patch mesh works") {
+        fs::Label label;
+        fs::read_label(&label, "examples/read_label/lh.cortex.label");
+
+        fs::Mesh patch = surface.submesh_vertex(label.vertex);
+        REQUIRE(patch.num_vertices() == label.vertex.size());
+        fs::util::str_to_file("lh.cortex.obj", patch.to_obj());
+    }
 }
 
 TEST_CASE( "Computing alternative representations for meshes works." ) {
