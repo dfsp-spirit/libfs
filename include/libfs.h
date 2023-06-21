@@ -1416,7 +1416,7 @@ namespace fs {
       plys << "property float x\nproperty float y\nproperty float z\n";
       if(use_vertex_colors) {
         if(col.size() != this->vertices.size()) {
-          throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing PLY file.");
+          throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing PLY file, but got " + std::to_string(this->vertices.size()) + " and " + std::to_string(col.size()) + ".");
         }
         plys << "property uchar red\nproperty uchar green\nproperty uchar blue\n";
       }
@@ -1493,7 +1493,7 @@ namespace fs {
         fs::util::log("Writing OFF representation of mesh with vertex colors.", "INFO");
         #endif
         if(col.size() != this->vertices.size()) {
-          throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing OFF file.");
+          throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing OFF file but got " + std::to_string(this->vertices.size()) + " and " + std::to_string(col.size()) + ".");
         }
         offs << "COFF\n";
       } else {
