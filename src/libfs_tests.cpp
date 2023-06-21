@@ -275,7 +275,8 @@ TEST_CASE( "Reading the demo surface file works" ) {
         fs::Label label;
         fs::read_label(&label, "examples/read_label/lh.cortex.label");
 
-        fs::Mesh patch = surface.submesh_vertex(label.vertex);
+        std::pair <std::unordered_map<size_t, size_t>, fs::Mesh> result = surface.submesh_vertex(label.vertex);
+        fs::Mesh patch = result.second;
         REQUIRE(patch.num_vertices() == label.vertex.size());
         REQUIRE(patch.num_faces() < surface.num_faces());
         REQUIRE(patch.num_faces() == 281410);

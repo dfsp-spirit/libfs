@@ -879,17 +879,36 @@ namespace fs {
       fs::util::str_to_file(filename, this->to_obj());
     }
 
-    fs::Mesh submesh_vertex(const std::vector<int> &vertex_indices) {
+    /// @brief Compute a new mesh that is a submesh of this mesh, based on a subset of the vertices of this mesh.
+    /// @param old_vertex_indices vector of vertex indices of this mesh, which should be included in the submesh.
+    /// @return a pair of the vertex index map (old to new) and the submesh.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface;
+    /// fs::read_surf(&surface, "examples/read_surf/lh.white");
+    /// fs::Label label;
+    /// fs::read_label(&label, "examples/read_label/lh.cortex.label");
+    /// std::pair <std::unordered_map<size_t, size_t>, fs::Mesh> result = surface.submesh_vertex(label.vertex);
+    /// fs::Mesh patch = result.second;
+    /// // Compute new to old vertex mapping from returned old to new mapping:
+    /// std::unordered_map<size_t, size_t> vertex_index_map_new2old;
+    /// for (auto const& pair: result.first) {
+    ///  vertex_index_map_new2old[pair.second] = pair.first;
+    /// }
+    /// @endcode
+    std::pair <std::unordered_map<size_t, size_t>, fs::Mesh> submesh_vertex(const std::vector<int> &old_vertex_indices) const {
       fs::Mesh submesh;
       std::vector<float> new_vertices;
       std::vector<int> new_faces;
-      std::unordered_map<size_t, size_t> vertex_index_map;
+      std::unordered_map<size_t, size_t> vertex_index_map_old2new;
       size_t new_vertex_idx = 0;
-      for(size_t i = 0; i < vertex_indices.size(); i++) {
-        vertex_index_map[vertex_indices[i]] = new_vertex_idx;
-        new_vertices.push_back(this->vertices[vertex_indices[i]*3]);
-        new_vertices.push_back(this->vertices[vertex_indices[i]*3+1]);
-        new_vertices.push_back(this->vertices[vertex_indices[i]*3+2]);
+      for(size_t i = 0; i < old_vertex_indices.size(); i++) {
+        vertex_index_map_old2new[old_vertex_indices[i]] = new_vertex_idx;
+        new_vertices.push_back(this->vertices[old_vertex_indices[i]*3]);
+        new_vertices.push_back(this->vertices[old_vertex_indices[i]*3+1]);
+        new_vertices.push_back(this->vertices[old_vertex_indices[i]*3+2]);
         new_vertex_idx++;
       }
       int face_v0;
@@ -899,15 +918,23 @@ namespace fs {
         face_v0 = this->faces[i*3];
         face_v1 = this->faces[i*3+1];
         face_v2 = this->faces[i*3+2];
-        if((vertex_index_map.find(face_v0) != vertex_index_map.end()) && (vertex_index_map.find(face_v1) != vertex_index_map.end()) && (vertex_index_map.find(face_v2) != vertex_index_map.end())) {
-          new_faces.push_back(vertex_index_map[face_v0]);
-          new_faces.push_back(vertex_index_map[face_v1]);
-          new_faces.push_back(vertex_index_map[face_v2]);
+        if((vertex_index_map_old2new.find(face_v0) != vertex_index_map_old2new.end()) && (vertex_index_map_old2new.find(face_v1) != vertex_index_map_old2new.end()) && (vertex_index_map_old2new.find(face_v2) != vertex_index_map_old2new.end())) {
+          new_faces.push_back(vertex_index_map_old2new[face_v0]);
+          new_faces.push_back(vertex_index_map_old2new[face_v1]);
+          new_faces.push_back(vertex_index_map_old2new[face_v2]);
         }
       }
       submesh.vertices = new_vertices;
       submesh.faces = new_faces;
-      return submesh;
+
+      // How to compute the new2old (reverse) vertex index map:
+      //std::unordered_map<size_t, size_t> vertex_index_map_new2old;
+      //for (auto const& pair: vertex_index_map_old2new) {
+      //  vertex_index_map_new2old[pair.second] = pair.first;
+      //}
+
+      std::pair <std::unordered_map<size_t, size_t>, fs::Mesh> result (vertex_index_map_old2new, submesh);
+      return result;
     }
 
 
