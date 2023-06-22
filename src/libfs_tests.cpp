@@ -275,12 +275,62 @@ TEST_CASE( "Reading the demo surface file works" ) {
         fs::Label label;
         fs::read_label(&label, "examples/read_label/lh.cortex.label");
 
-        std::pair <std::unordered_map<size_t, size_t>, fs::Mesh> result = surface.submesh_vertex(label.vertex);
+        std::pair <std::unordered_map<int32_t, int32_t>, fs::Mesh> result = surface.submesh_vertex(label.vertex);
         fs::Mesh patch = result.second;
         REQUIRE(patch.num_vertices() == label.vertex.size());
         REQUIRE(patch.num_faces() < surface.num_faces());
         REQUIRE(patch.num_faces() == 281410);
         //fs::util::str_to_file("lh.cortex.obj", patch.to_obj());  // check this mesh visually with meshlab
+    }
+
+    SECTION("Using curv_data_for_origmesh to stretch submesh per-vertex data to the original mesh works") {
+
+        std::vector<float> pvd_full = fs::read_curv_data("examples/subjects_dir/subject1/surf/lh.sulc");
+        fs::Label label;
+        fs::read_label(&label, "examples/read_label/lh.cortex.label");
+
+        auto result = surface.submesh_vertex(label.vertex);
+        fs::Mesh patch = result.second;
+        std::unordered_map<int32_t, int32_t> mapping = result.first;
+
+        // Construct data for submesh
+        std::vector<float> pvd_submesh(patch.num_vertices());
+        for(size_t i=0; i<patch.num_vertices(); i++) {
+            pvd_submesh[i] = pvd_full[label.vertex[i]];
+        }
+
+        REQUIRE(patch.num_vertices() == pvd_submesh.size());
+
+        // Restore data for full mesh from submesh data. The values for vertices not in the submesh are NAN.
+        std::vector<float>pvd_full_restored = fs::Mesh::curv_data_for_orig_mesh(pvd_submesh, mapping, surface.num_vertices());
+
+        REQUIRE(pvd_full_restored.size() == surface.num_vertices());
+
+        // write pvd for submesh and mesh out for visual inspection in meshlab.
+        bool do_export = false;
+        if (do_export) {
+            fs::write_mesh(patch, "submesh.surf");
+            fs::write_curv("submesh_pvd.curv", pvd_submesh);
+            fs::write_mesh(surface, "fullmesh.surf");
+            fs::write_curv("fullmesh_pvd.curv", pvd_full);
+            fs::write_curv("fullmesh_pvd_restored.curv", pvd_full_restored);
+            std::cout << "NOTE: submesh and fullmesh files exported, please check them visually in meshlab. You can export to colored mesh with 'export_brainmesh' app from my 'cpp_geodesics' repository.\n";
+            std::cout << "  ../cpp_geodesics/export_brainmesh fullmesh.surf fullmesh_pvd.curv fullmesh_origdata.ply\n";
+            std::cout << "  ../cpp_geodesics/export_brainmesh fullmesh.surf fullmesh_pvd_restored.curv fullmesh_datarestored.ply\n";
+            std::cout << "  ../cpp_geodesics/export_brainmesh submesh.surf submesh_pvd.curv submesh.ply\n";
+            std::cout << "  meshlab fullmesh_origdata.ply\n";
+            std::cout << "  meshlab fullmesh_datarestored.ply\n";
+            std::cout << "  meshlab submesh.ply\n";
+        }
+
+        std::vector<bool> vertex_is_cortical = label.vert_in_label(surface.num_vertices());
+        for(size_t i = 0; i < surface.num_vertices(); i++) {
+            if(vertex_is_cortical[i]) {
+                REQUIRE(pvd_full_restored[i] == Approx(pvd_full[i]));
+            } else {
+                REQUIRE(std::isnan(pvd_full_restored[i]));
+            }
+        }
     }
 }
 
