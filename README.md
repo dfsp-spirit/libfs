@@ -2,6 +2,11 @@
 A portable, header-only, single file, no-dependency, mildly templated, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
 
 
+
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8090828.svg)](https://doi.org/10.5281/zenodo.8090828)
+
+
 ## Features
 
 * read and write FreeSurfer per-vertex data from and to binary curv format files (like `$SUBJECTS_DIR/surf/lh.thickness`).
