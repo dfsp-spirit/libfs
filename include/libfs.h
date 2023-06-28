@@ -881,7 +881,7 @@ namespace fs {
 
     /// @brief Compute a new mesh that is a submesh of this mesh, based on a subset of the vertices of this mesh.
     /// @param old_vertex_indices vector of vertex indices of this mesh, which should be included in the submesh.
-    /// @param mapdir_fulltosubmesh whether to return a map from the old (full mesh) to the new (submesh)  vertex indices (`true`, the default), or the other way around (`false`) as the first element of the returned pair.
+    /// @param mapdir_fulltosubmesh whether to return a map from the old (full mesh) to the new (submesh)  vertex indices (`true`), or the other way around (`false`, the default) as the first element of the returned pair.
     /// @return a pair of the vertex index map (direction 'fullmesh to submesh' by default, but see 'mapdir_fulltosubmesh' parameter) and the submesh.
     ///
     /// #### Examples
@@ -893,7 +893,7 @@ namespace fs {
     /// fs::read_label(&label, "examples/read_label/lh.cortex.label");
     /// std::pair <std::unordered_map<int32_t, int32_t>, fs::Mesh> result = surface.submesh_vertex(label.vertex);
     /// fs::Mesh patch = result.second;
-    /// auto vertexindexmap_full2submesh = result.first; // or '<std::unordered_map<int32_t, int32_t>' instead of 'auto'.
+    /// auto vertexindexmap_submesh2full = result.first; // or '<std::unordered_map<int32_t, int32_t>' instead of 'auto'.
     /// @endcode
     std::pair <std::unordered_map<int32_t, int32_t>, fs::Mesh> submesh_vertex(const std::vector<int> &old_vertex_indices, const bool mapdir_fulltosubmesh = false) const {
       fs::Mesh submesh;
