@@ -944,13 +944,13 @@ namespace fs {
     /// @param orig_mesh_num_vertices number of vertices of the original, full mesh.
     /// @see `fs::Mesh::submesh_vertex` for how to get the `submesh_to_orig_mapping` parameter.
     /// @return vector of per-vertex data values, one value per mesh vertex of the original mesh. Values for vertices that are not part of the submesh are set to NAN.
-    static std::vector<float> curv_data_for_orig_mesh(const std::vector<float> data_submesh, const std::unordered_map<int32_t, int32_t> submesh_to_orig_mapping, const int32_t orig_mesh_num_vertices) {
+    static std::vector<float> curv_data_for_orig_mesh(const std::vector<float> data_submesh, const std::unordered_map<int32_t, int32_t> submesh_to_orig_mapping, const int32_t orig_mesh_num_vertices, const float fill_value=std::numeric_limits<float>::quiet_NaN()) {
 
       if(submesh_to_orig_mapping.size() != data_submesh.size()) {
         throw std::domain_error("The number of vertices of the submesh and the number of values in the submesh_to_orig_mapping do not match: got " + std::to_string(data_submesh.size()) + " and " + std::to_string(submesh_to_orig_mapping.size()) + ".");
       }
 
-      std::vector<float> data_orig_mesh(orig_mesh_num_vertices, std::numeric_limits<float>::quiet_NaN());
+      std::vector<float> data_orig_mesh(orig_mesh_num_vertices, fill_value);
       for(size_t i=0; i<data_submesh.size(); i++) {
           auto got = submesh_to_orig_mapping.find(i);
           if (got != submesh_to_orig_mapping.end()) {

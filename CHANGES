@@ -1,10 +1,10 @@
 fslib Changes
 ===============
 
-v0.3.3: Submeshes
 -----------------
 * Add function libfs::Mesh::submesh_vertex to create a submesh based on given vertex indices.
-* Add static function libfs::Mesh::curv_data_for_orig_mesh to map per-vertex data for a submesh back to the full, original mesh.
+* Add static function libfs::Mesh::curv_data_for_orig_mesh to map per-vertex data for a submesh back to the full, original mesh.v0.3.3: Submeshes
+
 
 v0.3.2: Version information
 ---------------------------
