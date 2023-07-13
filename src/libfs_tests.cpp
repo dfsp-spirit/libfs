@@ -17,7 +17,11 @@
 
 TEST_CASE( "Reading the demo curv file with read_curv_data works" ) {
 
-    std::vector<float> data = fs::read_curv_data("examples/read_curv/lh.thickness");
+    std::string curv_file_path = fs::util::fullpath({"examples", "read_curv" , "lh.thickness"});
+    if (! fs::util::file_exists(curv_file_path)) {
+        std::cerr << "Cannot access test data curv file at '" << curv_file_path << "'." << std::endl;
+    }
+    std::vector<float> data = fs::read_curv_data(curv_file_path);
 
     SECTION("The number of values read is correct" ) {
         REQUIRE( data.size() == 149244);
