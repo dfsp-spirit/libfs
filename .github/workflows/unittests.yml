@@ -29,8 +29,10 @@ jobs:
     - name: install doxygen Windows
       if: matrix.os == 'windows-latest'
       run: |
-            choco install doxygen.install
-
+            $url = "https://www.doxygen.nl/files/doxygen-1.9.4.windows.x64.bin.zip"
+            Start-DownloadWithRetry -Url $url -Name "doxygen.zip" -DownloadPath "C:\"
+            Extract-7Zip -Path  "C:\doxygen.zip" -DestinationPath "C:\windows\system32"
+            doxygen --version
 
     - uses: actions/checkout@v3
     - name: Configure
