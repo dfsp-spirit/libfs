@@ -41,7 +41,11 @@ jobs:
       run: |
         cmake --build build --config Debug
 
-    - name: Test
+    - name: Test Windows
+      if: matrix.os == 'windows-latest'
       run: |
-        #ctest -C Debug --output-on-failure --verbose
+        ./build/Debug/run_libfs_tests.exe
+
+    - name: Test Linux and Mac OS
+      run: |
         ./build/run_libfs_tests
