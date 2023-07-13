@@ -5,6 +5,7 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
 
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8090828.svg)](https://doi.org/10.5281/zenodo.8090828)
+![main](https://github.com/dfsp-spirit/libfs/actions/workflows/unittests.yml/badge.svg?branch=main)
 
 
 ## Features
