@@ -16,16 +16,17 @@ jobs:
 
     steps:
 
-    - name: install doxygen Linux
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-          sudo apt-get install doxygen
-
-    - name: install doxygen Mac
-      if: matrix.os == 'macos-latest'
-      run: |
-            brew install doxygen
-
+    ## We do not install doxygen, as it is disabled in the CMakeLists.txt by default.
+    #- name: install doxygen Linux
+    #  if: matrix.os == 'ubuntu-latest'
+    #  run: |
+    #      sudo apt-get install doxygen
+    #
+    #- name: install doxygen Mac
+    #  if: matrix.os == 'macos-latest'
+    #  run: |
+    #        brew install doxygen
+    #
     #- name: install doxygen Windows
     #  if: matrix.os == 'windows-latest'
     #  run: |
