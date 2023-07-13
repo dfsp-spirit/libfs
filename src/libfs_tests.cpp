@@ -565,8 +565,8 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         fs::read_mesh(&surface_obj, obj_file);
 
         // Check vertex and face counts
-        REQUIRE( surface_obj.vertices.size() == 149244 * 3);
-        REQUIRE( surface_obj.faces.size() == 298484 * 3);
+        REQUIRE( surface_obj.vertices.size() == size_t(149244 * 3));
+        REQUIRE( surface_obj.faces.size() == size_t(298484 * 3));
 
         // Check face vertex indices
         int vmin_entry = *std::min_element(surface_obj.faces.begin(), surface_obj.faces.end()); // could use minmax for single call
@@ -585,8 +585,8 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         fs::read_mesh(&surface2, off_file);
 
         // Check vertex and face counts
-        REQUIRE( surface.vertices.size() == 149244 * 3);
-        REQUIRE( surface.faces.size() == 298484 * 3);
+        REQUIRE( surface.vertices.size() == size_t(149244 * 3));
+        REQUIRE( surface.faces.size() == size_t(298484 * 3));
 
         // Check face vertex indices
         int vmin_entry = *std::min_element(surface.faces.begin(), surface.faces.end()); // could use minmax for single call
@@ -611,8 +611,8 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         fs::read_mesh(&surface2, off_file);
 
         // Check vertex and face countss
-        REQUIRE( surface2.vertices.size() == 149244 * 3);
-        REQUIRE( surface2.faces.size() == 298484 * 3);
+        REQUIRE( surface2.vertices.size() == size_t(149244 * 3));
+        REQUIRE( surface2.faces.size() == size_t(298484 * 3));
 
         // Check face vertex indices
         int vmin_entry = *std::min_element(surface2.faces.begin(), surface2.faces.end()); // could use minmax for single call
@@ -736,8 +736,8 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         fs::Mesh surface2 = fs::Mesh::construct_pyramid();
 
         // Check vertex and face counts
-        REQUIRE( surface2.num_vertices() == 5);
-        REQUIRE( surface2.num_faces() == 6);
+        REQUIRE( surface2.num_vertices() == size_t(5));
+        REQUIRE( surface2.num_faces() == size_t(6));
 
         // Note: To have a look at the constructed mesh, uncomment the next line,
         //       and then run 'meshlab pyramid.ply' from your sytem shell.
@@ -773,8 +773,8 @@ TEST_CASE( "Reading the demo label file works" ) {
         std::vector<int> vertices = { 0, 1, 5, 6, 7 };
         std::vector<float> values = { 0.0, 0.0, 0.1, 0.1, 0.5 };
         fs::Label label = fs::Label(vertices, values);
-        REQUIRE( label.vertex.size() == 5);
-        REQUIRE( label.value.size() == 5);
+        REQUIRE( label.vertex.size() == size_t(5));
+        REQUIRE( label.value.size() == size_t(5));
     }
 
     SECTION("The number of vertices, coordinates and values in the label are identical and correct" ) {
