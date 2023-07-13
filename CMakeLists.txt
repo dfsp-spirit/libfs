@@ -42,7 +42,7 @@ endif()
 
 ## Hint: if this does not work anymore on your system after software changes, delete the 'CMakeCache.txt' file and try again.
 find_package(Doxygen)
-option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ON)
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" OFF)
 if(BUILD_DOCUMENTATION)
     if(NOT DOXYGEN_FOUND)
         message(FATAL_ERROR "Doxygen not found, cannot build the documentation.")

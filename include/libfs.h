@@ -1249,7 +1249,7 @@ namespace fs {
             if(vertices.size() < (size_t)num_verts * 3) {
               float x,y,z;
               if (!(iss >> x >> y >> z)) {
-                throw std::domain_error("Could not parse vertex line of PLY data, invalid format.\n");
+                throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
               }
               vertices.push_back(x);
               vertices.push_back(y);
@@ -1258,7 +1258,7 @@ namespace fs {
               if(faces.size() < (size_t)num_faces * 3) {
                 int verts_per_face, v0, v1, v2;
                 if (!(iss >> verts_per_face >> v0 >> v1 >> v2)) {
-                  throw std::domain_error("Could not parse face line of PLY data, invalid format.\n");
+                  throw std::domain_error("Could not parse face line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
                 }
                 if(verts_per_face != 3) {
                   throw std::domain_error("Only triangular meshes are supported: PLY faces lines must contain exactly 3 vertex indices.\n");
