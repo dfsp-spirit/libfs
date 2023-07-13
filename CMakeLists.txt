@@ -16,7 +16,8 @@ if( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
     target_compile_options( run_libfs_tests PRIVATE -Wall -Wextra -pedantic -Werror )
 endif()
 if( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
-	target_compile_options( run_libfs_tests PRIVATE /W4 /WX )
+	target_compile_options( run_libfs_tests PRIVATE /W3 /WX )
+    target_compile_definitions(run_libfs_tests PRIVATE _CRT_SECURE_NO_WARNINGS) # Disable MSVCC non-standard warnings/errors about fopen, strcpy, etc.
 endif()
 
 
@@ -34,7 +35,8 @@ if( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
     target_compile_options( demo_libfs PRIVATE -Wall -Wextra -pedantic -Werror )
 endif()
 if( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
-	target_compile_options( demo_libfs PRIVATE /W4 /WX )
+	target_compile_options( demo_libfs PRIVATE /W3 /WX )
+    target_compile_definitions(demo_libfs PRIVATE _CRT_SECURE_NO_WARNINGS) # Disable MSVCC non-standard warnings/errors about fopen, strcpy, etc.
 endif()
 
 
