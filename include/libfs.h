@@ -130,6 +130,19 @@ namespace fs {
 
   namespace util {
 
+    /// @brief  Cross-platform wrapper for localtime_r and localtime_s.
+    /// @param time the time to convert to an std::tm struct.
+    /// @return the std::tm struct.
+    tm _localtime(const std::time_t& time) {
+      std::tm tm_snapshot;
+      #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
+        ::localtime_s(&tm_snapshot, &time);
+      #else
+        ::localtime_r(&time, &tm_snapshot); // POSIX
+      #endif
+        return tm_snapshot;
+    }
+
     /// @brief Get current time as string, e.g. for log messages.
     /// @param t the timepoint to format as a string, typically `std::system_clock::now()`.
     /// @return the formatted time string.
@@ -143,10 +156,9 @@ namespace fs {
       struct tm tm;
       char time_buffer[64];
       //if (::gmtime_r(&as_time_t, &tm)) {
-      if (::localtime_r(&as_time_t, &tm)) {
-        if (std::strftime(time_buffer, sizeof(time_buffer), "%F %T", &tm)) {
-          return std::string{time_buffer};
-        }
+      tm = _localtime(as_time_t);
+      if (std::strftime(time_buffer, sizeof(time_buffer), "%F %T", &tm)) {
+        return std::string{time_buffer};
       }
       throw std::runtime_error("Failed to get current date as string");
     }
