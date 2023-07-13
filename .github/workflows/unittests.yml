@@ -15,8 +15,24 @@ jobs:
         shell: bash -l {0}
 
     steps:
-    - uses: actions/checkout@v3
 
+    - name: install doxygen Linux
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+          sudo apt-get install doxygen
+
+    - name: install doxygen Mac
+      if: matrix.os == 'macos-latest'
+      run: |
+            brew install doxygen
+
+    - name: install doxygen Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+            choco install doxygen.install
+
+
+    - uses: actions/checkout@v3
     - name: Configure
       run: |
         cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Debug
