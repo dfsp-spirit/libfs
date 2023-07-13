@@ -14,6 +14,7 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 
 #define LIBFS_VERSION "0.3.2"
 

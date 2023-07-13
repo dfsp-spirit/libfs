@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <cstdint>
 
 
 TEST_CASE( "Reading the demo curv file with read_curv_data works" ) {
@@ -847,10 +848,10 @@ TEST_CASE( "Reading the demo annot file works" ) {
     }
 
     SECTION("One can compute the vertex colors for all vertices." ) {
-        std::vector<u_int8_t> vertex_colors_rgb = annot.vertex_colors();
+        std::vector<uint8_t> vertex_colors_rgb = annot.vertex_colors();
         REQUIRE( vertex_colors_rgb.size() == surface_num_vertices * 3);
 
-        std::vector<u_int8_t> vertex_colors_rgba = annot.vertex_colors(true);
+        std::vector<uint8_t> vertex_colors_rgba = annot.vertex_colors(true);
         REQUIRE( vertex_colors_rgba.size() == surface_num_vertices * 4);
     }
 }
