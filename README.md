@@ -123,7 +123,7 @@ make
 ```
 Note that the only things that are being built are the test binary `run_libfs_tests` and the demo application, `demo_libfs`.
 
-Note: If you do not have cmake, you can compile the test manually, e.g., for `g++`:
+Note: If you do not have cmake, you can compile the tests manually, e.g., for `g++`:
 
 ```shell
 # in the libfs repo root:
