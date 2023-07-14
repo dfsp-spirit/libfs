@@ -109,19 +109,28 @@ You need git, cmake and some C++ compiler. Under Debian-based Linux distribution
 
 If you have not cloned yet:
 
-```
+```shell
 git clone https://github.com/dfsp-spirit/libfs
 cd libfs/
 ```
 
 Then build and run the tests:
 
-```
+```shell
 cmake .
 make
 ./run_libfs_tests
 ```
 Note that the only things that are being built are the test binary `run_libfs_tests` and the demo application, `demo_libfs`.
+
+Note: If you do not have cmake, you can compile the test manually, e.g., for `g++`:
+
+```shell
+# in the libfs repo root:
+g++ -Iinclude -Ithird_party src/main.cpp src/libfs_tests.cpp -o run_libfs_tests
+```
+
+Please check your compiler's manual if you are using a different compiler.
 
 
 ### Running all mini examples
