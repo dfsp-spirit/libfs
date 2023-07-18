@@ -567,13 +567,13 @@ namespace fs {
           continue;
         }
         // Add the upper left triangle of this grid cell.
-        faces.push_back(i);
-        faces.push_back(i + ny + 1);
-        faces.push_back(i + 1);
+        faces.push_back(int(i));
+        faces.push_back(int(i + ny + 1));
+        faces.push_back(int(i + 1));
         // Add the lower right triangle of this grid cell.
-        faces.push_back(i);
-        faces.push_back(i + ny + 1);
-        faces.push_back(i + ny);
+        faces.push_back(int(i));
+        faces.push_back(int(i + ny + 1));
+        faces.push_back(int(i + ny));
       }
 
       mesh.vertices = vertices;
@@ -965,7 +965,7 @@ namespace fs {
 
       std::vector<float> data_orig_mesh(orig_mesh_num_vertices, fill_value);
       for(size_t i=0; i<data_submesh.size(); i++) {
-          auto got = submesh_to_orig_mapping.find(i);
+          auto got = submesh_to_orig_mapping.find(int(i));
           if (got != submesh_to_orig_mapping.end()) {
             data_orig_mesh[got->second] = data_submesh[i];
           }
@@ -1104,7 +1104,9 @@ namespace fs {
 
       std::vector<float> vertices;
       std::vector<int> faces;
-      size_t num_vertices, num_faces, num_edges;
+      size_t num_vertices = 0;
+      size_t num_faces = 0;
+      size_t num_edges = 0;
       size_t num_verts_parsed = 0;
       size_t num_faces_parsed = 0;
       float x, y, z;    // vertex xyz coords
@@ -1581,7 +1583,7 @@ namespace fs {
 
     /// Construct a Curv instance from the given per-vertex data.
     Curv(std::vector<float> curv_data) :
-      num_faces(100000), num_vertices(0), num_values_per_vertex(1) { data = curv_data; num_vertices = data.size(); }
+      num_faces(100000), num_vertices(0), num_values_per_vertex(1) { data = curv_data; num_vertices = int(data.size()); }
 
     /// Construct an empty Curv instance.
     Curv() :
@@ -1665,7 +1667,7 @@ namespace fs {
       std::vector<int32_t> reg_verts;
       for(size_t i=0; i<this->vertex_labels.size(); i++) {
         if(this->vertex_labels[i] == region_label) {
-          reg_verts.push_back(i);
+          reg_verts.push_back(int(i));
         }
       }
       return(reg_verts);
@@ -1730,23 +1732,23 @@ namespace fs {
 
   /// Models the header of an MGH file.
   struct MghHeader {
-    int32_t dim1length;  ///< size of data along 1st dimension
-    int32_t dim2length;  ///< size of data along 2nd dimension
-    int32_t dim3length;  ///< size of data along 3rd dimension
-    int32_t dim4length;  ///< size of data along 4th dimension
+    int32_t dim1length = 0;  ///< size of data along 1st dimension
+    int32_t dim2length = 0;  ///< size of data along 2nd dimension
+    int32_t dim3length = 0;  ///< size of data along 3rd dimension
+    int32_t dim4length = 0;  ///< size of data along 4th dimension
 
-    int32_t dtype;  ///< the MRI data type
-    int32_t dof;  ///< typically ignored
-    int16_t ras_good_flag; ///< flag indicating whether the data in the RAS fields (Mdc, Pxyz_c) are valid. 1 means valid, everything else means invalid.
+    int32_t dtype = 0;  ///< the MRI data type
+    int32_t dof = 0;  ///< typically ignored
+    int16_t ras_good_flag = 0; ///< flag indicating whether the data in the RAS fields (Mdc, Pxyz_c) are valid. 1 means valid, everything else means invalid.
 
     /// @brief Compute the number of values based on the dim*length header fields.
     size_t num_values() const {
       return((size_t) dim1length * dim2length * dim3length * dim4length);
     }
 
-    float xsize;  ///< size of voxels along 1st axis (x or r)
-    float ysize;  ///< size of voxels along 2nd axis (y or a)
-    float zsize;  ///< size of voxels along 3rd axis (z or s)
+    float xsize = 0.0;  ///< size of voxels along 1st axis (x or r)
+    float ysize = 0.0;  ///< size of voxels along 2nd axis (y or a)
+    float zsize = 0.0;  ///< size of voxels along 3rd axis (z or s)
     std::vector<float> Mdc;  ///< matrix
     std::vector<float> Pxyz_c;  ///< x,y,z coordinates of central vertex
   };
@@ -2039,7 +2041,7 @@ namespace fs {
     if(ifs.is_open()) {
       ifs.seekg(284, ifs.beg); // skip to end of header and beginning of data
 
-      int num_values = mgh_header->num_values();
+      int num_values = int(mgh_header->num_values());
       std::vector<T> data;
       for(int i=0; i<num_values; i++) {
         data.push_back( _freadt<T>(ifs));
@@ -2058,7 +2060,7 @@ namespace fs {
   /// @private
   template <typename T>
   std::vector<T> _read_mgh_data(MghHeader* mgh_header, std::istream* is) {
-    int num_values = mgh_header->num_values();
+    int num_values = int(mgh_header->num_values());
     std::vector<T> data;
     for(int i=0; i<num_values; i++) {
       data.push_back( _freadt<T>(*is));
@@ -2190,6 +2192,7 @@ namespace fs {
   bool _is_bigendian() {
     short int number = 0x1;
     char *numPtr = (char*)&number;
+    //std::cout << "Platform is big endian: " << (numPtr[0] != 1) << ".\n";
     return (numPtr[0] != 1);
   }
 
@@ -2460,10 +2463,7 @@ namespace fs {
   /// Read a fixed length C-style string from an open binary stream. This does not care about trailing NULL bytes or anything, it just reads the given length of bytes.
   /// @throws std::out_of_range if length is not positive
   /// @private
-  std::string _freadfixedlengthstring(std::istream &is, int32_t length, bool strip_last_char=true) {
-    if(length <= 0) {
-      throw std::out_of_range("Parameter 'length' must be a positive integer.\n");
-    }
+  std::string _freadfixedlengthstring(std::istream &is, size_t length, bool strip_last_char=true) {
     std::string str;
     str.resize(length);
     is.read(&str[0], length);
@@ -2482,7 +2482,7 @@ namespace fs {
   void write_curv(std::ostream& os, std::vector<float> curv_data, int32_t num_faces = 100000) {
     const uint32_t CURV_MAGIC = 16777215;
     _fwritei3(os, CURV_MAGIC);
-    _fwritet<int32_t>(os, curv_data.size());
+    _fwritet<int32_t>(os, int(curv_data.size()));
     _fwritet<int32_t>(os, num_faces);
     _fwritet<int32_t>(os, 1); // Number of values per vertex.
     for(size_t i=0; i<curv_data.size(); i++) {
@@ -2671,7 +2671,7 @@ namespace fs {
     /// Return the number of entries (vertices/voxels) in this label.
     size_t num_entries() const {
       size_t num_ent = this->vertex.size();
-      if(this->coord_x.size() != num_ent || this->coord_y.size() != num_ent || this->coord_z.size() != num_ent || this->value.size() != num_ent || this->value.size() != num_ent) {
+      if(this->coord_x.size() != num_ent || this->coord_y.size() != num_ent || this->coord_z.size() != num_ent || this->value.size() != num_ent) {
         std::cerr << "Inconsistent label: sizes of property vectors do not match.\n";
       }
       return(num_ent);
@@ -2689,8 +2689,8 @@ namespace fs {
     _fwritei3(os, SURF_TRIS_MAGIC);
     std::string created_and_comment_lines = "Created by fslib\n\n";
     os << created_and_comment_lines;
-    _fwritet<int32_t>(os, vertices.size() / 3);  // number of vertices
-    _fwritet<int32_t>(os, faces.size() / 3);  // number of faces
+    _fwritet<int32_t>(os, int(vertices.size() / 3));  // number of vertices
+    _fwritet<int32_t>(os, int(faces.size() / 3));  // number of faces
     for(size_t i=0; i < vertices.size(); i++) {
        _fwritet<float>(os, vertices[i]);
     }
