@@ -417,7 +417,7 @@ namespace fs {
   int _fread3(std::istream&);
   template <typename T> T _freadt(std::istream&);
   std::string _freadstringnewline(std::istream&);
-  std::string _freadfixedlengthstring(std::istream&, int32_t, bool);
+  std::string _freadfixedlengthstring(std::istream&, size_t, bool);
   bool _ends_with(std::string const &fullString, std::string const &ending);
   size_t _vidx_2d(size_t, size_t, size_t);
   struct MghHeader;
