@@ -48,5 +48,6 @@ jobs:
         ./build/Debug/run_libfs_tests.exe
 
     - name: Test Linux and Mac OS
+      if: matrix.os != 'windows-latest'
       run: |
         ./build/run_libfs_tests
