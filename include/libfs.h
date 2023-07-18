@@ -908,7 +908,7 @@ namespace fs {
     /// fs::Mesh patch = result.second;
     /// auto vertexindexmap_submesh2full = result.first; // or '<std::unordered_map<int32_t, int32_t>' instead of 'auto'.
     /// @endcode
-    std::pair <std::unordered_map<int32_t, int32_t>, fs::Mesh> submesh_vertex(const std::vector<int> &old_vertex_indices, const bool mapdir_fulltosubmesh = false) const {
+    std::pair <std::unordered_map<int32_t, int32_t>, fs::Mesh> submesh_vertex(const std::vector<int32_t> &old_vertex_indices, const bool mapdir_fulltosubmesh = false) const {
       fs::Mesh submesh;
       std::vector<float> new_vertices;
       std::vector<int> new_faces;
@@ -916,9 +916,9 @@ namespace fs {
       int32_t new_vertex_idx = 0;
       for(size_t i = 0; i < old_vertex_indices.size(); i++) {
         vertex_index_map_full2submesh[old_vertex_indices[i]] = new_vertex_idx;
-        new_vertices.push_back(this->vertices[old_vertex_indices[i]*3]);
-        new_vertices.push_back(this->vertices[old_vertex_indices[i]*3+1]);
-        new_vertices.push_back(this->vertices[old_vertex_indices[i]*3+2]);
+        new_vertices.push_back(this->vertices[size_t(old_vertex_indices[i])*3]);
+        new_vertices.push_back(this->vertices[size_t(old_vertex_indices[i])*3+1]);
+        new_vertices.push_back(this->vertices[size_t(old_vertex_indices[i])*3+2]);
         new_vertex_idx++;
       }
       int face_v0;
