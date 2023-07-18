@@ -17,7 +17,7 @@
 #include <cstdint>
 
 
-#define LIBFS_VERSION "0.3.2"
+#define LIBFS_VERSION "0.3.4"
 
 /// @file
 ///
