@@ -16,6 +16,10 @@
 #include <chrono>
 #include <cstdint>
 
+#ifdef _MSC_VER  // we are on Visual C++ by MS
+#include <intrin.h>
+#endif
+
 #define LIBFS_VERSION "0.3.2"
 
 /// @file
@@ -1078,7 +1082,7 @@ namespace fs {
       #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from Wavefront object format file " << filename << ".\n";
       #endif
-      std::ifstream input(filename);
+      std::ifstream input(filename, std::fstream::in);
       if(input.is_open()) {
         Mesh::from_obj(mesh, &input);
         input.close();
@@ -1190,7 +1194,7 @@ namespace fs {
       #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from OFF format file " << filename << ".\n";
       #endif
-      std::ifstream input(filename);
+      std::ifstream input(filename, std::fstream::in);
       if(input.is_open()) {
         Mesh::from_off(mesh, &input);
         input.close();
@@ -1301,7 +1305,7 @@ namespace fs {
       #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from PLY format file " << filename << ".\n";
       #endif
-      std::ifstream input(filename);
+      std::ifstream input(filename, std::fstream::in);
       if(input.is_open()) {
         Mesh::from_ply(mesh, &input);
         input.close();
@@ -1878,7 +1882,7 @@ namespace fs {
   /// @endcode
   std::vector<std::string> read_subjectsfile(const std::string& filename) {
     std::vector<std::string> subjects;
-    std::ifstream input(filename);
+    std::ifstream input(filename, std::fstream::in);
     std::string line;
 
     if(! input.is_open()) {
@@ -2238,7 +2242,7 @@ namespace fs {
   /// fs::read_curv(&curv, "examples/read_curv/lh.thickness");
   /// @endcode
   void read_curv(Curv* curv, const std::string& filename) {
-    std::ifstream is(filename);
+    std::ifstream is(filename, std::fstream::in | std::fstream::binary);
     if(is.is_open()) {
       read_curv(curv, &is, filename);
       is.close();
@@ -2339,7 +2343,7 @@ namespace fs {
   /// fs::read_annot(&annot, annot_fname);
   /// @endcode
   void read_annot(Annot* annot, const std::string& filename) {
-    std::ifstream is(filename);
+    std::ifstream is(filename, std::fstream::in | std::fstream::binary);
     if(is.is_open()) {
       read_annot(annot, &is);
       is.close();
@@ -2367,12 +2371,35 @@ namespace fs {
     return(curv.data);
   }
 
+  float _swap_endian_float(const float inFloat)
+  {
+      float retVal;
+      char* floatToConvert = (char*)&inFloat;
+      char* returnFloat = (char*)&retVal;
+
+      // swap the bytes into a temporary buffer
+      returnFloat[0] = floatToConvert[3];
+      returnFloat[1] = floatToConvert[2];
+      returnFloat[2] = floatToConvert[1];
+      returnFloat[3] = floatToConvert[0];
+
+      return retVal;
+  }
+
   /// Swap endianness of a value.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
   template <typename T>
   T _swap_endian(T u) {
+
+      #ifdef _MSC_VER  // we are on Visual C++ by MS
+      if (std::is_same<T, std::float_t>()) {
+          return _swap_endian_float(u);
+          //std::cout << "Swapping endianness of float.\n";
+      }
+      #endif
+
       static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
 
       union
@@ -2805,7 +2832,7 @@ namespace fs {
   /// fs::read_label(&label, "subject1/label/lh.cortex.label");
   /// @endcode
   void read_label(Label* label, const std::string& filename) {
-    std::ifstream infile(filename);
+    std::ifstream infile(filename, std::fstream::in);
     if(infile.is_open()) {
       read_label(label, &infile);
       infile.close();
