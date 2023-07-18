@@ -16,9 +16,6 @@
 #include <chrono>
 #include <cstdint>
 
-#ifdef _MSC_VER  // we are on Visual C++ by MS
-#include <intrin.h>
-#endif
 
 #define LIBFS_VERSION "0.3.2"
 
@@ -2371,34 +2368,13 @@ namespace fs {
     return(curv.data);
   }
 
-  float _swap_endian_float(const float inFloat)
-  {
-      float retVal;
-      char* floatToConvert = (char*)&inFloat;
-      char* returnFloat = (char*)&retVal;
-
-      // swap the bytes into a temporary buffer
-      returnFloat[0] = floatToConvert[3];
-      returnFloat[1] = floatToConvert[2];
-      returnFloat[2] = floatToConvert[1];
-      returnFloat[3] = floatToConvert[0];
-
-      return retVal;
-  }
-
+ 
   /// Swap endianness of a value.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
   template <typename T>
   T _swap_endian(T u) {
-
-      #ifdef _MSC_VER  // we are on Visual C++ by MS
-      if (std::is_same<T, std::float_t>()) {
-          return _swap_endian_float(u);
-          //std::cout << "Swapping endianness of float.\n";
-      }
-      #endif
 
       static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
 
