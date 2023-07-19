@@ -158,8 +158,8 @@ TEST_CASE( "Writing and re-reading an MGH file with MRI_SHORT data works" ) {
     }
 
     SECTION("The range of the values read is correct" ) {
-        uint8_t min_entry = *std::min_element(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end());
-        uint8_t max_entry = *std::max_element(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end());
+        short min_entry = *std::min_element(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end());
+        short max_entry = *std::max_element(mgh2.data.data_mri_short.begin(), mgh2.data.data_mri_short.end());
         REQUIRE(min_entry == 0);
         REQUIRE(max_entry == 156);
     }
@@ -307,7 +307,7 @@ TEST_CASE( "Reading the demo surface file works" ) {
         REQUIRE(patch.num_vertices() == pvd_submesh.size());
 
         // Restore data for full mesh from submesh data. The values for vertices not in the submesh are NAN.
-        std::vector<float>pvd_full_restored = fs::Mesh::curv_data_for_orig_mesh(pvd_submesh, mapping, surface.num_vertices());
+        std::vector<float>pvd_full_restored = fs::Mesh::curv_data_for_orig_mesh(pvd_submesh, mapping, int(surface.num_vertices()));
 
         REQUIRE(pvd_full_restored.size() == surface.num_vertices());
 
@@ -436,7 +436,7 @@ TEST_CASE( "A mesh neighborhood can be expanded." ) {
 TEST_CASE( "Smoothing per-vertex data for meshes works." ) {
 
     fs::Mesh surface = fs::Mesh::construct_cube();
-    std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
+    std::vector<float> pvd = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
 
     SECTION("The per-vertex data can be smoothed using a class method." ) {
         std::vector<float> pvd_smooth = surface.smooth_pvd_nn(pvd, 2);
@@ -446,14 +446,14 @@ TEST_CASE( "Smoothing per-vertex data for meshes works." ) {
 
     SECTION("The per-vertex data can be smoothed using the static method and a pre-computed adj list." ) {
         std::vector<std::vector<size_t>> mesh_adj = surface.as_adjlist();
-        std::vector<float> pvd = {1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7};
+        std::vector<float> pvd = {1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.6f, 1.7f};
         std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
         REQUIRE(pvd_smooth.size() == pvd.size());
     }
 
     SECTION("Per-vertex data including NANs can be smoothed using the static method and a pre-computed adj list." ) {
         std::vector<std::vector<size_t>> mesh_adj = surface.as_adjlist();
-        std::vector<float> pvd = {1.0, 1.1, 1.2, NAN, 1.4, 1.5, 1.6, 1.7};
+        std::vector<float> pvd = {1.0f, 1.1f, 1.2f, NAN, 1.4f, 1.5f, 1.6f, 1.7f};
         std::vector<float> pvd_smooth = fs::Mesh::smooth_pvd_nn(mesh_adj, pvd, 2);
         REQUIRE(pvd_smooth.size() == pvd.size());
         REQUIRE(std::isnan(pvd_smooth[3]));
@@ -776,7 +776,7 @@ TEST_CASE( "Reading the demo label file works" ) {
 
     SECTION("A label can be constructed from vertex indices and values." ) {
         std::vector<int> vertices = { 0, 1, 5, 6, 7 };
-        std::vector<float> values = { 0.0, 0.0, 0.1, 0.1, 0.5 };
+        std::vector<float> values = { 0.0f, 0.0f, 0.1f, 0.1f, 0.5f };
         fs::Label label = fs::Label(vertices, values);
         REQUIRE( label.vertex.size() == size_t(5));
         REQUIRE( label.value.size() == size_t(5));
