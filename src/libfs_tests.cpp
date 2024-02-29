@@ -65,6 +65,90 @@ TEST_CASE( "Reading the demo curv file with read_curv works" ) {
 }
 
 
+TEST_CASE( "Creating a new MGH file from Curv works" ) {
+
+    // This example writes 1-dimensional curv data (per-vertex data from a single subject/hemisphere) into a new MGH file.
+
+    fs::Curv curv;
+    fs::read_curv(&curv, "examples/read_curv/lh.thickness");
+
+    fs::Mgh mgh = fs::Mgh(curv);
+
+    SECTION("The MRI_DTYPE is correct" ) {
+        REQUIRE( mgh.header.dtype == fs::MRI_FLOAT);
+    }
+
+    SECTION("The number of values read is correct" ) {
+        REQUIRE( curv.data.size() == 149244);
+        REQUIRE(mgh.header.dim1length == 149244);
+        REQUIRE(mgh.header.dim2length == 1);
+        REQUIRE(mgh.header.dim3length == 1);
+        REQUIRE(mgh.header.dim4length == 1);
+    }
+
+    // Also write and re-read to check for issues with rest of default header fields.
+    const std::string mgh_out_file = "examples/read_mgh/brain_tmp.mgh";
+    fs::write_mgh(mgh, mgh_out_file);
+
+    fs::Mgh mgh2;
+    fs::read_mgh(&mgh2, mgh_out_file);
+
+    SECTION("The MRI_DTYPE is correct" ) {
+        REQUIRE( mgh2.header.dtype == fs::MRI_FLOAT);
+    }
+
+    SECTION("The number of values read is correct" ) {
+        REQUIRE( curv.data.size() == 149244);
+        REQUIRE(mgh2.header.dim1length == 149244);
+        REQUIRE(mgh2.header.dim2length == 1);
+        REQUIRE(mgh2.header.dim3length == 1);
+        REQUIRE(mgh2.header.dim4length == 1);
+    }
+}
+
+
+TEST_CASE( "Creating a new MGH file from scratch works" ) {
+
+    // This example writes 1-dimensional curv data (per-vertex data from a single subject/hemisphere) into a new MGH file.
+
+    fs::Curv curv;
+    fs::read_curv(&curv, "examples/read_curv/lh.thickness");
+
+    fs::Mgh mgh = fs::Mgh(curv.data);
+
+    SECTION("The MRI_DTYPE is correct" ) {
+        REQUIRE( mgh.header.dtype == fs::MRI_FLOAT);
+    }
+
+    SECTION("The number of values read is correct" ) {
+        REQUIRE( curv.data.size() == 149244);
+        REQUIRE(mgh.header.dim1length == 149244);
+        REQUIRE(mgh.header.dim2length == 1);
+        REQUIRE(mgh.header.dim3length == 1);
+        REQUIRE(mgh.header.dim4length == 1);
+    }
+
+    // Also write and re-read to check for issues with rest of default header fields.
+    const std::string mgh_out_file = "examples/read_mgh/brain_tmp.mgh";
+    fs::write_mgh(mgh, mgh_out_file);
+
+    fs::Mgh mgh2;
+    fs::read_mgh(&mgh2, mgh_out_file);
+
+    SECTION("The MRI_DTYPE is correct" ) {
+        REQUIRE( mgh2.header.dtype == fs::MRI_FLOAT);
+    }
+
+    SECTION("The number of values read is correct" ) {
+        REQUIRE( curv.data.size() == 149244);
+        REQUIRE(mgh2.header.dim1length == 149244);
+        REQUIRE(mgh2.header.dim2length == 1);
+        REQUIRE(mgh2.header.dim3length == 1);
+        REQUIRE(mgh2.header.dim4length == 1);
+    }
+}
+
+
 TEST_CASE( "Reading the demo MGH file works" ) {
 
     fs::Mgh mgh;
