@@ -1,7 +1,7 @@
 
 // Demo program that reads per-vertex data from a curv file.
-// To compile this witg g++ 9.3:
-// 
+// To compile this with g++ 9.3:
+//
 //    g++ -I../../include/ read_curv.cpp -o read_curv
 //
 // or with clang 10:
@@ -22,12 +22,12 @@ int main(int argc, char** argv) {
     if(argc == 2) {
         curv_fname = argv[1];
     }
-    std::cout << "Reading input curv file '" << curv_fname << "'.\n";    
+    std::cout << "Reading input curv file '" << curv_fname << "'.\n";
     std::vector<float> data = fs::read_curv_data(curv_fname);
     float min_entry = *std::min_element(data.begin(), data.end());
     float max_entry = *std::max_element(data.begin(), data.end());
     if(data.size() > 0) {
-        std::cout << "Received " << data.size() << " values in range " << min_entry  << " to " << max_entry << ".\n"; 
+        std::cout << "Received " << data.size() << " values in range " << min_entry  << " to " << max_entry << ".\n";
     } else {
         std::cout << "Received empty vector.\n";
     }
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     float min_entry2 = *std::min_element(data2.begin(), data2.end());
     float max_entry2 = *std::max_element(data2.begin(), data2.end());
     if(data.size() > 0) {
-        std::cout << "Received " << data2.size() << " values in range " << min_entry2  << " to " << max_entry2 << ".\n"; 
+        std::cout << "Received " << data2.size() << " values in range " << min_entry2  << " to " << max_entry2 << ".\n";
     } else {
         std::cout << "Received empty vector.\n";
     }

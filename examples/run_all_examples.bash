@@ -5,7 +5,7 @@ apptag="[RUNEXPL]"
 if [ ! -d "read_mgh" ]; then
     if [ -d "examples" ]; then
         cd examples/
-    else 
+    else
         echo "Invalid working directory, call this from the examples directory or from the repo root."
         exit 0
     fi
@@ -30,6 +30,9 @@ cd $bd/read_mgz && g++ -I../../include/ -I./include_zstr/ read_mgz.cpp -o read_m
 
 echo "$apptag ========== Running surf example... =========="
 cd $bd/read_surf && g++ -I../../include/ read_surf.cpp -o read_surf && ./read_surf && cd ..
+
+echo "$apptag ========== Running descriptor info example... =========="
+cd $bd/descriptor_info && g++ -I../../include/ descriptor_info.cpp -o descriptor_info && ./descriptor_info && cd ..
 
 
 

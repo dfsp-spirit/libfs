@@ -1,7 +1,7 @@
 
 // Demo program that reads label data from an ASCII label file.
-// To compile this witg g++ 9.3:
-// 
+// To compile this with g++ 9.3:
+//
 //    g++ -I../../include/ read_label.cpp -o read_label
 //
 // or with clang 10:
@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     float min_entry = *std::min_element(label.value.begin(), label.value.end());
     float max_entry = *std::max_element(label.value.begin(), label.value.end());
     if(label.value.size() > 0) {
-        std::cout << "Received " << label.value.size() << " label values in range " << min_entry  << " to " << max_entry << ".\n"; 
+        std::cout << "Received " << label.value.size() << " label values in range " << min_entry  << " to " << max_entry << ".\n";
     } else {
         std::cout << "Received empty label value vector.\n";
     }
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     float min_entry2 = *std::min_element(label2.value.begin(), label2.value.end());
     float max_entry2 = *std::max_element(label2.value.begin(), label2.value.end());
     if(label2.value.size() > 0) {
-        std::cout << "Received " << label2.value.size() << " label values in range " << min_entry2  << " to " << max_entry2 << ".\n"; 
+        std::cout << "Received " << label2.value.size() << " label values in range " << min_entry2  << " to " << max_entry2 << ".\n";
     } else {
         std::cout << "Received empty label value vector.\n";
     }
