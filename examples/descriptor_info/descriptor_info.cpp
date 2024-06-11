@@ -68,10 +68,10 @@ int main(int argc, char** argv) {
     if(argc >= 2) {
         curv_fname = argv[1];
     } else {
-        std::cout << "[INFO] No command line option supplied for curv file, assuming '" << curv_fname << "'.\n";
+        std::cout << "[INFO] No command line option supplied for curv/MGH file, assuming '" << curv_fname << "'.\n";
     }
-    std::cout << "[INFO] Reading input curv file '" << curv_fname << "'.\n";
-    std::vector<float> data = fs::read_curv_data(curv_fname);
+    std::cout << "[INFO] Reading input file '" << curv_fname << "' (must be in curv or MGH format, MGH filenames must end with '.mgh').\n";
+    std::vector<float> data = fs::read_desc_data(curv_fname);
     std::cout << "[INFO] The input file contains values for " << data.size() << " vertices.\n";
 
     std::string label_fname = "lh.cortex.label";

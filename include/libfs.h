@@ -2393,6 +2393,41 @@ namespace fs {
     return(curv.data);
   }
 
+  /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv format or MGH format file.
+  /// @param filename Path to a file from which to read the data. If the name ends with '.mgh' or '.MGH', this function assumes it is an MGH file. Otherwise it assumes it is a curv file. If it is an MGH file, it must contain data of type MRI_FLOAT, and it must only contain data for one subject, i.e., all dimensions with the exception of the first one should have size 1.
+  /// @return a vector of float values, one per vertex.
+  /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// std::string curv_fname = "lh.thickness";
+  /// std::vector<float> data = fs::read_curv_data(curv_fname);
+  /// @endcode
+  std::vector<float> read_desc_data(const std::string& filename) {
+    if(fs::util::ends_with(filename, {".MGH", ".mgh"})) {
+      fs::Mgh mgh;
+      fs::read_mgh(&mgh, filename);
+      assert(mgh.header.dtype == fs::MRI_FLOAT);
+      int num_gt_1 = 0;
+      std::vector<int> dims = { mgh.header.dim1length, mgh.header.dim2length, mgh.header.dim3length, mgh.header.dim4length };
+      for(size_t i = 0; i < dims.size(); i++) {
+        if(dims[i] > 1) {
+          num_gt_1++;
+        }
+      }
+      if(num_gt_1 > 1) {
+        std::cerr << "MGH file '" << filename << "' contains more than one non-empty dimension. Returning concatinated data.\n";
+      }
+      return mgh.data.data_mri_float;
+
+    } else {
+      Curv curv;
+      read_curv(&curv, filename);
+      return(curv.data);
+    }
+  }
+
 
   /// Swap endianness of a value.
   ///

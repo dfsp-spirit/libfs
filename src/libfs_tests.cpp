@@ -65,6 +65,50 @@ TEST_CASE( "Reading the demo curv file with read_curv works" ) {
 }
 
 
+TEST_CASE( "Reading curv and mgh files with read_desc works" ) {
+
+    std::string curv_file = "examples/read_curv/lh.thickness";
+    std::string mgh_file = "examples/read_mgh/lh.thickness.mgh";
+
+    std::vector<float> data_curv = fs::read_desc_data(curv_file);
+    std::vector<float> data_mgh = fs::read_desc_data(mgh_file);
+
+    SECTION("The number of values read from the curv file is correct" ) {
+        REQUIRE( data_curv.size() == 149244);
+    }
+
+    SECTION("The number of values read from the MGH file is correct" ) {
+        REQUIRE( data_mgh.size() == 149244);
+    }
+
+    SECTION("The range of the values read from the curv file is correct" ) {
+        float min_entry = *std::min_element(data_curv.begin(), data_curv.end());
+        float max_entry = *std::max_element(data_curv.begin(), data_curv.end());
+        REQUIRE(min_entry == Approx(0.0));
+        REQUIRE(max_entry == Approx(5.0));
+    }
+
+    SECTION("The range of the values read from the MGH file is correct" ) {
+        float min_entry = *std::min_element(data_mgh.begin(), data_mgh.end());
+        float max_entry = *std::max_element(data_mgh.begin(), data_mgh.end());
+        REQUIRE(min_entry == Approx(0.0));
+        REQUIRE(max_entry == Approx(5.0));
+    }
+
+    SECTION("Some values read from the curv file are as expected") {
+        REQUIRE(data_curv[0] == Approx(2.561705));
+        REQUIRE(data_curv[100] == Approx(2.579938));
+        REQUIRE(data_curv[100000] == Approx(0.0));
+    }
+
+    SECTION("Some values read from the MGH file are as expected") {
+        REQUIRE(data_mgh[0] == Approx(2.561705));
+        REQUIRE(data_mgh[100] == Approx(2.579938));
+        REQUIRE(data_mgh[100000] == Approx(0.0));
+    }
+}
+
+
 TEST_CASE( "Creating a new MGH file from Curv works" ) {
 
     // This example writes 1-dimensional curv data (per-vertex data from a single subject/hemisphere) into a new MGH file.
@@ -87,7 +131,7 @@ TEST_CASE( "Creating a new MGH file from Curv works" ) {
     }
 
     // Also write and re-read to check for issues with rest of default header fields.
-    const std::string mgh_out_file = "examples/read_mgh/brain_tmp.mgh";
+    const std::string mgh_out_file = "examples/read_mgh/thickness_tmp.mgh";
     fs::write_mgh(mgh, mgh_out_file);
 
     fs::Mgh mgh2;
