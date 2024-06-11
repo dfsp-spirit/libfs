@@ -996,7 +996,10 @@ namespace fs {
 
       std::vector<float> vertices;
       std::vector<int> faces;
+
+      #ifdef LIBFS_DBG_INFO
       size_t num_lines_ignored = 0; // Not comments, but custom extensions or material data lines which are ignored by libfs.
+      #endif
 
       while (std::getline(*is, line)) {
         line_idx += 1;
@@ -1045,7 +1048,10 @@ namespace fs {
             faces.push_back(v2 - 1);
 
           } else {
+            #ifdef LIBFS_DBG_INFO
             num_lines_ignored++;
+            #endif
+
             continue;
           }
 
