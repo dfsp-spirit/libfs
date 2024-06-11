@@ -2402,7 +2402,9 @@ namespace fs {
   ///
   /// @code
   /// std::string curv_fname = "lh.thickness";
-  /// std::vector<float> data = fs::read_curv_data(curv_fname);
+  /// std::vector<float> data1 = fs::read_desc_data(curv_fname);
+  /// std::string mgh_fname = "lh.thickness.mgh";
+  /// std::vector<float> data2 = fs::read_desc_data(mgh_fname);
   /// @endcode
   std::vector<float> read_desc_data(const std::string& filename) {
     if(fs::util::ends_with(filename, {".MGH", ".mgh"})) {
