@@ -65,3 +65,10 @@ CMakeDoxyfile.in
 CMakeDoxygenDefaults.cmake
 doc/doc_built
 
+# other stuff
+build/
+.vscode/
+.RData
+.Rhistory
+demo_libfs
+
