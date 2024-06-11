@@ -16,7 +16,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
-
+#include <numeric>
 
 // from Knuth, 1968. The Art of Computer Programming.
 bool approximatelyEqual(float a, float b, float epsilon) {
@@ -41,6 +41,25 @@ std::vector<bool> label_to_bool(std::vector<float> label, float epsilon = 0.001)
         throw std::invalid_argument("Encountered " + std::to_string(num_concerning) + " values which were neither 0 nor 1 during label conversion to bool. Not a binary label?\n");
     }
     return l;
+}
+
+
+template <typename T>
+T median(std::vector<T> scores) {
+  size_t size = scores.size();
+
+  if (size == 0) {
+    throw std::invalid_argument("The input vector must not be empty.");
+  }
+  else {
+    std::sort(scores.begin(), scores.end());
+    if (size % 2 == 0) {
+      return (scores[size / 2 - 1] + scores[size / 2]) / 2;
+    }
+    else {
+      return scores[size / 2];
+    }
+  }
 }
 
 
@@ -91,26 +110,66 @@ int main(int argc, char** argv) {
                 data_filtered.push_back(data[i]);
             }
         }
+        std::cout << "[INFO] The label file '" << label_fname << "' contains " << data_filtered.size() << " of the " << data.size() << " mesh vertices (" << float(data_filtered.size()) / data.size() * 100.0 << " percent).\n";
     } else {
         std::cout << "[INFO] Not Filtering descriptor data, no label supplied.\n";
         data_filtered = data;
     }
 
     if(data.size() > 0) {
-        float min_entry = *std::min_element(data_filtered.begin(), data_filtered.end());
-        float max_entry = *std::max_element(data_filtered.begin(), data_filtered.end());
-        std::cout << "Received " << data_filtered.size() << " values in range " << min_entry  << " to " << max_entry << ".\n";
 
-        int num_nan = 0;
-        for(int i = 0; i < data_filtered.size(); i++) {
-            if(std::isnan(data_filtered[i])) {
-                num_nan++;
+        int num_nan_full = 0;
+        for(int i = 0; i < data.size(); i++) {
+            if(std::isnan(data[i])) {
+                num_nan_full++;
             }
         }
-        std::cout << "Out of " << data_filtered.size() << " values, " << num_nan << " are NaN.\n";
+
+        std::vector<float> data_filtered_nonan = std::vector<float>();
+        for(int i = 0; i < data_filtered.size(); i++) {
+            if(! std::isnan(data_filtered[i])) {
+                data_filtered_nonan.push_back(data_filtered[i]);
+            }
+        }
+        int num_nan_filtered = data_filtered.size() - data_filtered_nonan.size();
+        if(num_nan_filtered > 0) {
+            if(data_filtered_nonan.size() == 0) {
+                std::cout << "[INFO] All values are NaN, exiting.\n";
+                exit(1);
+            }
+            std::cout << "[INFO] Continuing stats computation with the " << data_filtered_nonan.size() << " values which are not NaN.\n";
+        }
+
+
+        std::cout << "Number of values total in descriptor file: " << data.size() << "\n";
+        std::cout << "Number of NaN in full descriptor data: " << num_nan_full << "\n";
+        std::cout << "Used label for filtering values: " << (has_label ? "yes" : "no")  << "\n";
+        std::cout << "Number of values after filtering by label: " << data_filtered.size() << "\n";
+        std::cout << "Number of NaN in data filtered by label: " << num_nan_filtered << "\n";
+        std::cout << "Number of non-NaN values used for stats computation: " << data_filtered_nonan.size() << "\n";
+
+        float min_entry = *std::min_element(data_filtered_nonan.begin(), data_filtered_nonan.end());
+        float max_entry = *std::max_element(data_filtered_nonan.begin(), data_filtered_nonan.end());
+        std::cout << "The minimum is: " << min_entry << "\n";
+        std::cout << "The maximum is: " << max_entry << "\n";
+
+        double sum = std::accumulate(data_filtered_nonan.begin(), data_filtered_nonan.end(), 0.0);
+        double mean = sum / data_filtered_nonan.size();
+        std::cout << "The sum is: " << sum << "\n";
+        std::cout << "The mean value is: " << mean << "\n";
+
+        std::vector<double> diff(data_filtered_nonan.size());
+        std::transform(data_filtered_nonan.begin(), data_filtered_nonan.end(), diff.begin(), std::bind2nd(std::minus<double>(), mean));
+        double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+        double stdev = std::sqrt(sq_sum / data_filtered_nonan.size());
+        std::cout << "The standard deviation is: " << stdev << "\n";
+
+        float m = median<float>(data_filtered_nonan);
+        std::cout << "The median is: " << m << "\n";
 
     } else {
         std::cout << "Received empty vector.\n";
+        exit(1);
     }
 
 
