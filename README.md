@@ -2,8 +2,6 @@
 A portable, header-only, single file, no-dependency, mildly templated, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
 
 
-
-
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8090828.svg)](https://doi.org/10.5281/zenodo.8090828)
 ![main](https://github.com/dfsp-spirit/libfs/actions/workflows/unittests.yml/badge.svg?branch=main)
 
@@ -177,3 +175,16 @@ The `libfs` library was written by [Tim Schäfer](https://ts.rcmd.org). I publis
 
 Note that this library is **not** a part of FreeSurfer, and it is **in no way** endorsed by the FreeSurfer developers. Please do not contact them regarding this library, especially not for support. [Open an issue](https://github.com/dfsp-spirit/libfs/issues) in this repo instead.
 
+
+## Related software packages
+
+There are a number of software tools to read FreeSurfer files for different programming languages, e.g.:
+
+* [NIBabel for Python](https://nipy.org/nibabel/)
+* [freesurferformats for R](https://github.com/dfsp-spirit/freesurferformats)
+* [neuroformats-rs for Rust](https://github.com/dfsp-spirit/neuroformats-rs)
+* [NeuroFormats.jl for Julia](https://github.com/dfsp-spirit/NeuroFormats.jl)
+* [neuro for Go](https://github.com/dfsp-spirit/neuro)
+* SurfStat for Matlab
+
+There most likely are a lot more to be found on the internet, and many neuro-imaging software packages can directly read FreeSurfer data.
