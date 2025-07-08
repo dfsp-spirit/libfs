@@ -4,7 +4,7 @@ fslib Changes
 
 Current WIP
 ------------
-* Make the libfs version available as integers for easier compile time checks in client apps by defining integers LIBFS_VERISION_MAJOR, LIBFS_VERISION_MINOR, and LIBFS_VERISION_PATCH in addition to the string LIBFS_VERISION.
+* Make the libfs version available as integers for easier compile time checks in client apps by defining integers LIBFS_VERSION_MAJOR, LIBFS_VERSION_MINOR, and LIBFS_VERSION_PATCH in addition to the string LIBFS_VERSION.
 
 v0.3.4: Windows and MSVC support
 --------------------------------
