@@ -23,5 +23,6 @@ jobs:
         with:
           host: https://codeberg.org
           create: true
+          owner: timschaefer
           username: timschaefer
           password: ${{ secrets.CODEBERG_TOKEN }}
