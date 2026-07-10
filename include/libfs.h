@@ -442,12 +442,18 @@ namespace fs
     ///          The input data is normalized to the [0, 1] range before sampling the colormap. By default the
     ///          normalization range is computed from the finite (non-NaN) min and max of the input, and you can
     ///          override either bound by passing a finite value for @p vmin and/or @p vmax (pass NAN for the
-    ///          bound(s) you want to be derived from the data). NaN input values are mapped to black (0, 0, 0).
+    ///          bound(s) you want to be derived from the data). NaN input values are mapped to a configurable
+    ///          color, which defaults to white (255, 255, 255) following the standard convention in neuroimaging
+    ///          where missing data (e.g. the medial wall) is shown in white. Use the @p nan_r / @p nan_g /
+    ///          @p nan_b parameters to change this color.
     ///          The Viridis colormap is implemented from its official 256-sample lookup table (the same data used
     ///          by matplotlib), with linear interpolation between samples, so there are no external dependencies.
     /// @param data the per-vertex scalar values to convert (one value per vertex).
     /// @param vmin the value mapped to the bottom of the colormap. Pass NAN (the default) to auto-compute it as the finite minimum of @p data.
     /// @param vmax the value mapped to the top of the colormap. Pass NAN (the default) to auto-compute it as the finite maximum of @p data.
+    /// @param nan_r the red component (0..255) of the color used for NaN input values. Defaults to 255 (white).
+    /// @param nan_g the green component (0..255) of the color used for NaN input values. Defaults to 255 (white).
+    /// @param nan_b the blue component (0..255) of the color used for NaN input values. Defaults to 255 (white).
     /// @return a vector of 3 * data.size() uint8_t RGB color values, interleaved by vertex, ready for fs::Mesh::to_ply().
     /// @throws std::invalid_argument if @p vmin and @p vmax are both given but @p vmin is greater than @p vmax.
     ///
@@ -456,13 +462,17 @@ namespace fs
     /// @code
     /// fs::Mesh surface = fs::Mesh::construct_cube();
     /// std::vector<float> data = fs::read_curv_data("lh.thickness");
+    /// // NaN values map to white by default, override the value range via vmin/vmax:
     /// std::vector<uint8_t> col = fs::util::viridis(data);
     /// surface.to_ply_file("lh.thickness.ply", col);
     /// // Optionally clip the value range, e.g. to [0.5, 4.0]:
     /// std::vector<uint8_t> col2 = fs::util::viridis(data, 0.5f, 4.0f);
     /// surface.to_ply_file("lh.thickness_clipped.ply", col2);
+    /// // Optionally change the NaN color, e.g. to black:
+    /// std::vector<uint8_t> col3 = fs::util::viridis(data, NAN, NAN, 0, 0, 0);
+    /// surface.to_ply_file("lh.thickness_black_nan.ply", col3);
     /// @endcode
-    std::vector<uint8_t> viridis(const std::vector<float> &data, float vmin = NAN, float vmax = NAN)
+    std::vector<uint8_t> viridis(const std::vector<float> &data, float vmin = NAN, float vmax = NAN, uint8_t nan_r = 255, uint8_t nan_g = 255, uint8_t nan_b = 255)
     {
       std::vector<uint8_t> colors;
       if (data.empty())
@@ -619,8 +629,13 @@ namespace fs
 
       if (!have_finite)
       {
-        // All input values are NaN: map the whole vector to black.
-        colors.assign(data.size() * 3, 0);
+        // All input values are NaN: map the whole vector to the configured NaN color.
+        for (size_t i = 0; i < data.size(); i++)
+        {
+          colors.push_back(nan_r);
+          colors.push_back(nan_g);
+          colors.push_back(nan_b);
+        }
         return colors;
       }
 
@@ -630,9 +645,9 @@ namespace fs
       {
         if (std::isnan(data[i]))
         {
-          colors.push_back(static_cast<uint8_t>(0));
-          colors.push_back(static_cast<uint8_t>(0));
-          colors.push_back(static_cast<uint8_t>(0));
+          colors.push_back(nan_r);
+          colors.push_back(nan_g);
+          colors.push_back(nan_b);
           continue;
         }
 

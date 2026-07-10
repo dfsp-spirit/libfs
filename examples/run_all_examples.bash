@@ -34,5 +34,8 @@ cd $bd/read_surf && g++ -I../../include/ read_surf.cpp -o read_surf && ./read_su
 echo "$apptag ========== Running descriptor info example... =========="
 cd $bd/descriptor_info && g++ -I../../include/ descriptor_info.cpp -o descriptor_info && ./descriptor_info && cd ..
 
+echo "$apptag ========== Running vertex color export example... =========="
+cd $bd/vertex_color_export && g++ -I../../include/ vertex_color_export.cpp -o vertex_color_export && ./vertex_color_export && cd ..
+
 
 

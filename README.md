@@ -70,6 +70,7 @@ See the [examples directory](./examples/) for some full demo programs which use 
 * [examples/read_mgh/read_mgh.cpp](./examples/read_mgh/read_mgh.cpp): demo program that reads a FreeSurfer MGH file, containing a 3D or 4D image.
 * [examples/read_mgz/read_mgz.cpp](./examples/read_mgz/read_mgz.cpp): demo program that reads a FreeSurfer MGZ file, containing a compressed 3D or 4D image.
 * [examples/read_surf/read_surf.cpp](./examples/read_surf/read_surf.cpp): demo program that reads a FreeSurfer cortical mesh (a.k.a. brain surface) file.
+* [examples/vertex_color_export/vertex_color_export.cpp](./examples/vertex_color_export/vertex_color_export.cpp): demo program that reads a brain mesh, per-vertex morphometry data (cortical thickness), and a cortex label, masks the medial wall vertices to NaN, maps the thickness to vertex colors using the viridis colormap (NaN -> white by default), and exports the colored mesh to a PLY file.
 
 
 You can run the script [examples/run_all_examples.bash](./examples/run_all_examples.bash) to run all example files.

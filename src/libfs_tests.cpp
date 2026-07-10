@@ -1115,17 +1115,45 @@ TEST_CASE( "The viridis colormap function works" ) {
         REQUIRE((int)col[3] == 253);  // above vmax -> top
     }
 
-    SECTION("NaN input values are mapped to black." ) {
+    SECTION("NaN input values are mapped to white (the neuroimaging default)." ) {
         std::vector<float> data = { 0.0f, NAN, 1.0f };
         std::vector<uint8_t> col = fs::util::viridis(data, 0.0f, 1.0f);
-        REQUIRE((int)col[3] == 0);
-        REQUIRE((int)col[4] == 0);
-        REQUIRE((int)col[5] == 0);
+        REQUIRE((int)col[3] == 255);
+        REQUIRE((int)col[4] == 255);
+        REQUIRE((int)col[5] == 255);
     }
 
-    SECTION("An all-NaN input vector yields an all-black color vector of correct size." ) {
+    SECTION("The NaN color is configurable." ) {
+        std::vector<float> data = { 0.0f, NAN, 1.0f };
+        // Black NaN.
+        std::vector<uint8_t> colb = fs::util::viridis(data, 0.0f, 1.0f, 0, 0, 0);
+        REQUIRE((int)colb[3] == 0);
+        REQUIRE((int)colb[4] == 0);
+        REQUIRE((int)colb[5] == 0);
+        // Grey NaN.
+        std::vector<uint8_t> colg = fs::util::viridis(data, 0.0f, 1.0f, 128, 128, 128);
+        REQUIRE((int)colg[3] == 128);
+        REQUIRE((int)colg[4] == 128);
+        REQUIRE((int)colg[5] == 128);
+        // Only override vmin to keep auto vmax but use black NaN via explicit NAN for vmax.
+        std::vector<uint8_t> colr = fs::util::viridis(data, NAN, NAN, 0, 0, 0);
+        REQUIRE((int)colr[3] == 0);
+        REQUIRE((int)colr[4] == 0);
+        REQUIRE((int)colr[5] == 0);
+    }
+
+    SECTION("An all-NaN input vector yields an all-white color vector of correct size." ) {
         std::vector<float> data = { NAN, NAN, NAN };
         std::vector<uint8_t> col = fs::util::viridis(data);
+        REQUIRE(col.size() == data.size() * 3);
+        for (size_t i = 0; i < col.size(); i++) {
+            REQUIRE((int)col[i] == 255);
+        }
+    }
+
+    SECTION("An all-NaN input with a custom NaN color yields that color for all vertices." ) {
+        std::vector<float> data = { NAN, NAN, NAN };
+        std::vector<uint8_t> col = fs::util::viridis(data, NAN, NAN, 0, 0, 0);
         REQUIRE(col.size() == data.size() * 3);
         for (size_t i = 0; i < col.size(); i++) {
             REQUIRE((int)col[i] == 0);
