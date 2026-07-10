@@ -1076,3 +1076,90 @@ TEST_CASE( "The util functions work" ) {
     }
 }
 
+TEST_CASE( "The viridis colormap function works" ) {
+
+    SECTION("The returned color vector has the right size and interleave order." ) {
+        std::vector<float> data = { 0.0f, 1.0f, 2.0f };
+        std::vector<uint8_t> col = fs::util::viridis(data);
+        REQUIRE(col.size() == data.size() * 3);
+    }
+
+    SECTION("The colormap endpoints are correct (matplotlib viridis)." ) {
+        // With an explicit [0, 1] range, the endpoints must match the official
+        // viridis colors: bottom (68, 1, 84) and top (253, 231, 37).
+        std::vector<float> data = { 0.0f, 1.0f };
+        std::vector<uint8_t> col = fs::util::viridis(data, 0.0f, 1.0f);
+        REQUIRE((int)col[0] == 68);
+        REQUIRE((int)col[1] == 1);
+        REQUIRE((int)col[2] == 84);
+        REQUIRE((int)col[3] == 253);
+        REQUIRE((int)col[4] == 231);
+        REQUIRE((int)col[5] == 37);
+    }
+
+    SECTION("Auto range normalization maps the data min to the bottom and max to the top." ) {
+        std::vector<float> data = { -1.0f, 2.0f };
+        std::vector<uint8_t> col = fs::util::viridis(data);
+        REQUIRE((int)col[0] == 68);   // data min -> bottom of colormap
+        REQUIRE((int)col[1] == 1);
+        REQUIRE((int)col[2] == 84);
+        REQUIRE((int)col[3] == 253);  // data max -> top of colormap
+        REQUIRE((int)col[4] == 231);
+        REQUIRE((int)col[5] == 37);
+    }
+
+    SECTION("Out-of-range values are clamped to the colormap endpoints." ) {
+        std::vector<float> data = { -1.0f, 2.0f };
+        std::vector<uint8_t> col = fs::util::viridis(data, 0.0f, 1.0f);
+        REQUIRE((int)col[0] == 68);   // below vmin -> bottom
+        REQUIRE((int)col[3] == 253);  // above vmax -> top
+    }
+
+    SECTION("NaN input values are mapped to black." ) {
+        std::vector<float> data = { 0.0f, NAN, 1.0f };
+        std::vector<uint8_t> col = fs::util::viridis(data, 0.0f, 1.0f);
+        REQUIRE((int)col[3] == 0);
+        REQUIRE((int)col[4] == 0);
+        REQUIRE((int)col[5] == 0);
+    }
+
+    SECTION("An all-NaN input vector yields an all-black color vector of correct size." ) {
+        std::vector<float> data = { NAN, NAN, NAN };
+        std::vector<uint8_t> col = fs::util::viridis(data);
+        REQUIRE(col.size() == data.size() * 3);
+        for (size_t i = 0; i < col.size(); i++) {
+            REQUIRE((int)col[i] == 0);
+        }
+    }
+
+    SECTION("An empty input vector yields an empty color vector." ) {
+        std::vector<float> data;
+        std::vector<uint8_t> col = fs::util::viridis(data);
+        REQUIRE(col.empty());
+    }
+
+    SECTION("Constant data is mapped to a single (middle) color." ) {
+        std::vector<float> data = { 5.0f, 5.0f, 5.0f };
+        std::vector<uint8_t> col = fs::util::viridis(data);
+        REQUIRE(col.size() == data.size() * 3);
+        REQUIRE((int)col[0] == (int)col[3]);
+        REQUIRE((int)col[3] == (int)col[6]);
+        // Should not be an endpoint color.
+        REQUIRE(((int)col[0] != 68 || (int)col[1] != 1 || (int)col[2] != 84));
+    }
+
+    SECTION("Passing vmin greater than vmax throws std::invalid_argument." ) {
+        std::vector<float> data = { 0.0f, 1.0f };
+        REQUIRE_THROWS_AS( fs::util::viridis(data, 1.0f, 0.0f), std::invalid_argument );
+    }
+
+    SECTION("The colors are usable directly with fs::Mesh::to_ply()." ) {
+        fs::Mesh surface = fs::Mesh::construct_cube();
+        std::vector<float> data = { 0.0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0f, 0.1f, 0.9f };
+        std::vector<uint8_t> col = fs::util::viridis(data, 0.0f, 1.0f);
+        REQUIRE(col.size() == surface.num_vertices() * 3);
+        std::string ply = surface.to_ply(col);
+        REQUIRE(!ply.empty());
+    }
+}
+
