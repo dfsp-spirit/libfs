@@ -21,6 +21,29 @@
 #define LIBFS_VERISION_MINOR 4
 #define LIBFS_VERISION_PATCH 0
 
+// -- Security / defensive hardening configuration -------------------------------------
+// Users can #define any of these BEFORE including libfs.h to override the defaults.
+
+/// Default maximum memory allocation limit in bytes (2 GiB).
+/// A header claiming to need more memory than this will be rejected.
+#define LIBFS_MAX_ALLOC_BYTES_DEFAULT (2ULL * 1024ULL * 1024ULL * 1024ULL)
+
+/// Maximum memory allocation limit.
+#ifndef LIBFS_MAX_ALLOC_BYTES
+#define LIBFS_MAX_ALLOC_BYTES LIBFS_MAX_ALLOC_BYTES_DEFAULT
+#endif
+
+/// Maximum length for fixed-length strings read from binary headers (e.g., filenames in annot colortables).
+#ifndef LIBFS_MAX_STRING_LENGTH
+#define LIBFS_MAX_STRING_LENGTH 4096
+#endif
+
+/// Maximum number of entries in an annotation colortable.
+#ifndef LIBFS_MAX_COLORTABLE_ENTRIES
+#define LIBFS_MAX_COLORTABLE_ENTRIES 10000
+#endif
+// -- End security configuration --------------------------------------------------------
+
 /// @file
 ///
 /*! \mainpage The libfs API documentation
@@ -196,6 +219,62 @@ namespace fs
     {
       std::cout << LIBFS_APPTAG << "[" << loglevel << "] [" << fs::util::time_tag(std::chrono::system_clock::now()) << "] " << message << "\n";
     }
+
+    // -- Security / defensive hardening helpers -----------------------------------------
+
+    /// @brief Safe multiplication for size_t: returns false on overflow.
+    /// @private
+    inline bool safe_multiply(size_t a, size_t b, size_t &result)
+    {
+      if (a == 0 || b == 0)
+      {
+        result = 0;
+        return true;
+      }
+      if (a > std::numeric_limits<size_t>::max() / b)
+      {
+        return false;
+      }
+      result = a * b;
+      return true;
+    }
+
+    /// @brief Validate that allocating num_elements of size bytes_per_element does not
+    ///        overflow or exceed LIBFS_MAX_ALLOC_BYTES.
+    /// @returns true if the allocation is safe, false otherwise.
+    /// @private
+    inline bool check_alloc(size_t num_elements, size_t bytes_per_element)
+    {
+      size_t total_bytes = 0;
+      if (!safe_multiply(num_elements, bytes_per_element, total_bytes))
+      {
+        return false;
+      }
+      if (total_bytes > LIBFS_MAX_ALLOC_BYTES)
+      {
+        return false;
+      }
+      return true;
+    }
+
+    /// @brief Get the size of a file in bytes. Returns 0 on error.
+    /// @private
+    inline size_t get_file_size(const std::string &filename)
+    {
+      std::ifstream ifs(filename, std::ios::binary | std::ios::ate);
+      if (!ifs.is_open())
+      {
+        return 0;
+      }
+      std::streampos end = ifs.tellg();
+      if (end < 0)
+      {
+        return 0;
+      }
+      return static_cast<size_t>(end);
+    }
+
+    // -- End security helpers ---------------------------------------------------------
 
     /// @brief Check whether a string ends with the given suffix.
     /// @private
@@ -702,7 +781,7 @@ namespace fs
   template <typename T>
   T _freadt(std::istream &);
   std::string _freadstringnewline(std::istream &);
-  std::string _freadfixedlengthstring(std::istream &, size_t, bool);
+  std::string _freadfixedlengthstring(std::istream &, size_t, bool, size_t);
   bool _ends_with(std::string const &fullString, std::string const &ending);
   size_t _vidx_2d(size_t, size_t, size_t);
   struct MghHeader;
@@ -2300,14 +2379,24 @@ namespace fs
   struct Array4D
   {
     /// Constructor for creating an empty 4D array of the given dimensions.
-    Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) : d1(d1), d2(d2), d3(d3), d4(d4), data(d1 * d2 * d3 * d4) {}
+    /// @throws std::domain_error if any dimension is zero.
+    /// @throws std::overflow_error if the product of dimensions overflows size_t.
+    /// @throws std::runtime_error if the allocation exceeds the configured limit.
+    Array4D(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4) : d1(d1), d2(d2), d3(d3), d4(d4), data(_compute_4d_size(d1, d2, d3, d4)) {}
 
     /// Constructor for creating an empty 4D array based on dimensions specified in an fs::MghHeader.
-    Array4D(MghHeader *mgh_header) : d1(mgh_header->dim1length), d2(mgh_header->dim2length), d3(mgh_header->dim3length), d4(mgh_header->dim4length), data(d1 * d2 * d3 * d4) {}
+    /// @throws std::domain_error if any dimension is not positive (including the case where
+    ///         the int32_t header field was negative and wrapped to a huge unsigned int).
+    /// @throws std::overflow_error if the product of dimensions overflows size_t.
+    /// @throws std::runtime_error if the allocation exceeds the configured limit.
+    Array4D(MghHeader *mgh_header) : d1(_validate_mgh_dim(mgh_header->dim1length)), d2(_validate_mgh_dim(mgh_header->dim2length)), d3(_validate_mgh_dim(mgh_header->dim3length)), d4(_validate_mgh_dim(mgh_header->dim4length)), data(_compute_4d_size(d1, d2, d3, d4)) {}
 
     /// Constructor for creating an empty 4D array based on dimensions specified in the header of an fs::Mgh. Does not init the data.
+    /// @throws std::domain_error if any dimension is not positive.
+    /// @throws std::overflow_error if the product of dimensions overflows size_t.
+    /// @throws std::runtime_error if the allocation exceeds the configured limit.
     Array4D(Mgh *mgh) : // This does NOT init the data atm.
-                        d1(mgh->header.dim1length), d2(mgh->header.dim2length), d3(mgh->header.dim3length), d4(mgh->header.dim4length), data(d1 * d2 * d3 * d4)
+                        d1(_validate_mgh_dim(mgh->header.dim1length)), d2(_validate_mgh_dim(mgh->header.dim2length)), d3(_validate_mgh_dim(mgh->header.dim3length)), d4(_validate_mgh_dim(mgh->header.dim4length)), data(_compute_4d_size(d1, d2, d3, d4))
     {
     }
 
@@ -2338,6 +2427,41 @@ namespace fs
     unsigned int d3;     ///< size of data along 3rd dimension
     unsigned int d4;     ///< size of data along 4th dimension
     std::vector<T> data; ///< the data, as a 1D vector. Use fs::Array4D::at for easy access in 4D.
+
+  private:
+    /// Validate that an int32_t MGH dimension field is positive and does not wrap around
+    /// when cast to unsigned int.
+    static unsigned int _validate_mgh_dim(int32_t dim)
+    {
+      if (dim <= 0)
+      {
+        throw std::domain_error("MGH dimension " + std::to_string(dim) + " is not positive.\n");
+      }
+      return static_cast<unsigned int>(dim);
+    }
+
+    /// Compute data vector size from 4 dimensions with overflow and allocation-limit checks.
+    static size_t _compute_4d_size(unsigned int d1, unsigned int d2, unsigned int d3, unsigned int d4)
+    {
+      if (d1 == 0 || d2 == 0 || d3 == 0 || d4 == 0)
+      {
+        throw std::domain_error("Array4D dimensions must be positive.\n");
+      }
+      size_t s1, s2, s3;
+      if (!fs::util::safe_multiply(d1, d2, s1) ||
+          !fs::util::safe_multiply(s1, d3, s2) ||
+          !fs::util::safe_multiply(s2, d4, s3))
+      {
+        throw std::overflow_error("Array4D dimensions cause size_t overflow.\n");
+      }
+      if (s3 > LIBFS_MAX_ALLOC_BYTES / sizeof(T))
+      {
+        throw std::runtime_error("Array4D size " + std::to_string(s3) +
+                                 " elements exceeds maximum allowed allocation (" +
+                                 std::to_string(LIBFS_MAX_ALLOC_BYTES) + " bytes).\n");
+      }
+      return s3;
+    }
   };
 
   // More declarations, should also go to separate header.
@@ -2487,6 +2611,27 @@ namespace fs
     mgh_header->dim3length = _freadt<int32_t>(*is);
     mgh_header->dim4length = _freadt<int32_t>(*is);
 
+    // Validate dimensions: must be positive (negative would wrap to huge size_t).
+    if (mgh_header->dim1length <= 0 || mgh_header->dim2length <= 0 ||
+        mgh_header->dim3length <= 0 || mgh_header->dim4length <= 0)
+    {
+      throw std::domain_error("MGH header contains non-positive dimension(s): dims=(" +
+                               std::to_string(mgh_header->dim1length) + "," +
+                               std::to_string(mgh_header->dim2length) + "," +
+                               std::to_string(mgh_header->dim3length) + "," +
+                               std::to_string(mgh_header->dim4length) + ").\n");
+    }
+
+    // Validate total number of values against allocation limit.
+    if (!fs::util::check_alloc(static_cast<size_t>(mgh_header->dim1length) *
+                                   static_cast<size_t>(mgh_header->dim2length) *
+                                   static_cast<size_t>(mgh_header->dim3length),
+                               static_cast<size_t>(mgh_header->dim4length)))
+    {
+      throw std::runtime_error("MGH header volume size exceeds maximum allowed allocation (" +
+                               std::to_string(LIBFS_MAX_ALLOC_BYTES) + " bytes).\n");
+    }
+
     mgh_header->dtype = _freadt<int32_t>(*is);
     mgh_header->dof = _freadt<int32_t>(*is);
 
@@ -2608,11 +2753,36 @@ namespace fs
     ifs.open(filename, std::ios_base::in | std::ios::binary);
     if (ifs.is_open())
     {
+      size_t num_values = mgh_header->num_values();
+
+      // Cross-check: ensure the file has enough data after the 284-byte header.
+      size_t file_size = fs::util::get_file_size(filename);
+      if (file_size > 0)
+      {
+        const size_t HEADER_SIZE = 284;
+        size_t expected_data_bytes = 0;
+        if (!fs::util::safe_multiply(num_values, sizeof(T), expected_data_bytes))
+        {
+          throw std::overflow_error("MGH data size computation overflowed.\n");
+        }
+        if (file_size < HEADER_SIZE || (file_size - HEADER_SIZE) < expected_data_bytes)
+        {
+          throw std::runtime_error("MGH file '" + filename + "' is too small (" +
+                                   std::to_string(file_size) + " bytes) for the data claimed in its header (" +
+                                   std::to_string(HEADER_SIZE + expected_data_bytes) + " bytes).\n");
+        }
+      }
+
+      if (!fs::util::check_alloc(num_values, sizeof(T)))
+      {
+        throw std::runtime_error("MGH file data size exceeds maximum allowed allocation.\n");
+      }
+
       ifs.seekg(284, ifs.beg); // skip to end of header and beginning of data
 
-      int num_values = int(mgh_header->num_values());
       std::vector<T> data;
-      for (int i = 0; i < num_values; i++)
+      data.reserve(num_values);
+      for (size_t i = 0; i < num_values; i++)
       {
         data.push_back(_freadt<T>(ifs));
       }
@@ -2632,9 +2802,14 @@ namespace fs
   template <typename T>
   std::vector<T> _read_mgh_data(MghHeader *mgh_header, std::istream *is)
   {
-    int num_values = int(mgh_header->num_values());
+    size_t num_values = mgh_header->num_values();
+    if (!fs::util::check_alloc(num_values, sizeof(T)))
+    {
+      throw std::runtime_error("MGH stream data size exceeds maximum allowed allocation.\n");
+    }
     std::vector<T> data;
-    for (int i = 0; i < num_values; i++)
+    data.reserve(num_values);
+    for (size_t i = 0; i < num_values; i++)
     {
       data.push_back(_freadt<T>(*is));
     }
@@ -2722,16 +2897,71 @@ namespace fs
       std::string comment_line = _freadstringnewline(is);
       int num_verts = _freadt<int32_t>(is);
       int num_faces = _freadt<int32_t>(is);
+
+      // Validate header fields.
+      if (num_verts <= 0)
+      {
+        throw std::domain_error("Surf file '" + filename + "' has invalid num_verts: " + std::to_string(num_verts) + ".\n");
+      }
+      if (num_faces < 0)
+      {
+        throw std::domain_error("Surf file '" + filename + "' has invalid num_faces: " + std::to_string(num_faces) + ".\n");
+      }
+
+      // Safe multiplication: num_verts * 3 (x,y,z per vertex).
+      size_t num_vert_coords = 0;
+      if (!fs::util::safe_multiply(static_cast<size_t>(num_verts), 3, num_vert_coords))
+      {
+        throw std::overflow_error("Surf file '" + filename + "': num_verts * 3 overflowed.\n");
+      }
+      size_t num_face_indices = 0;
+      if (!fs::util::safe_multiply(static_cast<size_t>(num_faces), 3, num_face_indices))
+      {
+        throw std::overflow_error("Surf file '" + filename + "': num_faces * 3 overflowed.\n");
+      }
+
+      // Cross-check against file size.
+      size_t file_size = fs::util::get_file_size(filename);
+      if (file_size > 0)
+      {
+        size_t vert_bytes = 0, face_bytes = 0;
+        if (!fs::util::safe_multiply(num_vert_coords, sizeof(float), vert_bytes) ||
+            !fs::util::safe_multiply(num_face_indices, sizeof(int32_t), face_bytes))
+        {
+          throw std::overflow_error("Surf file '" + filename + "': expected data size overflowed.\n");
+        }
+        // Guard against addition overflow (paranoid, since each is already <= LIBFS_MAX_ALLOC_BYTES).
+        if (vert_bytes > std::numeric_limits<size_t>::max() - face_bytes)
+        {
+          throw std::overflow_error("Surf file '" + filename + "': total data size overflowed.\n");
+        }
+        size_t expected_total = vert_bytes + face_bytes;
+        // Header takes some space, so file_size > raw data size for any valid file.
+        if (file_size < expected_total)
+        {
+          throw std::runtime_error("Surf file '" + filename + "' is too small (" +
+                                   std::to_string(file_size) + " bytes) for the data claimed in its header.\n");
+        }
+      }
+
+      if (!fs::util::check_alloc(num_vert_coords, sizeof(float)) ||
+          !fs::util::check_alloc(num_face_indices, sizeof(int32_t)))
+      {
+        throw std::runtime_error("Surf file '" + filename + "' data size exceeds maximum allowed allocation.\n");
+      }
+
 #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Read surface file with " << num_verts << " vertices, " << num_faces << " faces.\n";
 #endif
       std::vector<float> vdata;
-      for (int i = 0; i < (num_verts * 3); i++)
+      vdata.reserve(num_vert_coords);
+      for (size_t i = 0; i < num_vert_coords; i++)
       {
         vdata.push_back(_freadt<float>(is));
       }
       std::vector<int> fdata;
-      for (int i = 0; i < (num_faces * 3); i++)
+      fdata.reserve(num_face_indices);
+      for (size_t i = 0; i < num_face_indices; i++)
       {
         fdata.push_back(_freadt<int32_t>(is));
       }
@@ -2807,6 +3037,17 @@ namespace fs
     curv->num_vertices = _freadt<int32_t>(*is);
     curv->num_faces = _freadt<int32_t>(*is);
     curv->num_values_per_vertex = _freadt<int32_t>(*is);
+
+    // Validate header fields.
+    if (curv->num_vertices <= 0)
+    {
+      throw std::domain_error("Curv file " + msg_source_file_part + "has invalid num_vertices: " + std::to_string(curv->num_vertices) + ".\n");
+    }
+    if (curv->num_faces < 0)
+    {
+      throw std::domain_error("Curv file " + msg_source_file_part + "has invalid num_faces: " + std::to_string(curv->num_faces) + ".\n");
+    }
+
 #ifdef LIBFS_DBG_INFO
     std::cout << LIBFS_APPTAG << "Read curv file with " << curv->num_vertices << " vertices, " << curv->num_faces << " faces and " << curv->num_values_per_vertex << " values per vertex.\n";
 #endif
@@ -2814,8 +3055,36 @@ namespace fs
     { // Not supported, I know no case where this is used. Please submit a PR with a demo file if you have one, and let me know where it came from.
       throw std::domain_error("Curv file " + msg_source_file_part + "must contain exactly 1 value per vertex, found " + std::to_string(curv->num_values_per_vertex) + ".\n");
     }
+
+    // File-size cross-check (only when reading from a file, not a generic stream).
+    if (!source_filename.empty())
+    {
+      size_t file_size = fs::util::get_file_size(source_filename);
+      if (file_size > 0)
+      {
+        // Curv header: 3 (magic) + 12 (three int32) = 15 bytes.
+        const size_t CURV_HEADER_SIZE = 15;
+        size_t expected_data_bytes = 0;
+        if (!fs::util::safe_multiply(static_cast<size_t>(curv->num_vertices), sizeof(float), expected_data_bytes))
+        {
+          throw std::overflow_error("Curv file " + msg_source_file_part + "data size computation overflowed.\n");
+        }
+        if (file_size < CURV_HEADER_SIZE || (file_size - CURV_HEADER_SIZE) < expected_data_bytes)
+        {
+          throw std::runtime_error("Curv file " + msg_source_file_part + "is too small (" +
+                                   std::to_string(file_size) + " bytes) for the data claimed in its header (" +
+                                   std::to_string(CURV_HEADER_SIZE + expected_data_bytes) + " bytes expected).\n");
+        }
+      }
+    }
+
     std::vector<float> data;
-    for (int i = 0; i < curv->num_vertices; i++)
+    if (!fs::util::check_alloc(static_cast<size_t>(curv->num_vertices), sizeof(float)))
+    {
+      throw std::runtime_error("Curv file " + msg_source_file_part + "data size exceeds maximum allowed allocation.\n");
+    }
+    data.reserve(static_cast<size_t>(curv->num_vertices));
+    for (size_t i = 0; i < static_cast<size_t>(curv->num_vertices); i++)
     {
       data.push_back(_freadt<float>(*is));
     }
@@ -2852,7 +3121,21 @@ namespace fs
   /// @private
   void _read_annot_colortable(Colortable *colortable, std::istream *is, int32_t num_entries)
   {
+    // Validate num_entries against a reasonable cap.
+    if (num_entries < 0 || static_cast<size_t>(num_entries) > LIBFS_MAX_COLORTABLE_ENTRIES)
+    {
+      throw std::domain_error("Annot colortable num_entries " + std::to_string(num_entries) +
+                               " is invalid or exceeds maximum (" + std::to_string(LIBFS_MAX_COLORTABLE_ENTRIES) + ").\n");
+    }
+
     int32_t num_chars_orig_filename = _freadt<int32_t>(*is); // The number of characters of the file this annot was built from.
+
+    // Validate and cap the original filename length.
+    if (num_chars_orig_filename < 0 || static_cast<size_t>(num_chars_orig_filename) > LIBFS_MAX_STRING_LENGTH)
+    {
+      throw std::domain_error("Annot colortable original filename length " + std::to_string(num_chars_orig_filename) +
+                               " exceeds maximum (" + std::to_string(LIBFS_MAX_STRING_LENGTH) + ").\n");
+    }
 
     // It follows the name of the file this annot was built from. This is development metadata and irrelevant afaik. We skip it.
     uint8_t discarded;
@@ -2868,12 +3151,21 @@ namespace fs
       std::cerr << "Warning: the two num_entries header fields of this annotation do not match. Use with care.\n";
     }
 
+    colortable->id.reserve(static_cast<size_t>(num_entries));
+    colortable->name.reserve(static_cast<size_t>(num_entries));
+    colortable->r.reserve(static_cast<size_t>(num_entries));
+    colortable->g.reserve(static_cast<size_t>(num_entries));
+    colortable->b.reserve(static_cast<size_t>(num_entries));
+    colortable->a.reserve(static_cast<size_t>(num_entries));
+    colortable->label.reserve(static_cast<size_t>(num_entries));
+
     int32_t entry_num_chars;
     for (int32_t i = 0; i < num_entries; i++)
     {
       colortable->id.push_back(_freadt<int32_t>(*is));
       entry_num_chars = _freadt<int32_t>(*is);
-      colortable->name.push_back(_freadfixedlengthstring(*is, entry_num_chars, true));
+      // Pass a tighter max_length for region names (256 chars should be plenty).
+      colortable->name.push_back(_freadfixedlengthstring(*is, entry_num_chars, true, 256));
       colortable->r.push_back(_freadt<int32_t>(*is));
       colortable->g.push_back(_freadt<int32_t>(*is));
       colortable->b.push_back(_freadt<int32_t>(*is));
@@ -2898,9 +3190,29 @@ namespace fs
   {
 
     int32_t num_vertices = _freadt<int32_t>(*is);
+
+    // Validate num_vertices.
+    if (num_vertices <= 0)
+    {
+      throw std::domain_error("Annot file has invalid num_vertices: " + std::to_string(num_vertices) + ".\n");
+    }
+
+    // Safe multiplication: num_vertices * 2 (vertex index + label per vertex).
+    size_t num_entries = 0;
+    if (!fs::util::safe_multiply(static_cast<size_t>(num_vertices), 2, num_entries))
+    {
+      throw std::overflow_error("Annot: num_vertices * 2 overflowed.\n");
+    }
+    if (!fs::util::check_alloc(num_entries, sizeof(int32_t)))
+    {
+      throw std::runtime_error("Annot vertex/label data size exceeds maximum allowed allocation.\n");
+    }
+
     std::vector<int32_t> vertices;
     std::vector<int32_t> labels;
-    for (int32_t i = 0; i < (num_vertices * 2); i++)
+    vertices.reserve(num_vertices);
+    labels.reserve(num_vertices);
+    for (size_t i = 0; i < num_entries; i++)
     { // The vertices and their labels are stored directly after one another: v1,v1_label,v2,v2_label,...
       if (i % 2 == 0)
       {
@@ -3063,6 +3375,10 @@ namespace fs
   {
     T t;
     is.read(reinterpret_cast<char *>(&t), sizeof(t));
+    if (static_cast<size_t>(is.gcount()) != sizeof(T))
+    {
+      throw std::runtime_error("Short read in binary stream: expected " + std::to_string(sizeof(T)) + " bytes, got " + std::to_string(is.gcount()) + ".\n");
+    }
     if (!_is_bigendian())
     {
       t = _swap_endian<T>(t);
@@ -3078,6 +3394,10 @@ namespace fs
   {
     uint32_t i;
     is.read(reinterpret_cast<char *>(&i), 3);
+    if (static_cast<size_t>(is.gcount()) != 3)
+    {
+      throw std::runtime_error("Short read in binary stream: expected 3 bytes, got " + std::to_string(is.gcount()) + ".\n");
+    }
     if (!_is_bigendian())
     {
       i = _swap_endian<std::uint32_t>(i);
@@ -3134,13 +3454,26 @@ namespace fs
   }
 
   /// Read a fixed length C-style string from an open binary stream. This does not care about trailing NULL bytes or anything, it just reads the given length of bytes.
-  /// @throws std::out_of_range if length is not positive
+  /// @throws std::domain_error if length is zero or exceeds max_length.
+  /// @throws std::runtime_error if a short read occurs.
   /// @private
-  std::string _freadfixedlengthstring(std::istream &is, size_t length, bool strip_last_char = true)
+  std::string _freadfixedlengthstring(std::istream &is, size_t length, bool strip_last_char = true, size_t max_length = LIBFS_MAX_STRING_LENGTH)
   {
+    if (length == 0)
+    {
+      throw std::domain_error("Fixed-length string read with zero length.\n");
+    }
+    if (length > max_length)
+    {
+      throw std::domain_error("Fixed-length string length " + std::to_string(length) + " exceeds maximum " + std::to_string(max_length) + ".\n");
+    }
     std::string str;
     str.resize(length);
     is.read(&str[0], length);
+    if (static_cast<size_t>(is.gcount()) != length)
+    {
+      throw std::runtime_error("Short read in binary stream while reading fixed-length string: expected " + std::to_string(length) + " bytes, got " + std::to_string(is.gcount()) + ".\n");
+    }
     if (strip_last_char)
     {
       str = str.substr(0, length - 1);

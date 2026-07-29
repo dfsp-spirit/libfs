@@ -100,6 +100,32 @@ The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://
 * You can control the output of libfs by defining a log level for libfs before importing the libfs header file, see the API docs for details. An example can be seen at the very top of the [demo app](./src/demo_main.cpp).
 
 
+### Security & Defensive Validation
+
+libfs validates binary file headers before allocating memory or reading data, protecting against malformed or malicious files that could cause integer overflows, excessive memory allocations, or out-of-bounds reads. The following limits are configurable by `#define`-ing them **before** `#include "libfs.h"`:
+
+| Setting | Default | Description |
+|---|---|---|
+| `LIBFS_MAX_ALLOC_BYTES` | 2 GiB | Maximum memory a single file may claim to need. Files whose header-claimed payload exceeds this are rejected. |
+| `LIBFS_MAX_STRING_LENGTH` | 4096 | Maximum length for fixed-length strings embedded in binary headers (e.g., filenames in annotation colortables). |
+| `LIBFS_MAX_COLORTABLE_ENTRIES` | 10000 | Maximum number of entries in an annotation colortable. |
+
+**Example: overriding the defaults**
+
+```cpp
+#define LIBFS_MAX_ALLOC_BYTES (8ULL * 1024ULL * 1024ULL * 1024ULL)  // raise to 8 GiB
+#include "libfs.h"
+```
+
+**Validation performed on every file read:**
+
+- **Header dimensions** must be positive; negative `int32_t` values (which would wrap to huge `size_t`) are rejected.
+- **Allocation sizes** are computed with overflow-safe multiplication (`size_t` × `size_t`); files that would cause integer overflow are rejected **before** any allocation is attempted.
+- **Memory cap**: the computed payload size is checked against `LIBFS_MAX_ALLOC_BYTES`.
+- **Stream integrity**: every `istream::read()` call is checked (`gcount`). Truncated or corrupted files that deliver fewer bytes than expected throw an error instead of silently producing garbage.
+- **File-size cross-check** (file-based overloads only): the header-claimed data size is compared against the actual file size on disk. Files whose headers claim more data than the file physically contains are rejected immediately.
+
+
 ## Development
 
 
