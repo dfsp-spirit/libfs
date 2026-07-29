@@ -17,10 +17,10 @@
 #include <cstdint>
 #include <cstring>
 
-#define LIBFS_VERSION "0.4.0"
+#define LIBFS_VERSION "0.4.1"
 #define LIBFS_VERISION_MAJOR 0
 #define LIBFS_VERISION_MINOR 4
-#define LIBFS_VERISION_PATCH 0
+#define LIBFS_VERISION_PATCH 1
 
 // -- Security / defensive hardening configuration -------------------------------------
 // Users can #define any of these BEFORE including libfs.h to override the defaults.
