@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 
 #define LIBFS_VERSION "0.4.0"
 #define LIBFS_VERISION_MAJOR 0
@@ -3059,9 +3060,8 @@ namespace fs
   /// @private
   bool _is_bigendian()
   {
-    short int number = 0x1;
-    char *numPtr = (char *)&number;
-    // std::cout << "Platform is big endian: " << (numPtr[0] != 1) << ".\n";
+    const short int number = 0x1;
+    const char *numPtr = reinterpret_cast<const char *>(&number);
     return (numPtr[0] != 1);
   }
 
@@ -3389,26 +3389,28 @@ namespace fs
 
   /// Swap endianness of a value.
   ///
+  /// Uses memcpy through unsigned char (well-defined in C++11) rather than
+  /// union type-punning (which is UB in C++, only valid in C).
+  ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
   template <typename T>
   T _swap_endian(T u)
   {
-
     static_assert(CHAR_BIT == 8, "CHAR_BIT != 8");
 
-    union
-    {
-      T u;
-      unsigned char u8[sizeof(T)];
-    } source, dest;
-
-    source.u = u;
+    unsigned char src[sizeof(T)];
+    unsigned char dst[sizeof(T)];
+    std::memcpy(src, &u, sizeof(T));
 
     for (size_t k = 0; k < sizeof(T); k++)
-      dest.u8[k] = source.u8[sizeof(T) - k - 1];
+    {
+      dst[k] = src[sizeof(T) - k - 1];
+    }
 
-    return (dest.u);
+    T result;
+    std::memcpy(&result, dst, sizeof(T));
+    return result;
   }
 
   /// Read a big endian value from a stream.
