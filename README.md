@@ -42,7 +42,7 @@ This library was written from scratch in C++. It is **not** based on the FreeSur
 
 ## Usage
 
-### Examples
+### Quick Example
 
 Just download the file [include/libfs.h](./include/libfs.h) and drop it whereever you like. Make sure your compiler knows about that place. Then use the functions:
 
@@ -62,7 +62,12 @@ int main(int argc, char** argv) {
 }
 ```
 
-#### Full example programs
+### API Docs
+
+See [dfsp-spirit.github.io/libfs/](https://dfsp-spirit.github.io/libfs/).
+
+
+### Full example programs
 
 See the [examples directory](./examples/) for some full demo programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). Other examples include:
 
