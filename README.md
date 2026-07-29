@@ -127,7 +127,7 @@ Just drop `include/libfs.h` anywhere and add its directory to your compiler's in
 
 ### Full API documentation
 
-The API docs can be browsed online at [codedocs.xyz/dfsp-spirit/libfs/](https://codedocs.xyz/dfsp-spirit/libfs/). The API docs contain usage examples for many important functions.
+The API docs can be browsed online at [dfsp-spirit.github.io/libfs/](https://dfsp-spirit.github.io/libfs/). The API docs contain usage examples for many important functions.
 
 
 ### Conventions
@@ -219,13 +219,6 @@ To build it, see the instructions in the `Running the tests` section above, whic
 ### Building the documentation locally
 
 If you have `doxygen` installed (`sudo apt install doxygen graphviz` under Debian-based Linux distros), you can generate the full API documentation like this:
-
-```
-cmake .
-make doc
-```
-
-or with:
 
 ```
 doxygen
