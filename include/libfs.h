@@ -274,6 +274,13 @@ namespace fs
       return static_cast<size_t>(end);
     }
 
+    /// @brief Check whether a float is finite (not NaN, not Inf). C++11-compatible.
+    /// @private
+    inline bool is_finite_float(float value)
+    {
+      return !std::isnan(value) && !std::isinf(value);
+    }
+
     // -- End security helpers ---------------------------------------------------------
 
     /// @brief Check whether a string ends with the given suffix.
@@ -2646,6 +2653,25 @@ namespace fs
       mgh_header->ysize = _freadt<float>(*is);
       mgh_header->zsize = _freadt<float>(*is);
 
+      // Validate voxel sizes: must be finite and non-zero to prevent division-by-zero
+      // and NaN/Inf propagation in spatial transform calculations.
+      if (!fs::util::is_finite_float(mgh_header->xsize) ||
+          !fs::util::is_finite_float(mgh_header->ysize) ||
+          !fs::util::is_finite_float(mgh_header->zsize))
+      {
+        throw std::domain_error("MGH header contains NaN or Inf voxel size(s): x=" +
+                                 std::to_string(mgh_header->xsize) + " y=" +
+                                 std::to_string(mgh_header->ysize) + " z=" +
+                                 std::to_string(mgh_header->zsize) + ".\n");
+      }
+      if (mgh_header->xsize == 0.0f || mgh_header->ysize == 0.0f || mgh_header->zsize == 0.0f)
+      {
+        throw std::domain_error("MGH header contains zero voxel size(s): x=" +
+                                 std::to_string(mgh_header->xsize) + " y=" +
+                                 std::to_string(mgh_header->ysize) + " z=" +
+                                 std::to_string(mgh_header->zsize) + ".\n");
+      }
+
       for (int i = 0; i < 9; i++)
       {
         mgh_header->Mdc.push_back(_freadt<float>(*is));
@@ -2654,6 +2680,25 @@ namespace fs
       {
         mgh_header->Pxyz_c.push_back(_freadt<float>(*is));
       }
+
+      // Validate the direction cosine matrix (Mdc) and center coordinates (Pxyz_c).
+      for (size_t i = 0; i < mgh_header->Mdc.size(); i++)
+      {
+        if (!fs::util::is_finite_float(mgh_header->Mdc[i]))
+        {
+          throw std::domain_error("MGH header Mdc matrix contains NaN or Inf at index " +
+                                   std::to_string(i) + ".\n");
+        }
+      }
+      for (size_t i = 0; i < mgh_header->Pxyz_c.size(); i++)
+      {
+        if (!fs::util::is_finite_float(mgh_header->Pxyz_c[i]))
+        {
+          throw std::domain_error("MGH header Pxyz_c contains NaN or Inf at index " +
+                                   std::to_string(i) + ".\n");
+        }
+      }
+
       unused_header_space_size_left -= 60;
     }
 
