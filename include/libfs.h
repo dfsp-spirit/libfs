@@ -3377,6 +3377,10 @@ namespace fs
     is.read(reinterpret_cast<char *>(&t), sizeof(t));
     if (static_cast<size_t>(is.gcount()) != sizeof(T))
     {
+      if (is.gcount() == 0)
+      {
+        throw std::runtime_error("Unexpected end of binary stream: expected " + std::to_string(sizeof(T)) + " bytes, got EOF.\n");
+      }
       throw std::runtime_error("Short read in binary stream: expected " + std::to_string(sizeof(T)) + " bytes, got " + std::to_string(is.gcount()) + ".\n");
     }
     if (!_is_bigendian())
@@ -3396,6 +3400,10 @@ namespace fs
     is.read(reinterpret_cast<char *>(&i), 3);
     if (static_cast<size_t>(is.gcount()) != 3)
     {
+      if (is.gcount() == 0)
+      {
+        throw std::runtime_error("Unexpected end of binary stream: expected 3 bytes, got EOF.\n");
+      }
       throw std::runtime_error("Short read in binary stream: expected 3 bytes, got " + std::to_string(is.gcount()) + ".\n");
     }
     if (!_is_bigendian())
@@ -3472,6 +3480,10 @@ namespace fs
     is.read(&str[0], length);
     if (static_cast<size_t>(is.gcount()) != length)
     {
+      if (is.gcount() == 0)
+      {
+        throw std::runtime_error("Unexpected end of binary stream while reading fixed-length string: expected " + std::to_string(length) + " bytes, got EOF.\n");
+      }
       throw std::runtime_error("Short read in binary stream while reading fixed-length string: expected " + std::to_string(length) + " bytes, got " + std::to_string(is.gcount()) + ".\n");
     }
     if (strip_last_char)
