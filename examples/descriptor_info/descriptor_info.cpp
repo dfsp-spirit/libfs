@@ -159,7 +159,8 @@ int main(int argc, char** argv) {
         std::cout << "The mean value is: " << mean << "\n";
 
         std::vector<double> diff(data_filtered_nonan.size());
-        std::transform(data_filtered_nonan.begin(), data_filtered_nonan.end(), diff.begin(), std::bind2nd(std::minus<double>(), mean));
+        std::transform(data_filtered_nonan.begin(), data_filtered_nonan.end(), diff.begin(),
+                       [mean](double x) { return x - mean; });
         double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
         double stdev = std::sqrt(sq_sum / data_filtered_nonan.size());
         std::cout << "The standard deviation is: " << stdev << "\n";
