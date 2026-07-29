@@ -67,3 +67,30 @@ if(BUILD_DOCUMENTATION)
 else()
     message("Not building docs")
 endif()
+
+
+##### Optional: libFuzzer harness (Clang only). #####
+# Build with: cmake -S. -Bbuild_fuzz -DLIBFS_BUILD_FUZZ=ON \
+#                    -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+option(LIBFS_BUILD_FUZZ "Build libFuzzer harness (requires Clang)" OFF)
+if(LIBFS_BUILD_FUZZ)
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "libFuzzer requires Clang. Set CC=clang CXX=clang++.")
+    endif()
+
+    set(FUZZ_SOURCES tests/fuzz_parsers.cpp include/libfs.h)
+    add_executable(fuzz_parsers ${FUZZ_SOURCES})
+    set_property(TARGET fuzz_parsers PROPERTY CXX_STANDARD 11)
+    set_property(TARGET fuzz_parsers PROPERTY CXX_STANDARD_REQUIRED ON)
+    set_property(TARGET fuzz_parsers PROPERTY CXX_EXTENSIONS OFF)
+    target_include_directories(fuzz_parsers PRIVATE include)
+    target_compile_options(fuzz_parsers PRIVATE
+        -fsanitize=fuzzer,address,undefined
+        -fno-omit-frame-pointer
+        -g
+    )
+    target_link_options(fuzz_parsers PRIVATE
+        -fsanitize=fuzzer,address,undefined
+    )
+    message("libFuzzer harness target 'fuzz_parsers' enabled.")
+endif()

@@ -28,6 +28,32 @@
 
 # Executables
 *.exe
+
+# Build outputs
+build/
+build_fuzz/
+build_san/
+build_clang/
+
+# Fuzzer state
+fuzz_corpus/
+
+# Compiled example binaries
+examples/*/read_annot
+examples/*/read_curv
+examples/*/read_label
+examples/*/read_mgh
+examples/*/read_mgz
+examples/*/read_surf
+examples/*/descriptor_info
+examples/*/vertex_color_export
+
+# Generated output from examples
+examples/*/*.mgh
+examples/*/*.ply
+examples/*/*.off
+examples/*/*_exported
+examples/*/tmp.*
 *.out
 *.app
 

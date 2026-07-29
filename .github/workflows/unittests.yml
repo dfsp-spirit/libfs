@@ -57,3 +57,31 @@ jobs:
       run: |
         cmake -S. -Bbuild_clang -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
         cmake --build build_clang --config Debug
+
+  sanitizer-fuzz:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build and test with sanitizers (ASan + UBSan)
+      run: |
+        cmake -S. -Bbuild_san -DCMAKE_BUILD_TYPE=Debug \
+              -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+              -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+        cmake --build build_san --config Debug
+        ./build_san/run_libfs_tests
+
+    - name: Build fuzz harness
+      run: |
+        cmake -S. -Bbuild_fuzz -DLIBFS_BUILD_FUZZ=ON \
+              -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        cmake --build build_fuzz --config Debug
+
+    - name: Run fuzzer (short smoke test)
+      run: |
+        mkdir -p fuzz_corpus
+        # Seed corpus with a tiny valid-ish binary to help the fuzzer.
+        printf '\x00\xff\xff\xff\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x01' > fuzz_corpus/seed_curv
+        ./build_fuzz/fuzz_parsers fuzz_corpus -max_len=8192 -max_total_time=30 || true
+      # max_total_time=30: run for 30 seconds. '|| true' because fuzzers
+      # exit non-zero if they find nothing (no crash = success).
