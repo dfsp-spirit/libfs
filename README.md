@@ -79,9 +79,49 @@ You can run the script [examples/run_all_examples.bash](./examples/run_all_examp
 
 ### Building your programs
 
-Just add the directory into which you saved `libfs.h` to the include path during compilation. This is done by adding an `-I<path>` flag for most compilers, check the manual of your compiler if in doubt.
+libfs is a header-only library — just `#include "libfs.h"`. You can integrate it into your project in several ways:
 
-Compilation instructions for g++ and clang are at the top of each example source file, it should be easy to adapt them for your favorite C++ compiler. If you prefer to build with cmake, have a look at the [CMakeLists.txt file](./CMakeLists.txt) we use to build the unit tests.
+#### Option 1: CMake FetchContent (recommended)
+
+No download, no install. Add this to your `CMakeLists.txt`:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    libfs
+    GIT_REPOSITORY https://github.com/dfsp-spirit/libfs.git
+    GIT_TAG        main   # or a specific version tag
+)
+FetchContent_MakeAvailable(libfs)
+target_link_libraries(my_app PRIVATE libfs::libfs)
+```
+
+#### Option 2: Install system-wide
+
+```bash
+git clone https://github.com/dfsp-spirit/libfs.git
+cd libfs
+cmake -S. -Bbuild
+cmake --install build   # may need sudo for /usr/local
+```
+
+Then in your `CMakeLists.txt`:
+
+```cmake
+find_package(libfs REQUIRED)
+target_link_libraries(my_app PRIVATE libfs::libfs)
+```
+
+#### Option 3: Vendored copy
+
+```cmake
+add_subdirectory(third_party/libfs)
+target_link_libraries(my_app PRIVATE libfs::libfs)
+```
+
+#### Option 4: Manual include path
+
+Just drop `include/libfs.h` anywhere and add its directory to your compiler's include path with `-I<path>`. No CMake required.
 
 
 ### Full API documentation

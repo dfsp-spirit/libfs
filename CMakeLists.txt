@@ -1,11 +1,37 @@
 cmake_minimum_required(VERSION 3.8.2)
-project(libfs)
+project(libfs VERSION 0.4.0 LANGUAGES CXX)
 
-##### Build the unit test executable. #####
+# ── Library target (header-only INTERFACE library) ──────────────────────────
+# Consumers can use libfs via:
+#   find_package(libfs)                         # after cmake --install
+#   FetchContent + target_link_libraries(... libfs::libfs)  # from GitHub
+#   add_subdirectory(path/to/libfs)             # vendored copy
+
+add_library(libfs INTERFACE)
+add_library(libfs::libfs ALIAS libfs)
+
+target_include_directories(libfs INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_compile_features(libfs INTERFACE cxx_std_11)
+
+# ── Install & export ────────────────────────────────────────────────────────
+include(GNUInstallDirs)
+
+install(TARGETS libfs EXPORT libfsTargets)
+install(EXPORT libfsTargets
+    NAMESPACE libfs::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libfs
+)
+install(FILES include/libfs.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# ── Build the unit test executable ──────────────────────────────────────────
 
 set(SOURCE_FILES src/main.cpp src/libfs_tests.cpp include/libfs.h)
-include_directories( include third_party ) # For the unit test framework (catch.hpp).
 add_executable(run_libfs_tests ${SOURCE_FILES})
+target_include_directories(run_libfs_tests PRIVATE third_party)  # catch.hpp
+target_link_libraries(run_libfs_tests PRIVATE libfs::libfs)
 
 set_property(TARGET run_libfs_tests PROPERTY CXX_STANDARD 11)
 set_property(TARGET run_libfs_tests PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -25,6 +51,7 @@ endif()
 
 set(SOURCE_FILES_DEMO src/demo_main.cpp include/libfs.h)
 add_executable(demo_libfs ${SOURCE_FILES_DEMO})
+target_link_libraries(demo_libfs PRIVATE libfs::libfs)
 
 set_property(TARGET demo_libfs PROPERTY CXX_STANDARD 11)
 set_property(TARGET demo_libfs PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -83,7 +110,7 @@ if(LIBFS_BUILD_FUZZ)
     set_property(TARGET fuzz_parsers PROPERTY CXX_STANDARD 11)
     set_property(TARGET fuzz_parsers PROPERTY CXX_STANDARD_REQUIRED ON)
     set_property(TARGET fuzz_parsers PROPERTY CXX_EXTENSIONS OFF)
-    target_include_directories(fuzz_parsers PRIVATE include)
+    target_link_libraries(fuzz_parsers PRIVATE libfs::libfs)
     target_compile_options(fuzz_parsers PRIVATE
         -fsanitize=fuzzer,address,undefined
         -fno-omit-frame-pointer
