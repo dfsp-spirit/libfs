@@ -35,6 +35,9 @@ build_fuzz/
 build_san/
 build_clang/
 
+# Generated documentation
+doc_built/
+
 # Fuzzer state
 fuzz_corpus/
 
