@@ -19,6 +19,7 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
 * map per-vertex data to RGBA colors using viridis colormap, with NAN handling
+* security measures to protect against invalid / malformed / malicious input files
 
 Supported data types for the MGH format include:
 * `MRI_INT`: 32 bit signed int
