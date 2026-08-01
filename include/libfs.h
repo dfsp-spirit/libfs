@@ -18,9 +18,12 @@
 #include <cstring>
 
 #define LIBFS_VERSION "0.4.1"
-#define LIBFS_VERISION_MAJOR 0
-#define LIBFS_VERISION_MINOR 4
-#define LIBFS_VERISION_PATCH 1
+#define LIBFS_VERISION_MAJOR 0   # deprecated, use LIBFS_VERSION_MAJOR instead
+#define LIBFS_VERISION_MINOR 4   # deprecated, use LIBFS_VERSION_MINOR instead
+#define LIBFS_VERISION_PATCH 1   # deprecated, use LIBFS_VERSION_PATCH instead
+#define LIBFS_VERSION_MAJOR 0
+#define LIBFS_VERSION_MINOR 4
+#define LIBFS_VERSION_PATCH 1
 
 // -- Security / defensive hardening configuration -------------------------------------
 // Users can #define any of these BEFORE including libfs.h to override the defaults.
