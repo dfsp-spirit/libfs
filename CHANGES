@@ -1,6 +1,9 @@
 libfs Changes
 ===============
 
+v0.4.2: Fix version defines
+-----------------------------
+* FIX: fix typo in version defines, e.g., `LIBFS_VERISION_MAJOR 0` => fixed to `LIBFS_VERSION_MAJOR 0`. The old ones remain for now as well but are deprecated, use the correct ones with correct spelling.
 
 v0.4.1: Security and Integration
 --------------------------------
