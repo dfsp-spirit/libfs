@@ -226,7 +226,7 @@ To build it, see the instructions in the `Running the tests` section above, whic
 If you have `doxygen` installed (`sudo apt install doxygen graphviz` under Debian-based Linux distros), you can generate the full API documentation like this:
 
 ```
-doxygen
+doxygen Doxyfile
 ```
 
 The documentation will be built and can be found in `doc_built/` afterwards. The recommended way to browse it is to open `doc_built/html/index.html` with your favorite webbrowser, e.g.:
@@ -234,6 +234,18 @@ The documentation will be built and can be found in `doc_built/` afterwards. The
 ```
 firefox doc_built/html/index.html
 ```
+
+### Making a release
+
+* make sure you have logged all changes in the CHANGES file
+* build & run tests
+* build & run mini examples
+* build & run demo app
+* build the docs (`doxygen Doxyfile`) and check for warnings
+* bump version in include/libfs.h (the `#define` lines near top)
+* tag the commit with the version
+* create release from tag in github web UI
+
 
 
 ## Author, License and Getting help
