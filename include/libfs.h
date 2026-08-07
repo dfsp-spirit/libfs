@@ -936,6 +936,7 @@ namespace fs
       cur_x = cur_y = cur_z = 0.0;
       for (size_t i = 0; i < nx; i++)
       {
+        cur_y = 0.0;
         for (size_t j = 0; j < ny; j++)
         {
           vertices.push_back(cur_x);
@@ -1024,7 +1025,9 @@ namespace fs
     {
       size_t operator()(const std::tuple<size_t, size_t> &x) const
       {
-        return std::get<0>(x) ^ std::get<1>(x);
+        size_t a = std::get<0>(x);
+        size_t b = std::get<1>(x);
+        return a ^ (b << 1) ^ (b >> (sizeof(size_t) * 8 - 1));
       }
     };
 
@@ -1493,7 +1496,7 @@ namespace fs
             }
             if (found_v2 != std::string::npos)
             {
-              v2raw = v0raw.substr(0, found_v2);
+              v2raw = v2raw.substr(0, found_v2);
             }
             v0 = std::stoi(v0raw);
             v1 = std::stoi(v1raw);
@@ -3218,7 +3221,7 @@ namespace fs
       colortable->g.push_back(_freadt<int32_t>(*is));
       colortable->b.push_back(_freadt<int32_t>(*is));
       colortable->a.push_back(_freadt<int32_t>(*is));
-      colortable->label.push_back(colortable->r[i] + colortable->g[i] * 256 + colortable->b[i] * 65536 + colortable->a[i] * 16777216);
+      colortable->label.push_back(static_cast<uint32_t>(colortable->r[i]) + static_cast<uint32_t>(colortable->g[i]) * 256u + static_cast<uint32_t>(colortable->b[i]) * 65536u + static_cast<uint32_t>(colortable->a[i]) * 16777216u);
     }
   }
 
@@ -3446,7 +3449,7 @@ namespace fs
   /// @private
   int _fread3(std::istream &is)
   {
-    uint32_t i;
+    uint32_t i = 0;
     is.read(reinterpret_cast<char *>(&i), 3);
     if (static_cast<size_t>(is.gcount()) != 3)
     {
@@ -3487,13 +3490,6 @@ namespace fs
     unsigned char b1 = (i >> 16) & 255;
     unsigned char b2 = (i >> 8) & 255;
     unsigned char b3 = i & 255;
-
-    if (!_is_bigendian())
-    {
-      b1 = _swap_endian<unsigned char>(b1);
-      b2 = _swap_endian<unsigned char>(b2);
-      b3 = _swap_endian<unsigned char>(b3);
-    }
 
     os.write(reinterpret_cast<const char *>(&b1), sizeof(b1));
     os.write(reinterpret_cast<const char *>(&b2), sizeof(b2));
@@ -3613,6 +3609,10 @@ namespace fs
     // Write RAS part of of header if flag is 1.
     if (mgh.header.ras_good_flag == 1)
     {
+      if (mgh.header.Mdc.size() < 9 || mgh.header.Pxyz_c.size() < 3)
+      {
+        throw std::logic_error("MGH header ras_good_flag set but Mdc and/or Pxyz_c vectors are undersized.\n");
+      }
       _fwritet<float>(os, mgh.header.xsize);
       _fwritet<float>(os, mgh.header.ysize);
       _fwritet<float>(os, mgh.header.zsize);
