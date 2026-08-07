@@ -7,7 +7,8 @@ Current WIP
 * FIX: copy-paste bug in `Mesh::from_obj()` — face vertex index 3 (v2) incorrectly used v0raw instead of v2raw when stripping slash-suffix texture/normal indices from OBJ files.
 * FIX: uninitialized memory read (UB) in `_fread3()` — the 4th byte of the uint32_t was uninitialized before being passed through the endian swap.
 * FIX: `Mesh::construct_grid()` did not reset the y-coordinate (`cur_y`) between grid rows, producing distorted geometry.
-* FIX: signed integer overflow (UB) in colortable label RGBA computation — cast operands to uint32_t before multiplication to avoid overflow for colour components > 127.
+* FIX: reversed face winding in `Mesh::construct_cube()` — 3 of 6 cube faces (left, top, back) had normals pointing inward instead of outward.
+* FIX: reversed face winding in `Mesh::construct_pyramid()` — the 2 base triangles had normals pointing +Z (up into the pyramid) instead of -Z (down/outward).
 * FIX: missing bounds check in `write_mgh()` — Mdc and Pxyz_c vectors are now validated before indexed access when ras_good_flag == 1.
 * FIX: weak hash function for `edge_set` — replaced symmetric XOR-only hash with a proper hash combine to reduce collisions.
 * FIX: dead endian-swap code in `_fwritei3()` — removed no-op byte-swapping of individual unsigned chars (extracted bytes are already in correct order).
