@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <fstream>
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -880,6 +881,119 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         int max_vertex_idx = *std::max_element(surface2.faces.begin(), surface2.faces.end());
         REQUIRE(min_vertex_idx == 0);
         REQUIRE(max_vertex_idx == 4);
+    }
+
+    SECTION("PLY round-trip preserves vertex colors.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        // Assign a simple per-vertex color pattern.
+        std::vector<uint8_t> col_in;
+        for (size_t i = 0; i < surface2.num_vertices(); i++) {
+            col_in.push_back(static_cast<uint8_t>(i * 31));       // red
+            col_in.push_back(static_cast<uint8_t>(i * 17 + 50));  // green
+            col_in.push_back(static_cast<uint8_t>(255 - i * 31)); // blue
+        }
+
+        const std::string ply_file = "examples/read_surf/cube_colors.ply";
+        surface2.to_ply_file(ply_file, col_in);
+
+        fs::Mesh surface3;
+        fs::Mesh::from_ply(&surface3, ply_file);
+
+        REQUIRE(surface3.num_vertices() == surface2.num_vertices());
+        REQUIRE(surface3.vertex_colors.size() == col_in.size());
+        for (size_t i = 0; i < col_in.size(); i++) {
+            REQUIRE((int)surface3.vertex_colors[i] == (int)col_in[i]);
+        }
+    }
+
+    SECTION("Reading a PLY file without vertex colors yields an empty vertex_colors vector.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        const std::string ply_file = "examples/read_surf/cube_nocolor.ply";
+        surface2.to_ply_file(ply_file);
+
+        fs::Mesh surface3;
+        fs::Mesh::from_ply(&surface3, ply_file);
+
+        REQUIRE(surface3.vertex_colors.empty());
+    }
+
+    SECTION("COFF round-trip preserves vertex colors.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        std::vector<uint8_t> col_in;
+        for (size_t i = 0; i < surface2.num_vertices(); i++) {
+            col_in.push_back(static_cast<uint8_t>(i * 30));
+            col_in.push_back(static_cast<uint8_t>(128));
+            col_in.push_back(static_cast<uint8_t>(255 - i * 30));
+        }
+
+        const std::string off_file = "examples/read_surf/cube_colors.off";
+        surface2.to_off_file(off_file, col_in);
+
+        fs::Mesh surface3;
+        fs::Mesh::from_off(&surface3, off_file);
+
+        REQUIRE(surface3.num_vertices() == surface2.num_vertices());
+        REQUIRE(surface3.vertex_colors.size() == col_in.size());
+        for (size_t i = 0; i < col_in.size(); i++) {
+            REQUIRE((int)surface3.vertex_colors[i] == (int)col_in[i]);
+        }
+    }
+
+    SECTION("Reading an OFF file without vertex colors yields an empty vertex_colors vector.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        const std::string off_file = "examples/read_surf/cube_nocolor.off";
+        surface2.to_off_file(off_file);
+
+        fs::Mesh surface3;
+        fs::Mesh::from_off(&surface3, off_file);
+
+        REQUIRE(surface3.vertex_colors.empty());
+    }
+
+    SECTION("OBJ round-trip preserves vertex colors (x y z r g b convention).") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        std::vector<uint8_t> col_in;
+        for (size_t i = 0; i < surface2.num_vertices(); i++) {
+            col_in.push_back(static_cast<uint8_t>(i * 31));
+            col_in.push_back(static_cast<uint8_t>(i * 17 + 50));
+            col_in.push_back(static_cast<uint8_t>(255 - i * 31));
+        }
+
+        // Write an OBJ file with inline vertex colours (x y z r g b convention).
+        const std::string obj_file = "examples/read_surf/cube_colors.obj";
+        {
+            std::ofstream ofs(obj_file);
+            ofs << "# OBJ with per-vertex colours\n";
+            for (size_t vi = 0; vi < surface2.num_vertices(); vi++) {
+                ofs << "v " << surface2.vertices[vi * 3] << " " << surface2.vertices[vi * 3 + 1] << " " << surface2.vertices[vi * 3 + 2]
+                    << " " << (col_in[vi * 3] / 255.0f)
+                    << " " << (col_in[vi * 3 + 1] / 255.0f)
+                    << " " << (col_in[vi * 3 + 2] / 255.0f) << "\n";
+            }
+            for (size_t fi = 0; fi < surface2.num_faces(); fi++) {
+                ofs << "f " << (surface2.faces[fi * 3] + 1) << " " << (surface2.faces[fi * 3 + 1] + 1) << " " << (surface2.faces[fi * 3 + 2] + 1) << "\n";
+            }
+        }
+
+        fs::Mesh surface3;
+        fs::Mesh::from_obj(&surface3, obj_file);
+
+        REQUIRE(surface3.num_vertices() == surface2.num_vertices());
+        REQUIRE(surface3.vertex_colors.size() == col_in.size());
+        for (size_t i = 0; i < col_in.size(); i++) {
+            REQUIRE((int)surface3.vertex_colors[i] == (int)col_in[i]);
+        }
+    }
+
+    SECTION("Reading an OBJ file without vertex colors yields an empty vertex_colors vector.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        const std::string obj_file = "examples/read_surf/cube_nocolor.obj";
+        surface2.to_obj_file(obj_file);
+
+        fs::Mesh surface3;
+        fs::Mesh::from_obj(&surface3, obj_file);
+
+        REQUIRE(surface3.vertex_colors.empty());
     }
 }
 

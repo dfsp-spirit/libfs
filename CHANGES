@@ -11,6 +11,10 @@ Current WIP
 * FIX: missing bounds check in `write_mgh()` — Mdc and Pxyz_c vectors are now validated before indexed access when ras_good_flag == 1.
 * FIX: weak hash function for `edge_set` — replaced symmetric XOR-only hash with a proper hash combine to reduce collisions.
 * FIX: dead endian-swap code in `_fwritei3()` — removed no-op byte-swapping of individual unsigned chars (extracted bytes are already in correct order).
+* NEW: the `Mesh` struct now has a `vertex_colors` field (std::vector<uint8_t>, 3-per-vertex interleaved RGB, empty if no colors) for storing vertex colors read from mesh files.
+* NEW: `Mesh::from_ply()` now parses vertex colors (property uchar red/green/blue) when present in the PLY header.
+* NEW: `Mesh::from_off()` now parses vertex colors when the file uses COFF format (color OFF).
+* NEW: `Mesh::from_obj()` now parses per-vertex colors from OBJ files using the widely-supported `x y z r g b` convention (6 floats per vertex line, where the last 3 are RGB as floats in [0,1]).
 
 
 v0.4.2: Fix version defines

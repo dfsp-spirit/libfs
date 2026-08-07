@@ -834,8 +834,9 @@ namespace fs
     /// Construct an empty Mesh.
     Mesh() {}
 
-    std::vector<float> vertices; ///< *n x 3* vector of the *x*,*y*,*z* coordinates for the *n* vertices. The x,y,z coordinates for a single vertex form consecutive entries.
-    std::vector<int32_t> faces;  ///< *n x 3* vector of the 3 vertex indices for the *n* triangles or faces. The 3 vertices of a single face form consecutive entries.
+    std::vector<float> vertices;   ///< *n x 3* vector of the *x*,*y*,*z* coordinates for the *n* vertices. The x,y,z coordinates for a single vertex form consecutive entries.
+    std::vector<int32_t> faces;    ///< *n x 3* vector of the 3 vertex indices for the *n* triangles or faces. The 3 vertices of a single face form consecutive entries.
+    std::vector<uint8_t> vertex_colors; ///< *n x 3* vector of RGB color values, 3 per vertex (v0_r, v0_g, v0_b, v1_r, ...). Empty if no vertex colors are available. Populated by from_ply() and from_off() when the file contains colors. Same interleave format as used by to_ply(col) / to_off(col).
 
     /// @brief Construct and return a simple cube mesh.
     /// @return fs::Mesh instance representing a cube.
@@ -1442,6 +1443,8 @@ namespace fs
 
       std::vector<float> vertices;
       std::vector<int> faces;
+      std::vector<uint8_t> vertex_colors;
+      int detected_format = -1; // -1 = unknown, 0 = no vertex colors, 1 = has vertex colors (r g b after x y z)
 
 #ifdef LIBFS_DBG_INFO
       size_t num_lines_ignored = 0; // Not comments, but custom extensions or material data lines which are ignored by libfs.
@@ -1469,6 +1472,66 @@ namespace fs
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
+
+            // Check for optional per-vertex colors: 6-value lines (x y z r g b) have colors,
+            // 3-value lines (x y z) and 4-value lines (x y z w) do not.
+            // Detect the format from the first vertex line.
+            if (detected_format == -1)
+            {
+              float vr, vg, vb;
+              if ((iss >> vr >> vg >> vb))
+              {
+                // We read 3 more floats successfully. Check if there is even more data
+                // (e.g., x y z w nx ny nz) — if so, treat as no-colors format.
+                float extra;
+                if (iss >> extra)
+                {
+                  detected_format = 0;
+                }
+                else
+                {
+                  detected_format = 1;
+                  // Store colors for the first vertex (already consumed from stream).
+                  int ri = static_cast<int>(vr * 255.0f + 0.5f);
+                  int gi = static_cast<int>(vg * 255.0f + 0.5f);
+                  int bi = static_cast<int>(vb * 255.0f + 0.5f);
+                  if (ri < 0) { ri = 0; }
+                  if (ri > 255) { ri = 255; }
+                  if (gi < 0) { gi = 0; }
+                  if (gi > 255) { gi = 255; }
+                  if (bi < 0) { bi = 0; }
+                  if (bi > 255) { bi = 255; }
+                  vertex_colors.push_back(static_cast<uint8_t>(ri));
+                  vertex_colors.push_back(static_cast<uint8_t>(gi));
+                  vertex_colors.push_back(static_cast<uint8_t>(bi));
+                }
+              }
+              else
+              {
+                detected_format = 0;
+              }
+            }
+            else if (detected_format == 1)
+            {
+              // Read colors for subsequent vertices.
+              float vr, vg, vb;
+              if (!(iss >> vr >> vg >> vb))
+              {
+                throw std::domain_error("Expected vertex colors (r g b) on line " + std::to_string(line_idx + 1) + " of OBJ data, but could not parse them.\n");
+              }
+              int ri = static_cast<int>(vr * 255.0f + 0.5f);
+              int gi = static_cast<int>(vg * 255.0f + 0.5f);
+              int bi = static_cast<int>(vb * 255.0f + 0.5f);
+              if (ri < 0) { ri = 0; }
+              if (ri > 255) { ri = 255; }
+              if (gi < 0) { gi = 0; }
+              if (gi > 255) { gi = 255; }
+              if (bi < 0) { bi = 0; }
+              if (bi > 255) { bi = 255; }
+              vertex_colors.push_back(static_cast<uint8_t>(ri));
+              vertex_colors.push_back(static_cast<uint8_t>(gi));
+              vertex_colors.push_back(static_cast<uint8_t>(bi));
+            }
           }
           else if (fs::util::starts_with(line, "f "))
           {
@@ -1525,6 +1588,7 @@ namespace fs
 #endif
       mesh->vertices = vertices;
       mesh->faces = faces;
+      mesh->vertex_colors = vertex_colors;
     }
 
     /// @brief Read a brainmesh from a Wavefront object format mesh file.
@@ -1580,10 +1644,11 @@ namespace fs
       size_t num_edges = 0;
       size_t num_verts_parsed = 0;
       size_t num_faces_parsed = 0;
+      bool has_vertex_colors = false;
       float x, y, z; // vertex xyz coords
-      // bool has_color;
-      // int r, g, b, a;   // vertex colors
+      int r, g, b, a;   // vertex colors
       int num_verts_this_face, v0, v1, v2; // face, defined by number of vertices and vertex indices.
+      std::vector<uint8_t> vertex_colors;
 
       while (std::getline(*is, line))
       {
@@ -1607,7 +1672,7 @@ namespace fs
             {
               throw std::domain_error("OFF magic string invalid, file " + msg_source_file_part + " not in OFF format.\n");
             }
-            // has_color = off_header_magic == "COFF";
+            has_vertex_colors = (off_header_magic == "COFF");
           }
           else if (noncomment_line_idx == 1)
           {
@@ -1621,9 +1686,22 @@ namespace fs
 
             if (num_verts_parsed < num_vertices)
             {
-              if (!(iss >> x >> y >> z))
+              if (has_vertex_colors)
               {
-                throw std::domain_error("Could not parse vertex coordinate line " + std::to_string(line_idx + 1) + " of OFF data " + msg_source_file_part + ", invalid format.\n");
+                if (!(iss >> x >> y >> z >> r >> g >> b >> a))
+                {
+                  throw std::domain_error("Could not parse vertex coordinate and color line " + std::to_string(line_idx + 1) + " of COFF data " + msg_source_file_part + ", invalid format.\n");
+                }
+                vertex_colors.push_back(static_cast<uint8_t>(r));
+                vertex_colors.push_back(static_cast<uint8_t>(g));
+                vertex_colors.push_back(static_cast<uint8_t>(b));
+              }
+              else
+              {
+                if (!(iss >> x >> y >> z))
+                {
+                  throw std::domain_error("Could not parse vertex coordinate line " + std::to_string(line_idx + 1) + " of OFF data " + msg_source_file_part + ", invalid format.\n");
+                }
               }
               vertices.push_back(x);
               vertices.push_back(y);
@@ -1661,6 +1739,7 @@ namespace fs
       }
       mesh->vertices = vertices;
       mesh->faces = faces;
+      mesh->vertex_colors = vertex_colors;
     }
 
     /// @brief Read a brainmesh from an OFF format mesh file.
@@ -1707,10 +1786,13 @@ namespace fs
 
       std::vector<float> vertices;
       std::vector<int> faces;
+      std::vector<uint8_t> vertex_colors;
 
-      bool in_header = true; // current status
+      bool in_header = true;                                              // current status
       int num_verts = -1;
       int num_faces = -1;
+      bool in_vertex_element = false;                                     // track whether we are inside 'element vertex' in header
+      std::vector<std::string> vertex_properties;                         // ordered list of property names under element vertex
       while (std::getline(*is, line))
       {
         line_idx += 1;
@@ -1746,6 +1828,7 @@ namespace fs
               {
                 throw std::domain_error("Could not parse element vertex line of PLY header, invalid format.\n");
               }
+              in_vertex_element = true;
             }
             else if (fs::util::starts_with(line, "element face"))
             {
@@ -1754,7 +1837,22 @@ namespace fs
               {
                 throw std::domain_error("Could not parse element face line of PLY header, invalid format.\n");
               }
-            } // Other properties like vertex colors and normals are ignored for now.
+              in_vertex_element = false;
+            }
+            else if (fs::util::starts_with(line, "element "))
+            {
+              // Some other element (e.g., edges): stop tracking vertex properties.
+              in_vertex_element = false;
+            }
+            else if (fs::util::starts_with(line, "property ") && in_vertex_element)
+            {
+              // Record property order for the vertex element so we can parse data lines correctly.
+              std::string kw, type, name;
+              if (iss >> kw >> type >> name)
+              {
+                vertex_properties.push_back(name);
+              }
+            }
           }
           else
           { // in data part.
@@ -1765,14 +1863,67 @@ namespace fs
             // Read vertices
             if (vertices.size() < (size_t)num_verts * 3)
             {
-              float x, y, z;
-              if (!(iss >> x >> y >> z))
+              float x = 0.0f, y = 0.0f, z = 0.0f;
+              int r = 0, g = 0, b = 0;
+              if (vertex_properties.empty())
               {
-                throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
+                // No property declarations tracked: fall back to default x y z order.
+                if (!(iss >> x >> y >> z))
+                {
+                  throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
+                }
+                vertices.push_back(x);
+                vertices.push_back(y);
+                vertices.push_back(z);
               }
-              vertices.push_back(x);
-              vertices.push_back(y);
-              vertices.push_back(z);
+              else
+              {
+                for (size_t pi = 0; pi < vertex_properties.size(); pi++)
+                {
+                  const std::string &pname = vertex_properties[pi];
+                  if (pname == "x") { iss >> x; }
+                  else if (pname == "y") { iss >> y; }
+                  else if (pname == "z") { iss >> z; }
+                  else if (pname == "red") { iss >> r; }
+                  else if (pname == "green") { iss >> g; }
+                  else if (pname == "blue") { iss >> b; }
+                  else if (pname == "nx" || pname == "ny" || pname == "nz")
+                  {
+                    // Skip normals.
+                    float dummy; iss >> dummy;
+                  }
+                  else
+                  {
+                    // Skip unknown property.
+                    std::string dummy; iss >> dummy;
+                  }
+                  if (iss.fail())
+                  {
+                    throw std::domain_error("Could not parse vertex property '" + pname + "' at line " + std::to_string(line_idx) + " of PLY data.\n");
+                  }
+                }
+                if (iss.fail())
+                {
+                  throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
+                }
+                vertices.push_back(x);
+                vertices.push_back(y);
+                vertices.push_back(z);
+                // Only store colors if red/green/blue were declared in the header.
+                bool has_r = false, has_g = false, has_b = false;
+                for (size_t pi = 0; pi < vertex_properties.size(); pi++)
+                {
+                  if (vertex_properties[pi] == "red") has_r = true;
+                  if (vertex_properties[pi] == "green") has_g = true;
+                  if (vertex_properties[pi] == "blue") has_b = true;
+                }
+                if (has_r && has_g && has_b)
+                {
+                  vertex_colors.push_back(static_cast<uint8_t>(r));
+                  vertex_colors.push_back(static_cast<uint8_t>(g));
+                  vertex_colors.push_back(static_cast<uint8_t>(b));
+                }
+              }
             }
             else
             {
@@ -1805,6 +1956,7 @@ namespace fs
       }
       mesh->vertices = vertices;
       mesh->faces = faces;
+      mesh->vertex_colors = vertex_colors;
     }
 
     /// @brief Read a brainmesh from a Stanford PLY format mesh file.
