@@ -218,6 +218,8 @@ Note that the `read_mgz` example requires `zlib`.
 
 The demo app `demo_libfs` is a slightly larger app that is build using cmake, like you would build a larger project that uses libfs.
 
+You can find the code in [src/](./src/).
+
 To build it, see the instructions in the `Running the tests` section above, which will also build the demo app, `demo_libfs`.
 
 
@@ -238,9 +240,9 @@ firefox doc_built/html/index.html
 ### Making a release
 
 * make sure you have logged all changes in the CHANGES file
-* build & run tests
-* build & run mini examples
-* build & run demo app
+* build & run tests: `cmake . && make && ./run_libfs_tests`
+* build & run mini examples: `./examples/run_all_examples.bash`
+* run demo app (it is build with the tests automatically): `./demo_libfs subject1 examples/subjects_dir/`
 * build the docs (`doxygen Doxyfile`) and check for warnings
 * bump version in include/libfs.h (the `#define` lines near top)
 * tag the commit with the version
