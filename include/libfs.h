@@ -983,10 +983,38 @@ namespace fs
     /// @endcode
     std::string to_obj() const
     {
+      std::vector<uint8_t> empty_col;
+      return (this->to_obj(empty_col));
+    }
+
+    /// @brief Return string representing the mesh in Wavefront Object (.obj) format with vertex colors.
+    /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
+    /// @details Colors are written using the widely-supported convention of 6 floats per vertex line: `v x y z r g b`, where RGB are floating-point values in [0, 1].
+    /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    ///
+    /// #### Examples
+    ///
+    /// @code
+    /// fs::Mesh surface = fs::Mesh::construct_cube();
+    /// std::vector<uint8_t> col = surface.vertex_colors;
+    /// std::string obj_rep = surface.to_obj(col);
+    /// @endcode
+    std::string to_obj(const std::vector<uint8_t> col) const
+    {
+      bool use_vertex_colors = col.size() != 0;
       std::stringstream objs;
       for (size_t vidx = 0; vidx < this->vertices.size(); vidx += 3)
       { // vertex coords
-        objs << "v " << vertices[vidx] << " " << vertices[vidx + 1] << " " << vertices[vidx + 2] << "\n";
+        objs << "v " << vertices[vidx] << " " << vertices[vidx + 1] << " " << vertices[vidx + 2];
+        if (use_vertex_colors)
+        {
+          if (col.size() != this->vertices.size())
+          {
+            throw std::invalid_argument("Number of vertex coordinates and vertex colors must match when writing OBJ file, but got " + std::to_string(this->vertices.size()) + " and " + std::to_string(col.size()) + ".");
+          }
+          objs << " " << (col[vidx] / 255.0f) << " " << (col[vidx + 1] / 255.0f) << " " << (col[vidx + 2] / 255.0f);
+        }
+        objs << "\n";
       }
       for (size_t fidx = 0; fidx < this->faces.size(); fidx += 3)
       { // faces: vertex indices, 1-based
@@ -1327,6 +1355,13 @@ namespace fs
     void to_obj_file(const std::string &filename) const
     {
       fs::util::str_to_file(filename, this->to_obj());
+    }
+
+    /// @brief Export this mesh to a file in Wavefront OBJ format with vertex colors.
+    /// @throws std::runtime_error if the target file cannot be opened, std::invalid_argument if the number of vertex colors does not match the number of vertices.
+    void to_obj_file(const std::string &filename, const std::vector<uint8_t> col) const
+    {
+      fs::util::str_to_file(filename, this->to_obj(col));
     }
 
     /// @brief Compute a new mesh that is a submesh of this mesh, based on a subset of the vertices of this mesh.
@@ -4168,6 +4203,39 @@ namespace fs
     else if (fs::util::ends_with(filename, {".off", ".OFF"}))
     {
       mesh.to_off_file(filename);
+    }
+    else
+    {
+      fs::write_surf(mesh, filename);
+    }
+  }
+
+  /// @brief Write a mesh to a file in different formats, with vertex colors.
+  /// @details The output format will be auto-determined from the file extension. The colors are written for PLY, OFF, and OBJ formats; the surf format ignores them.
+  /// @param mesh The fs::Mesh instance to write.
+  /// @param filename The path to the output file.
+  /// @param col u_char vector of RGB color values, 3 per vertex.
+  /// @throws std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mesh surface = fs::Mesh::construct_cube();
+  /// fs::write_mesh(surface, "cube.ply", surface.vertex_colors);
+  /// @endcode
+  void write_mesh(const Mesh &mesh, const std::string &filename, const std::vector<uint8_t> col)
+  {
+    if (fs::util::ends_with(filename, {".ply", ".PLY"}))
+    {
+      mesh.to_ply_file(filename, col);
+    }
+    else if (fs::util::ends_with(filename, {".obj", ".OBJ"}))
+    {
+      mesh.to_obj_file(filename, col);
+    }
+    else if (fs::util::ends_with(filename, {".off", ".OFF"}))
+    {
+      mesh.to_off_file(filename, col);
     }
     else
     {

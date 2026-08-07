@@ -995,6 +995,72 @@ TEST_CASE( "Importing and exporting meshes works" ) {
 
         REQUIRE(surface3.vertex_colors.empty());
     }
+
+    SECTION("OBJ round-trip via to_obj_file(col) preserves vertex colors.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        std::vector<uint8_t> col_in;
+        for (size_t i = 0; i < surface2.num_vertices(); i++) {
+            col_in.push_back(static_cast<uint8_t>(i * 31));
+            col_in.push_back(static_cast<uint8_t>(i * 17 + 50));
+            col_in.push_back(static_cast<uint8_t>(255 - i * 31));
+        }
+
+        const std::string obj_file = "examples/read_surf/cube_colors2.obj";
+        surface2.to_obj_file(obj_file, col_in);
+
+        fs::Mesh surface3;
+        fs::Mesh::from_obj(&surface3, obj_file);
+
+        REQUIRE(surface3.num_vertices() == surface2.num_vertices());
+        REQUIRE(surface3.vertex_colors.size() == col_in.size());
+        for (size_t i = 0; i < col_in.size(); i++) {
+            REQUIRE((int)surface3.vertex_colors[i] == (int)col_in[i]);
+        }
+    }
+
+    SECTION("write_mesh with colors writes and reads back correctly for all formats.") {
+        fs::Mesh surface2 = fs::Mesh::construct_cube();
+        std::vector<uint8_t> col_in;
+        for (size_t i = 0; i < surface2.num_vertices(); i++) {
+            col_in.push_back(static_cast<uint8_t>(i * 30));
+            col_in.push_back(static_cast<uint8_t>(128));
+            col_in.push_back(static_cast<uint8_t>(255 - i * 30));
+        }
+
+        // PLY
+        {
+            const std::string f = "examples/read_surf/wm_cc.ply";
+            fs::write_mesh(surface2, f, col_in);
+            fs::Mesh s;
+            fs::read_mesh(&s, f);
+            REQUIRE(s.vertex_colors.size() == col_in.size());
+            for (size_t i = 0; i < col_in.size(); i++) {
+                REQUIRE((int)s.vertex_colors[i] == (int)col_in[i]);
+            }
+        }
+        // OBJ
+        {
+            const std::string f = "examples/read_surf/wm_cc.obj";
+            fs::write_mesh(surface2, f, col_in);
+            fs::Mesh s;
+            fs::read_mesh(&s, f);
+            REQUIRE(s.vertex_colors.size() == col_in.size());
+            for (size_t i = 0; i < col_in.size(); i++) {
+                REQUIRE((int)s.vertex_colors[i] == (int)col_in[i]);
+            }
+        }
+        // OFF
+        {
+            const std::string f = "examples/read_surf/wm_cc.off";
+            fs::write_mesh(surface2, f, col_in);
+            fs::Mesh s;
+            fs::read_mesh(&s, f);
+            REQUIRE(s.vertex_colors.size() == col_in.size());
+            for (size_t i = 0; i < col_in.size(); i++) {
+                REQUIRE((int)s.vertex_colors[i] == (int)col_in[i]);
+            }
+        }
+    }
 }
 
 
