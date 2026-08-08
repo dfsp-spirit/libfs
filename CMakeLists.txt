@@ -37,6 +37,7 @@ target_link_libraries(run_libfs_tests PRIVATE libfs::libfs)
 find_package(ZLIB)
 if(ZLIB_FOUND)
     target_link_libraries(run_libfs_tests PRIVATE ZLIB::ZLIB)
+    target_compile_definitions(run_libfs_tests PRIVATE LIBFS_HAS_ZLIB)
 endif()
 
 set_property(TARGET run_libfs_tests PROPERTY CXX_STANDARD 11)
@@ -62,6 +63,7 @@ target_link_libraries(demo_libfs PRIVATE libfs::libfs)
 # Optional zlib support (for .nii.gz / .mgz compressed formats).
 if(ZLIB_FOUND)
     target_link_libraries(demo_libfs PRIVATE ZLIB::ZLIB)
+    target_compile_definitions(demo_libfs PRIVATE LIBFS_HAS_ZLIB)
 endif()
 
 set_property(TARGET demo_libfs PROPERTY CXX_STANDARD 11)

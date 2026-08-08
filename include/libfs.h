@@ -17,30 +17,25 @@
 #include <cstdint>
 #include <cstring>
 
-// -- Optional MGZ (gzipped MGH) support via zlib ----------------------------------
-// When LIBFS_HAS_ZLIB is defined, read_mgz() and write_mgz() become available.
+// -- Optional MGZ / NIfTI-gz support via zlib -------------------------------------
+// When LIBFS_HAS_ZLIB is #defined before including this header, the following
+// become available:
+//   - read_mgz() / write_mgz()
+//   - read_nifti_gz() / write_nifti_gz()  (and .nii.gz support in read_nifti() /
+//     write_nifti() / read_desc_data())
 // Just link with -lz.
 //
-// Detection logic (in order of precedence):
-//   1. If you #define LIBFS_HAS_ZLIB before including this header, that is
-//      respected unconditionally — use this for non-CMake builds or when your
-//      toolchain does not support __has_include.
-//   2. Otherwise, if the compiler supports __has_include and <zlib.h> is found,
-//      it is auto-defined.  (The nested #if guards use only standard C++98
-//      defined() and short-circuit evaluation — no compiler-specific extensions
-//      are ever evaluated on toolchains that lack them.)
-//   3. If neither applies, the MGZ functions are simply absent.  Nothing breaks,
-//      no warning, no error.
+// There is NO auto-detection — you must explicitly opt in:
+//     #define LIBFS_HAS_ZLIB
+//     #include "libfs.h"
 //
-// All of this is compile-time only; there is zero runtime overhead when MGZ
-// support is not enabled.
-#ifndef LIBFS_HAS_ZLIB
-#if defined(__has_include)
-#if __has_include(<zlib.h>)
-#define LIBFS_HAS_ZLIB
-#endif
-#endif
-#endif
+// If LIBFS_HAS_ZLIB is not defined, the MGZ / NIfTI-gz functions are simply
+// absent.  Attempting to use them results in a compile error, and attempting
+// to read/write a .gz file via the generic read_nifti() / write_nifti() /
+// read_desc_data() functions throws a runtime_error at runtime.
+//
+// This is all compile-time; there is zero runtime overhead when zlib support
+// is not enabled.
 #ifdef LIBFS_HAS_ZLIB
 #include <zlib.h>
 #endif
@@ -3620,7 +3615,7 @@ namespace fs
   /// std::string nii_fname = "lh.thickness.nii.gz";
   /// std::vector<float> data3 = fs::read_desc_data(nii_fname);
   /// @endcode
-  std::vector<float> read_desc_data(const std::string &filename)
+  inline std::vector<float> read_desc_data(const std::string &filename)
   {
     if (fs::util::ends_with(filename, {".MGH", ".mgh"}))
     {
@@ -4486,7 +4481,7 @@ namespace fs
   /// @param is    An open input stream positioned at the start of the NIfTI file.
   /// @param force_standard  If true, reject non-conformant headers including the FreeSurfer hack.
   /// @throws std::runtime_error on unsupported data types, I/O errors, or dimension overflows.
-  void read_nifti(Mgh *mgh, std::istream *is, bool force_standard)
+  inline void read_nifti(Mgh *mgh, std::istream *is, bool force_standard)
   {
     // 1. Determine stream size (for FS hack recovery and validation).
     std::streampos start_pos = is->tellg();
@@ -4636,7 +4631,7 @@ namespace fs
   /// @param filename  Path to the input file (.nii or .nii.gz).
   /// @param force_standard  If true, reject non-conformant headers including the FreeSurfer hack.
   /// @throws std::runtime_error on unsupported data types, I/O errors, or dimension overflows.
-  void read_nifti(Mgh *mgh, const std::string &filename, bool force_standard)
+  inline void read_nifti(Mgh *mgh, const std::string &filename, bool force_standard)
   {
     if (fs::util::ends_with(filename, ".nii.gz") || fs::util::ends_with(filename, ".NII.GZ"))
     {
@@ -4667,7 +4662,7 @@ namespace fs
   /// @param mgh  The Mgh data to write.
   /// @param os   An open output stream.
   /// @throws std::runtime_error if any dimension exceeds 32767 or the data type is unsupported.
-  void write_nifti(const Mgh &mgh, std::ostream &os)
+  inline void write_nifti(const Mgh &mgh, std::ostream &os)
   {
     // Validate dimensions: NIfTI-1 uses int16_t for dim[].
     if (mgh.header.dim1length > 32767 || mgh.header.dim2length > 32767 ||
@@ -4835,7 +4830,7 @@ namespace fs
   /// @param mgh  The Mgh data to write.
   /// @param filename  Path to the output file (.nii or .nii.gz).
   /// @throws std::runtime_error if the file cannot be opened.
-  void write_nifti(const Mgh &mgh, const std::string &filename)
+  inline void write_nifti(const Mgh &mgh, const std::string &filename)
   {
     if (fs::util::ends_with(filename, ".nii.gz") || fs::util::ends_with(filename, ".NII.GZ"))
     {
