@@ -20,7 +20,7 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
 * read and write FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from/to binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
-  - also reads and writes the gzip-compressed MGZ variant (`read_mgz` / `write_mgz`), available automatically when zlib is present on the system (just link with `-lz`).
+  - also reads and writes the gzip-compressed MGZ variant (`read_mgz` / `write_mgz`) and NIfTI `.nii.gz` files (via `read_nifti` / `write_nifti` / `read_desc_data`). These functions require an explicit opt-in: `#define LIBFS_HAS_ZLIB` before including `libfs.h` and link with `-lz`.
 * map per-vertex data to RGBA colors using viridis colormap, with NAN handling
 * security measures to protect against invalid / malformed / malicious input files
 
@@ -31,15 +31,37 @@ Supported data types for the MGH format include:
 * `MRI_SHORT`: 16 bit signed int.
 
 
-#### A note on the MGZ format
+#### A note on zlib support (MGZ and .nii.gz)
 
-The MGZ format is just a gzipped version of the MGH format. `libfs` provides native `read_mgz()` and `write_mgz()` functions that are available automatically when zlib is present on your system — just link with `-lz`. No other dependencies are needed.
+The MGZ format is a gzipped MGH file. NIfTI `.nii.gz` files are gzipped `.nii` files.
+`libfs` provides native functions for both:
+* `read_mgz()` / `write_mgz()` -- for MGZ files.
+* `read_nifti()` / `write_nifti()` / `read_desc_data()` -- these functions can also
+  handle `.nii.gz` files (in addition to uncompressed `.nii`).
 
-If your compiler or toolchain does not support automatic zlib detection, you can `#define LIBFS_HAS_ZLIB` before including `libfs.h` to enable the MGZ functions manually.
+**zlib is an opt-in dependency.** To enable compressed format support, you must
+`#define LIBFS_HAS_ZLIB` **before** including `libfs.h` and link with `-lz`:
 
-If you cannot use zlib at all, you can still extract MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
+```cpp
+#define LIBFS_HAS_ZLIB
+#include "libfs.h"
+```
 
-If you prefer using the existing stream-based `read_mgh()`/`write_mgh()` overloads with a C++ stream wrapper around zlib, the [read_mgz example](./examples/read_mgz/) shows how to do this with the `zstr` header-only library (still requires `-lz`).
+If you use CMake, calling `find_package(ZLIB)` and linking the target against
+`ZLIB::ZLIB` is enough (the `LIBFS_HAS_ZLIB` define is added automatically -- see
+the project's `CMakeLists.txt`).
+
+No other dependencies are needed.
+
+If you cannot use zlib at all, you can still extract MGZ / .nii.gz files manually
+on the command line before running your program, or convert them using the
+FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
+
+If you prefer using the stream-based `read_mgh()`/`write_mgh()` overloads with a
+C++ wrapper around zlib, the
+[read_mgz example](./examples/read_mgz/) shows how to do this with the `zstr`
+library (note: `zstr` is header-only, but you still need `-lz` for the
+underlying zlib).
 
 
 #### What `libfs` is **not**
