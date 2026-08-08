@@ -1,0 +1,26 @@
+name: Examples
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  examples:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install zlib (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install -y zlib1g-dev
+
+    - name: Build and run all examples
+      run: |
+        bash examples/run_all_examples.bash
