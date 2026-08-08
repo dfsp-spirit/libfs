@@ -1628,3 +1628,147 @@ TEST_CASE("NIfTI-1: nifti_to_mgh convenience function", "[nifti]")
     REQUIRE(mgh.data.data_mri_int.size() == 27);
 }
 
+
+// ── NIfTI-1 RAS / sform roundtrip tests ────────────────────────────────────
+
+TEST_CASE("NIfTI-1: RAS roundtrip MGH→NIfTI→MGH preserves spatial metadata", "[nifti][ras]")
+{
+    // Read a real MGH/MGZ file that has ras_good_flag=1 (brain.mgz).
+    std::string mgz_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.mgz"});
+    if (!fs::util::file_exists(mgz_file))
+    {
+        std::cerr << "Cannot access brain.mgz at '" << mgz_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh_orig;
+    fs::read_mgz(&mgh_orig, mgz_file);
+
+    REQUIRE(mgh_orig.header.ras_good_flag == 1);
+    REQUIRE(mgh_orig.header.Mdc.size() == 9);
+    REQUIRE(mgh_orig.header.Pxyz_c.size() == 3);
+
+    // Record original RAS values.
+    float orig_xsize = mgh_orig.header.xsize;
+    float orig_ysize = mgh_orig.header.ysize;
+    float orig_zsize = mgh_orig.header.zsize;
+    std::vector<float> orig_Mdc = mgh_orig.header.Mdc;
+    std::vector<float> orig_Pxyz_c = mgh_orig.header.Pxyz_c;
+
+    // Roundtrip through NIfTI.
+    std::string tmp_file = "/tmp/libfs_test_ras_roundtrip.nii";
+    fs::write_nifti(mgh_orig, tmp_file);
+
+    fs::Mgh mgh_rt;
+    fs::read_nifti(&mgh_rt, tmp_file);
+
+    SECTION("ras_good_flag is preserved")
+    {
+        REQUIRE(mgh_rt.header.ras_good_flag == 1);
+    }
+
+    SECTION("Voxel sizes are preserved")
+    {
+        REQUIRE(mgh_rt.header.xsize == Approx(orig_xsize));
+        REQUIRE(mgh_rt.header.ysize == Approx(orig_ysize));
+        REQUIRE(mgh_rt.header.zsize == Approx(orig_zsize));
+    }
+
+    SECTION("Mdc matrix is preserved")
+    {
+        REQUIRE(mgh_rt.header.Mdc.size() == 9);
+        for (int i = 0; i < 9; i++)
+        {
+            REQUIRE(mgh_rt.header.Mdc[i] == Approx(orig_Mdc[i]));
+        }
+    }
+
+    SECTION("Pxyz_c (center coordinates) is preserved")
+    {
+        REQUIRE(mgh_rt.header.Pxyz_c.size() == 3);
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE(mgh_rt.header.Pxyz_c[i] == Approx(orig_Pxyz_c[i]));
+        }
+    }
+
+    std::remove(tmp_file.c_str());
+}
+
+TEST_CASE("NIfTI-1: MGH without RAS data writes sform_code=0", "[nifti][ras]")
+{
+    // Create an MGH without spatial metadata (ras_good_flag=0 by default).
+    fs::Mgh mgh;
+    mgh.header.dim1length = 4;
+    mgh.header.dim2length = 4;
+    mgh.header.dim3length = 4;
+    mgh.header.dim4length = 1;
+    mgh.header.dtype = fs::MRI_FLOAT;
+    mgh.header.xsize = 2.0f;
+    mgh.header.ysize = 2.0f;
+    mgh.header.zsize = 2.0f;
+    mgh.data.data_mri_float.resize(64, 0.0f);
+
+    std::string tmp_file = "/tmp/libfs_test_noras.nii";
+    fs::write_nifti(mgh, tmp_file);
+
+    // Read back and verify RAS is not set.
+    fs::Mgh mgh_rt;
+    fs::read_nifti(&mgh_rt, tmp_file);
+
+    SECTION("ras_good_flag stays 0")
+    {
+        REQUIRE(mgh_rt.header.ras_good_flag == 0);
+    }
+
+    SECTION("Voxel sizes are still preserved from pixdim")
+    {
+        REQUIRE(mgh_rt.header.xsize == Approx(2.0f));
+        REQUIRE(mgh_rt.header.ysize == Approx(2.0f));
+        REQUIRE(mgh_rt.header.zsize == Approx(2.0f));
+    }
+
+    std::remove(tmp_file.c_str());
+}
+
+TEST_CASE("NIfTI-1: read NIfTI with sform_code=1 extracts full RAS metadata", "[nifti][ras]")
+{
+    // brain.nii has sform_code=1, qform_code=1 with valid affine data.
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.nii"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access brain.nii at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    fs::read_nifti(&mgh, nii_file);
+
+    SECTION("ras_good_flag is 1 when sform_code > 0")
+    {
+        REQUIRE(mgh.header.ras_good_flag == 1);
+    }
+
+    SECTION("Mdc matrix is extracted from sform")
+    {
+        REQUIRE(mgh.header.Mdc.size() == 9);
+        // srow_x[0..2] = [-1, 0, 0]
+        REQUIRE(mgh.header.Mdc[0] == Approx(-1.0f));
+        REQUIRE(mgh.header.Mdc[1] == Approx(0.0f));
+        REQUIRE(mgh.header.Mdc[2] == Approx(0.0f));
+    }
+
+    SECTION("Pxyz_c (center) is extracted from sform translation")
+    {
+        REQUIRE(mgh.header.Pxyz_c.size() == 3);
+        REQUIRE(mgh.header.Pxyz_c[0] == Approx(127.5f));
+        REQUIRE(mgh.header.Pxyz_c[1] == Approx(-98.6273f));
+        REQUIRE(mgh.header.Pxyz_c[2] == Approx(79.0953f));
+    }
+
+    SECTION("Voxel sizes are read from pixdim")
+    {
+        REQUIRE(mgh.header.xsize == Approx(1.0f));
+        REQUIRE(mgh.header.ysize == Approx(1.0f));
+        REQUIRE(mgh.header.zsize == Approx(1.0f));
+    }
+}
+
