@@ -2,8 +2,9 @@ libfs Changes
 ===============
 
 
-Current WIP
-------------
+v0.5.0 -- NIfTI support and bug fixes
+--------------------------------------
+* BRK: remove previously deprecated version defined with typos like LIBFS_VERISION_MAJOR, use LIBFS_VERSION_MAJOR etc instead
 * FIX: copy-paste bug in `Mesh::from_obj()` — face vertex index 3 (v2) incorrectly used v0raw instead of v2raw when stripping slash-suffix texture/normal indices from OBJ files.
 * FIX: uninitialized memory read (UB) in `_fread3()` — the 4th byte of the uint32_t was uninitialized before being passed through the endian swap.
 * FIX: `Mesh::construct_grid()` did not reset the y-coordinate (`cur_y`) between grid rows, producing distorted geometry.
@@ -19,12 +20,14 @@ Current WIP
 * NEW: `Mesh::to_obj(col)` / `Mesh::to_obj_file(f, col)` overloads — export OBJ files with vertex colors using the same `x y z r g b` convention.
 * NEW: `fs::write_mesh(mesh, filename, col)` overload — write a mesh to PLY, OBJ, or OFF format with vertex colors, auto-detected by file extension.
 * NEW: Add support for writing annot files
+* NEW: Add support for reading and writing NIfTI v1 format, including files with FreeSurfer hack
 
 
 v0.4.2: Fix version defines
 -----------------------------
 * FIX: fix typo in version defines, e.g., `LIBFS_VERISION_MAJOR 0` => fixed to `LIBFS_VERSION_MAJOR 0`. The old ones remain for now as well but are deprecated, use the correct ones with correct spelling.
 * DEV: Improve developer docs by adding a new section on making a release
+
 
 v0.4.1: Security and Integration
 --------------------------------

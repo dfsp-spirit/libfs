@@ -41,9 +41,32 @@
 #endif
 // -- End optional MGZ support -----------------------------------------------------
 
+/// @brief Full libfs version string, in semver format.
+/// @details A `"MAJOR.MINOR.PATCH"` string, e.g. `"0.4.2"`.  Use this when
+///          displaying the library version to users or writing it into output
+///          file headers.  For programmatic version checks, prefer the
+///          individual `LIBFS_VERSION_MAJOR`, `LIBFS_VERSION_MINOR`, and
+///          `LIBFS_VERSION_PATCH` integer macros.
 #define LIBFS_VERSION "0.4.2"
+
+/// @brief Major version number (incompatible API changes).
+/// @details Incremented when the public API changes in a way that breaks
+///          source or binary compatibility.  For example, bumping from 0 to 1
+///          signals a stable first release.  Combine with
+///          `LIBFS_VERSION_MINOR` and `LIBFS_VERSION_PATCH` to construct a
+///          complete semver identifier.
 #define LIBFS_VERSION_MAJOR 0
+
+/// @brief Minor version number (backward-compatible feature additions).
+/// @details Incremented when new functionality is added without breaking
+///          existing API contracts.  Together with `LIBFS_VERSION_MAJOR` this
+///          forms the `MAJOR.MINOR` prefix used in release tags.
 #define LIBFS_VERSION_MINOR 4
+
+/// @brief Patch version number (backward-compatible bug fixes).
+/// @details Incremented for bug-fix releases that do not add new features or
+///          change the public API.  The full version string is
+///          `LIBFS_VERSION_MAJOR.LIBFS_VERSION_MINOR.LIBFS_VERSION_PATCH`.
 #define LIBFS_VERSION_PATCH 2
 
 // -- Security / defensive hardening configuration -------------------------------------
@@ -131,13 +154,27 @@
  *
  */
 
-// Set apptag (printed as prefix of debug messages) for debug messages.
-// Users can overwrite this by defining LIBFS_APPTAG before including 'libfs.h'.
+/// @brief Application tag prepended to every debug message from libfs.
+/// @details Each line of output produced by the debug macros is prefixed with
+///          this string so users can identify which component emitted the
+///          message.  Define `LIBFS_APPTAG` **before** including `libfs.h` to
+///          supply your own tag, e.g.:
+///          @code
+///          #define LIBFS_APPTAG "[my-app] "
+///          #include "libfs.h"
+///          @endcode
+///          If left undefined, the default `"[libfs] "` is used.
 #ifndef LIBFS_APPTAG
 #define LIBFS_APPTAG "[libfs] "
 #endif
 
-// Set default.
+/// @brief Default debug level: emit warnings and everything more severe.
+/// @details This is the built-in fallback when no `LIBFS_DBG_*` macro is
+///          defined by the user.  Enabling `LIBFS_DBG_WARNING` also
+///          automatically activates `LIBFS_DBG_ERROR` and
+///          `LIBFS_DBG_CRITICAL` (see the cascading `#ifdef` chain below).
+///          Typical output includes recoverable problems such as unknown file
+///          metadata keys or deprecated API usage.
 #define LIBFS_DBG_WARNING
 
 // If the user wants something below our default, remove our default.
@@ -167,10 +204,23 @@
 #define LIBFS_DBG_WARNING
 #endif
 
+/// @brief Debug level: emit errors and everything more severe.
+/// @details When defined (directly by the user or through the cascading
+///          `#ifdef` chain), messages tagged as errors, as well as critical
+///          errors, are printed.  Error-level messages indicate a problem
+///          that prevents the current operation from completing successfully
+///          (e.g., a file could not be parsed), but the application may
+///          still continue.
 #ifdef LIBFS_DBG_WARNING
 #define LIBFS_DBG_ERROR
 #endif
 
+/// @brief Debug level: emit only critical errors.
+/// @details When defined, only the most severe messages are printed.
+///          Critical errors typically precede an exception that will
+///          terminate the application unless caught.  Use this level in
+///          production to keep output minimal while still reporting fatal
+///          conditions.
 #ifdef LIBFS_DBG_ERROR
 #define LIBFS_DBG_CRITICAL
 #endif
@@ -854,7 +904,15 @@ namespace fs
       faces = cfaces;
     }
 
-    // Construct from 2D vectors (Nx3).
+    /// @brief Construct a Mesh from 2-D vertex and face lists.
+    /// @details Each inner vector represents one vertex (3 floats: x, y, z)
+    ///          or one face (3 int32_t indices).  The input is flattened
+    ///          internally into the 1-D `vertices` and `faces` member vectors
+    ///          that the rest of the API expects.  This is a convenience
+    ///          constructor for code that already works with per-vertex or
+    ///          per-face arrays.
+    /// @param cvertices Outer vector of per-vertex `{x, y, z}` triplets.
+    /// @param cfaces Outer vector of per-face `{v0, v1, v2}` index triplets.
     Mesh(std::vector<std::vector<float>> cvertices, std::vector<std::vector<int32_t>> cfaces)
     {
       vertices = util::vflatten(cvertices);
@@ -1461,12 +1519,22 @@ namespace fs
       return result;
     }
 
-    /// @brief Given per-vertex data for a submesh, add NAN values inbetween to restore the original mesh size.
+    /// @brief Given per-vertex data for a submesh, expand it back to full mesh size.
+    /// @details Takes per-vertex scalar data that was computed only on a
+    ///          submesh and maps it back onto the original, full-resolution
+    ///          mesh.  Vertices that exist in the original mesh but are
+    ///          absent from the submesh receive `fill_value`.
     /// @param data_submesh vector of per-vertex data values, one value per mesh vertex of the submesh.
     /// @param submesh_to_orig_mapping map<int, int>, mapping vertex indices of the submesh to vertex indices of the original, full mesh.
     /// @param orig_mesh_num_vertices number of vertices of the original, full mesh.
+    /// @param fill_value value assigned to original-mesh vertices that are
+    ///        not present in the submesh.  Defaults to
+    ///        `std::numeric_limits<float>::quiet_NaN()`, which is
+    ///        appropriate for curvature / thickness overlays (NaN renders
+    ///        as transparent in most viewers).  Set to `0.0f` or another
+    ///        sentinel if downstream code cannot handle NaNs.
     /// @see `fs::Mesh::submesh_vertex` for how to get the `submesh_to_orig_mapping` parameter.
-    /// @return vector of per-vertex data values, one value per mesh vertex of the original mesh. Values for vertices that are not part of the submesh are set to NAN.
+    /// @return vector of per-vertex data values, one value per mesh vertex of the original mesh. Values for vertices that are not part of the submesh are set to `fill_value`.
     static std::vector<float> curv_data_for_orig_mesh(const std::vector<float> data_submesh, const std::unordered_map<int32_t, int32_t> submesh_to_orig_mapping, const int32_t orig_mesh_num_vertices, const float fill_value = std::numeric_limits<float>::quiet_NaN())
     {
 
@@ -3325,6 +3393,10 @@ namespace fs
   /// @details The curv format is a simple binary format that stores one floating point value per vertex of a related brain surface.
   /// @param curv A Curv instance to be filled.
   /// @param is An open istream from which to read the curv data.
+  /// @param source_filename Optional human-readable name for the data source
+  ///        (e.g., `"lh.thickness"`).  When supplied, it is included in
+  ///        exception messages to help identify which file caused the error.
+  ///        Leave empty (the default) to omit the filename from diagnostics.
   /// @throws domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
   void read_curv(Curv *curv, std::istream *is, const std::string &source_filename = "")
   {
@@ -4177,24 +4249,96 @@ namespace fs
   // NIfTI-1 Support
   // ========================================================================
 
-  /// NIfTI-1 data type constants.
+  /// @name NIfTI-1 Data Type Constants
+  /// @brief Pixel data type codes defined by the NIfTI-1 specification.
+  /// @details These constants correspond to the `datatype` field of the
+  ///          NIfTI-1 header.  They encode both the underlying C type and
+  ///          the bit width.  The numeric values are taken directly from
+  ///          the NIfTI-1 standard (see the `nifti1.h` reference
+  ///          implementation).  When reading a file, the `datatype` field
+  ///          is compared against these constants to determine how to
+  ///          interpret the raw voxel bytes.
+  /// @{
+
+  /// No data / unknown type (value 0).
   const int16_t NIFTI_DT_NONE       = 0;
+
+  /// Binary mask: each voxel is a single bit packed into a byte (value 1).
+  /// Useful for segmentation labels that are strictly 0 or 1.
   const int16_t NIFTI_DT_BINARY     = 1;
+
+  /// Unsigned 8-bit integer, range [0, 255] (value 2).
+  /// Common for RGB component planes, label masks, and CT data.
   const int16_t NIFTI_DT_UINT8      = 2;
+
+  /// Signed 16-bit integer, range [-32768, 32767] (value 4).
+  /// Widely used for structural MRI after scaling with `scl_slope`/
+  /// `scl_inter`.
   const int16_t NIFTI_DT_INT16      = 4;
+
+  /// Signed 32-bit integer, range [-2^31, 2^31-1] (value 8).
+  /// Used for high-dynamic-range label maps and processed statistical
+  /// images.
   const int16_t NIFTI_DT_INT32      = 8;
+
+  /// 32-bit IEEE-754 single-precision float (value 16).
+  /// The most common floating-point format for processed neuroimaging
+  /// data (e.g., z-statistics, correlation maps).
   const int16_t NIFTI_DT_FLOAT32    = 16;
+
+  /// Complex number stored as two consecutive 32-bit floats
+  /// (real, imaginary), 64 bits total (value 32).  Rarely used in
+  /// practice; mainly for frequency-domain / phase data.
   const int16_t NIFTI_DT_COMPLEX64  = 32;
+
+  /// 64-bit IEEE-754 double-precision float (value 64).
+  /// Preferred when numerical precision is critical, e.g., for
+  /// deformation fields or when accumulating statistics.
   const int16_t NIFTI_DT_FLOAT64    = 64;
+
+  /// RGB triple: three consecutive `uint8` values per voxel (R, G, B),
+  /// 24 bits total (value 128).  Used for 2-D colour images stored in
+  /// NIfTI format (e.g., tissue-class overlays).
   const int16_t NIFTI_DT_RGB24      = 128;
+
+  /// Signed 8-bit integer, range [-128, 127] (value 256).
+  /// Provides a compact representation when the dynamic range fits in a
+  /// single signed byte.
   const int16_t NIFTI_DT_INT8       = 256;
+
+  /// Unsigned 16-bit integer, range [0, 65535] (value 512).
+  /// Common in DICOM-derived data and some microscopy formats.
   const int16_t NIFTI_DT_UINT16     = 512;
+
+  /// Unsigned 32-bit integer, range [0, 2^32-1] (value 768).
+  /// Useful for large label sets and extended-count voxel data.
   const int16_t NIFTI_DT_UINT32     = 768;
+
+  /// Signed 64-bit integer, range [-2^63, 2^63-1] (value 1024).
+  /// Suitable for high-precision integer processing and very large
+  /// label spaces.
   const int16_t NIFTI_DT_INT64      = 1024;
+
+  /// Unsigned 64-bit integer, range [0, 2^64-1] (value 1280).
+  /// The widest integral type available in the NIfTI-1 spec.
   const int16_t NIFTI_DT_UINT64     = 1280;
+
+  /// 128-bit IEEE-754 quadruple-precision float (value 1536).
+  /// Rarely supported in practice — most toolchains read it but fall
+  /// back to double precision.
   const int16_t NIFTI_DT_FLOAT128   = 1536;
+
+  /// Complex number stored as two consecutive 64-bit floats
+  /// (real, imaginary), 128 bits total (value 1792).
   const int16_t NIFTI_DT_COMPLEX128 = 1792;
+
+  /// Complex number stored as two consecutive 128-bit floats
+  /// (real, imaginary), 256 bits total (value 2048).
+  /// Highest precision complex storage; virtually never encountered in
+  /// real-world datasets.
   const int16_t NIFTI_DT_COMPLEX256 = 2048;
+
+  /// @}
 
   /// NIfTI-1 header structure (348 bytes, packed).
 #pragma pack(push, 1)
