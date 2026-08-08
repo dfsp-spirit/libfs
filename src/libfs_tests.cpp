@@ -1374,6 +1374,7 @@ TEST_CASE( "The viridis colormap function works" ) {
 
 // ─── NIfTI-1 Tests ─────────────────────────────────────────────────────────
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: read FS hack surface file (.nii.gz)", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "surf", "lh.thickness.nii.gz"});
@@ -1409,7 +1410,9 @@ TEST_CASE("NIfTI-1: read FS hack surface file (.nii.gz)", "[nifti]")
         REQUIRE(mgh.data.data_mri_float[100] == Approx(2.579938));
     }
 }
+#endif // LIBFS_HAS_ZLIB
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: read small INT32 volume (.nii.gz)", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "vol27int.nii.gz"});
@@ -1439,6 +1442,7 @@ TEST_CASE("NIfTI-1: read small INT32 volume (.nii.gz)", "[nifti]")
         REQUIRE(mgh.data.data_mri_int.size() == 27);
     }
 }
+#endif // LIBFS_HAS_ZLIB
 
 TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii, uncompressed)", "[nifti]")
 {
@@ -1469,6 +1473,7 @@ TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii, uncompressed)", "[nifti]")
     }
 }
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii.gz)", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.nii.gz"});
@@ -1492,7 +1497,9 @@ TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii.gz)", "[nifti]")
         REQUIRE(mgh.data.data_mri_uchar.size() == 256 * 256 * 256);
     }
 }
+#endif // LIBFS_HAS_ZLIB
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: force_standard rejects FS hack", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "surf", "lh.thickness.nii.gz"});
@@ -1504,7 +1511,9 @@ TEST_CASE("NIfTI-1: force_standard rejects FS hack", "[nifti]")
     fs::Mgh mgh;
     REQUIRE_THROWS_AS(fs::read_nifti(&mgh, nii_file, true), std::runtime_error);
 }
+#endif // LIBFS_HAS_ZLIB
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: round-trip write/read", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "vol27int.nii.gz"});
@@ -1546,7 +1555,9 @@ TEST_CASE("NIfTI-1: round-trip write/read", "[nifti]")
 
     std::remove(tmp_file.c_str());
 }
+#endif // LIBFS_HAS_ZLIB
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: read_desc_data with NIfTI", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "surf", "lh.thickness.nii.gz"});
@@ -1568,6 +1579,7 @@ TEST_CASE("NIfTI-1: read_desc_data with NIfTI", "[nifti]")
         REQUIRE(data[100] == Approx(2.579938));
     }
 }
+#endif // LIBFS_HAS_ZLIB
 
 TEST_CASE("NIfTI-1: reject unsupported data type", "[nifti]")
 {
@@ -1615,6 +1627,7 @@ TEST_CASE("NIfTI-1: write rejects oversized dimensions", "[nifti]")
     REQUIRE_THROWS_AS(fs::write_nifti(mgh, tmp_file), std::runtime_error);
 }
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: nifti_to_mgh convenience function", "[nifti]")
 {
     std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "vol27int.nii.gz"});
@@ -1627,10 +1640,12 @@ TEST_CASE("NIfTI-1: nifti_to_mgh convenience function", "[nifti]")
     REQUIRE(mgh.header.dim1length == 3);
     REQUIRE(mgh.data.data_mri_int.size() == 27);
 }
+#endif // LIBFS_HAS_ZLIB
 
 
 // ── NIfTI-1 RAS / sform roundtrip tests ────────────────────────────────────
 
+#ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: RAS roundtrip MGH→NIfTI→MGH preserves spatial metadata", "[nifti][ras]")
 {
     // Read a real MGH/MGZ file that has ras_good_flag=1 (brain.mgz).
@@ -1693,6 +1708,7 @@ TEST_CASE("NIfTI-1: RAS roundtrip MGH→NIfTI→MGH preserves spatial metadata",
 
     std::remove(tmp_file.c_str());
 }
+#endif // LIBFS_HAS_ZLIB
 
 TEST_CASE("NIfTI-1: MGH without RAS data writes sform_code=0", "[nifti][ras]")
 {
