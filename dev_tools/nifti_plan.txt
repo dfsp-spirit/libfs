@@ -1,0 +1,381 @@
+================================================================================
+libfs - NIfTI-1 Implementation & Security Plan  (revised 2026-08-08)
+================================================================================
+Target: C++11
+Objective: Implement a secure, dependency-free NIfTI-1 parser for libfs that
+safely handles standard fMRI volumes as well as the FreeSurfer surface "hack".
+Primary use case: "read NIfTI (.nii / .nii.gz), save as MGH/MGZ" with zero-cost
+conversion by unifying the in-memory representation with the existing fs::Mgh.
+
+--------------------------------------------------------------------------------
+1. THE FREESURFER NIFTI-1 HACK (THE PROBLEM)
+--------------------------------------------------------------------------------
+FreeSurfer projects 2D surface data into a 1D vector and stores it in the
+spatial dimensions of a NIfTI-1 file to reuse volumetric analysis binaries.
+- X Dimension (dim[1]): Total vertices (e.g., 163,842 for fsaverage)
+- Y Dimension (dim[2]): 1
+- Z Dimension (dim[3]): 1
+- T Dimension (dim[4]): Frames/Timepoints
+
+The NIfTI-1 specification uses signed 16-bit integers (short) for dimensions.
+The maximum value is 32,767. When FreeSurfer writes 163,842 to dim[1], it causes
+an integer overflow, resulting in a negative or corrupted X value (e.g., -32,766).
+Generic NIfTI libraries will read this negative dimension and either crash,
+throw an exception, or allocate incorrect memory blocks.
+
+--------------------------------------------------------------------------------
+2. DESIGN DECISION: UNIFY IN-MEMORY REPRESENTATION WITH fs::Mgh
+--------------------------------------------------------------------------------
+
+KEY INSIGHT: A FreeSurfer NIfTI hack surface file, when read into an fs::Mgh
+struct, looks IDENTICAL to an MGH surface file:
+
+    NIfTI hack surface:  dim[1]=163842  dim[2]=1  dim[3]=1  dim[4]=1  dtype=float
+    MGH surface:         dim1length=163842 dim2length=1 dim3length=1 dim4length=1  dtype=MRI_FLOAT
+
+Both are just a 1D float vector with a 4D header.  This means "read NIfTI →
+save as MGH" becomes zero-cost if we populate fs::Mgh directly.
+
+Therefore:
+
+    2.1 PRIMARY API: read_nifti() → fills an fs::Mgh struct.
+        - Map NIfTI data types to MRI_* constants.
+        - Standard 4D volumes:  dim1length=dim[1], dim2length=dim[2],
+                                dim3length=dim[3], dim4length=dim[4]
+        - FS hack surfaces:     dim1length=true_n_vertices, dim2/3/4 same
+        - Spatial metadata (voxel sizes, transform) stored in MghHeader
+          RAS fields where possible.
+
+    2.2 OPTIONAL "NATIVE" API: read_nifti_to_native() → returns a NiftiFile
+        struct with the full NIfTI-1 header preserved (qform_code, sform_code,
+        intent codes, slice timing, etc.) for users who need NIfTI-specific
+        metadata that has no MGH equivalent.
+
+    2.3 CONVENIENCE: nifti_to_mgh() conversion helper for users who obtain
+        a NiftiFile and want to convert it to MGH for writing.
+
+    2.4 The existing read_desc_data() function should be extended to dispatch
+        .nii / .nii.gz files as well, following its current pattern for
+        .mgh / .mgz files.
+
+================================================================================
+3. NIFTI-1 HEADER STRUCT & MGH MAPPING
+================================================================================
+
+The standard NIfTI-1 header (348 bytes fixed, 4 bytes extension indicator):
+
+    struct nifti_1_header {
+        int32_t sizeof_hdr;       // must be 348
+        char    data_type[10];    // unused
+        char    db_name[18];      // unused
+        int32_t extents;          // unused
+        int16_t session_error;    // unused
+        char    regular;          // unused
+        char    dim_info;         // MRI slice ordering (unused by libfs)
+        int16_t dim[8];           // dim[0] = ndim, dim[1..7] = dimensions
+        float   intent_p1, intent_p2, intent_p3;
+        int16_t intent_code;
+        int16_t datatype;         // NIfTI data type code
+        int16_t bitpix;           // bits per voxel
+        int16_t slice_start;
+        float   pixdim[8];        // voxel dimensions (pixdim[1..7])
+        float   vox_offset;       // byte offset to data from header start
+        float   scl_slope, scl_inter;
+        int16_t slice_end;
+        char    slice_code;
+        char    xyzt_units;
+        float   cal_max, cal_min;
+        float   slice_duration;
+        float   toffset;
+        int32_t glmax, glmin;
+        char    descrip[80];
+        char    aux_file[24];
+        int16_t qform_code, sform_code;
+        float   quatern_b, quatern_c, quatern_d;
+        float   qoffset_x, qoffset_y, qoffset_z;
+        float   srow_x[4], srow_y[4], srow_z[4];
+        char    intent_name[16];
+        char    magic[4];         // "n+1\0" or "ni1\0"
+        // Following the 348-byte header:
+        // 4 bytes extension indicator (0 = no extension)
+        // optional extensions, then voxel data at byte offset vox_offset
+    };
+
+NIfTI → MGH data type mapping:
+
+    NIfTI datatype         bitpix    MGH dtype
+    ---------------------  ------    ------------
+    DT_BINARY (1)              1    (unsupported)
+    DT_UINT8 (2)               8    MRI_UCHAR (0)
+    DT_INT16 (4)              16    MRI_SHORT (4)
+    DT_INT32 (8)              32    MRI_INT   (1)
+    DT_FLOAT32 (16)           32    MRI_FLOAT (3)
+    DT_COMPLEX64 (32)         64    (unsupported)
+    DT_FLOAT64 (64)           64    (unsupported — could downcast to MRI_FLOAT)
+    DT_RGB (128)              24    (unsupported)
+    DT_INT8 (256)              8    (unsupported)
+    DT_UINT16 (512)           16    (unsupported)
+    DT_UINT32 (768)           32    (unsupported)
+    DT_INT64 (1024)           64    (unsupported)
+    DT_UINT64 (1280)          64    (unsupported)
+    DT_FLOAT128 (1536)       128    (unsupported)
+    DT_COMPLEX128 (1792)     256    (unsupported)
+    DT_COMPLEX256 (2048)     512    (unsupported)
+
+For this initial implementation, we target DT_UINT8, DT_INT16, DT_INT32, and
+DT_FLOAT32 — the four types that map cleanly to existing MGH data types.  All
+other types throw std::runtime_error("Unsupported NIfTI data type").
+
+If the NIfTI header has sform_code > 0, populate the MghHeader RAS fields
+(Mdc, Pxyz_c) from srow_x/y/z.  Otherwise, if qform_code > 0, compute the
+transform from the quaternion fields.  If neither is set, leave RAS fields
+at their defaults (ras_good_flag stays 0).
+
+================================================================================
+4. SECURE PARSING STRATEGY (STEP-BY-STEP)
+================================================================================
+
+STEP 4.1: SECURE FILE SIZING (C++11)
+Since C++17 std::filesystem is unavailable, use std::ifstream to securely
+determine the exact file size before any memory allocation.
+
+    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) throw std::runtime_error("Cannot open file.");
+
+    std::streamsize total_file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    // For .nii.gz: total_file_size refers to the UNCOMPRESSED stream size;
+    // the zlib wrapper tracks this (see Section 6).
+
+STEP 4.2: HEADER PARSING & ENDIANNESS
+Read the first 348 bytes into the `nifti_1_header` struct.
+- Check hdr.sizeof_hdr: must be 348, otherwise swap endianness and re-check.
+  (Some old tools wrote 1543569408 = byte-swapped 348.)
+- If still wrong, the file is corrupted. Throw.
+- Check hdr.magic: must be "n+1\0" (single-file .nii) or "ni1\0" (header/image
+  pair, though we only support single-file for now).
+- After endianness is established, byte-swap ALL short/int/float fields in the
+  header if the host is little-endian (NIfTI is always big-endian on disk).
+
+STEP 4.3: DETECTING THE HACK & RECONSTRUCTING DIMENSIONS
+Do not trust hdr.dim[1] blindly.  The hack has a specific multi-factor signature.
+
+    bool hack_detected = false;
+    int64_t true_x = hdr.dim[1];
+
+    // Signature: X is overflowed/suspicious, AND Y==1, AND Z==1
+    if ((hdr.dim[1] < 0 || hdr.dim[1] > 32767) && hdr.dim[2] == 1 && hdr.dim[3] == 1) {
+
+        int bytes_per_element = hdr.bitpix / 8;
+        // NIfTI convention: dim[i] for i > dim[0] is 1, but FS may set dim[4] to 0.
+        int64_t frames = (hdr.dim[4] > 1) ? hdr.dim[4] : 1;
+
+        // Reverse-engineer X from the actual payload size
+        int64_t payload_bytes = total_file_size - hdr.vox_offset;
+        int64_t computed_x = payload_bytes / (bytes_per_element * frames);
+
+        // --- False-positive mitigation ---
+        // A genuine corrupted file could also have overflowed dim[1] with
+        // dim[2]==dim[3]==1.  Check that the computed vertex count is
+        // reasonable for a FreeSurfer surface.
+        // Typical FS meshes: fsaverage ≈ 164k, fsaverage6 ≈ 41k,
+        // fsaverage5 ≈ 10k, native space ≈ 100k–300k.
+        // We accept anything in [1 000, 5 000 000].
+        if (computed_x >= 1000 && computed_x <= 5000000) {
+            hack_detected = true;
+            true_x = computed_x;
+        }
+        // else: leave hack_detected = false; the file is likely corrupted.
+    }
+
+STEP 4.4: OVERFLOW-SAFE MEMORY ALLOCATION
+Prevent buffer over-reads caused by maliciously large Y, Z, or T dimensions.
+
+    // 1. Force 64-bit unsigned math to prevent multiplication overflow
+    uint64_t dim2 = (hdr.dim[2] > 0) ? hdr.dim[2] : 1;
+    uint64_t dim3 = (hdr.dim[3] > 0) ? hdr.dim[3] : 1;
+    uint64_t dim4 = (hdr.dim[4] > 0) ? hdr.dim[4] : 1;
+
+    uint64_t total_elements = static_cast<uint64_t>(true_x) * dim2 * dim3 * dim4;
+    uint64_t expected_payload_bytes = total_elements * (hdr.bitpix / 8);
+
+    // 2. Reuse existing libfs security helpers
+    if (!fs::util::check_alloc(total_elements, hdr.bitpix / 8)) {
+        throw std::runtime_error("NIfTI dimensions exceed allocation limit.");
+    }
+
+    // 3. Validate against actual available bytes
+    uint64_t available_bytes = total_file_size - hdr.vox_offset;
+    if (expected_payload_bytes > available_bytes) {
+        throw std::runtime_error("Corrupted NIfTI: Dimensions exceed file size.");
+    }
+
+    if (hdr.vox_offset < 348 || hdr.vox_offset >= total_file_size) {
+        throw std::runtime_error("Corrupted NIfTI: Invalid vox_offset.");
+    }
+
+    // 4. Safe to populate MGH
+    fs::Mgh result;
+    result.header.dim1length = static_cast<int32_t>(true_x);
+    result.header.dim2length = static_cast<int32_t>(dim2);
+    result.header.dim3length = static_cast<int32_t>(dim3);
+    result.header.dim4length = static_cast<int32_t>(dim4);
+    result.header.dtype = map_nifti_dtype_to_mri(hdr.datatype);
+    result.header.dof = 0;
+    // ras_good_flag set during transform extraction (see Section 3).
+
+    // 5. Populate spatial metadata from sform / qform (see Section 3).
+    // ... (populate Mdc, Pxyz_c, xsize/ysize/zsize)
+
+STEP 4.5: DATA INGESTION
+Seek the stream to `hdr.vox_offset` and read the binary payload directly into
+the appropriate MghData vector.  If the NIfTI data has scl_slope != 0, apply
+scaling:  data[i] = raw[i] * scl_slope + scl_inter.  Byte-swap on little-endian
+hosts.
+
+Note on NIfTI scaling: The NIfTI standard allows scl_slope != 1.0 to store
+integer data with scaling.  MGH has no such concept — data is always stored
+at native precision.  We apply the scaling on read so the MGH data is always
+in physical units.
+
+================================================================================
+5. WRITING NIFTI-1 FILES
+================================================================================
+
+We provide two write functions:
+
+    5.1 write_nifti(const Mgh &mgh, const std::string &filename)
+        Writes a standard volumetric NIfTI-1 file from an Mgh struct.
+        - dim[1..4] = mgh.header.dim1length..dim4length
+        - datatype / bitpix from MRI_* → NIfTI code mapping
+        - sform_code = 1 (scanner anatomical) if ras_good_flag == 1
+        - srow_x/y/z populated from Mdc and Pxyz_c
+        - magic = "n+1\0" (single-file .nii)
+        - vox_offset = 352 (348 header + 4 extension indicator, no extensions)
+        - Written as big-endian (NIfTI standard).
+
+    5.2 write_nifti_gz(const Mgh &mgh, const std::string &filename)
+        Same as write_nifti, but gzip-compresses the output via zlib.
+        Requires LIBFS_HAS_ZLIB.  Follows the same pattern as write_mgz().
+
+NIfTI data type mapping for writing (MGH → NIfTI):
+
+    MGH dtype       NIfTI datatype         bitpix
+    -----------     ------------------      ------
+    MRI_UCHAR (0)   DT_UINT8 (2)              8
+    MRI_INT   (1)   DT_INT32 (8)             32
+    MRI_FLOAT (3)   DT_FLOAT32 (16)          32
+    MRI_SHORT (4)   DT_INT16 (4)             16
+
+Design decision: We do NOT write FS hack surface files to NIfTI.
+Rationale: The hack is a FreeSurfer legacy workaround, not a format we want to
+produce.  For surfaces originally read from a hack file, write them as MGH/MGZ,
+which is the correct FreeSurfer surface format.  If the user explicitly needs
+NIfTI hack output, they can use the native NiftiFile API (see 2.2) and write
+it themselves.
+
+Edge cases for writing:
+
+    - If any dim[1..4] > 32767 and the file is a genuine volume (not a hack
+      surface), throw std::range_error — the NIfTI-1 format cannot represent
+      such large dimensions in standard int16_t fields.
+    - If the MGH has no spatial transform (ras_good_flag == 0), write
+      sform_code = 0, qform_code = 0, and set pixdim[1..4] from voxel sizes
+      (xsize/ysize/zsize) with pixdim[4] = 1.0 if toffset is unknown.
+    - scl_slope is set to 1.0, scl_inter to 0.0 (MGH data is already in
+      physical units — no scaling needed).
+
+================================================================================
+6. .NII.GZ (COMPRESSED NIFTI) SUPPORT
+================================================================================
+
+NIfTI files are very commonly gzip-compressed (.nii.gz).  We provide native
+read support following the existing libfs pattern for .mgz:
+
+    6.1 read_nifti_gz(Mgh *mgh, const std::string &filename)
+        - Requires LIBFS_HAS_ZLIB (same optional dependency as read_mgz).
+        - Decompress the entire .nii.gz into a buffer via gzread().
+        - Wrap the buffer in std::istringstream.
+        - Delegate to the stream-based read_nifti() overload.
+
+    6.2 The filename-based read_nifti() auto-detects .nii.gz by suffix and
+        dispatches to read_nifti_gz() automatically:
+
+        void read_nifti(Mgh *mgh, const std::string &filename) {
+            if (fs::util::ends_with(filename, ".nii.gz") ||
+                fs::util::ends_with(filename, ".NII.GZ")) {
+                read_nifti_gz(mgh, filename);
+            } else {
+                // plain .nii path
+                ...
+            }
+        }
+
+    6.3 For the stream-based overload, the caller is responsible for passing
+        an already-decompressed stream (same pattern as read_mgh with streams).
+
+================================================================================
+7. NIFTI ↔ MGH CONVERSION FUNCTIONS
+================================================================================
+
+    7.1 nifti_to_mgh(const NiftiFile &nii)
+        Converts a native NiftiFile to an Mgh struct.  Handles:
+        - Dimension reordering (NIfTI XYZT → MGH TXYZ?  Actually MGH is
+          dim1=X, dim2=Y, dim3=Z, dim4=T, so it's a direct 1:1 mapping.)
+        - Data type mapping.
+        - Transform extraction (sform → RAS fields).
+        - Scaling application (scl_slope / scl_inter).
+
+    7.2 mgh_to_nifti(const Mgh &mgh)
+        Inverse of 7.1.  Produces a NiftiFile with:
+        - Standard NIfTI-1 header fields populated.
+        - sform_code = 1 if RAS is valid.
+        - scl_slope = 1.0, scl_inter = 0.0.
+
+    7.3 Extension of read_desc_data()
+        The existing fs::read_desc_data() should dispatch .nii and .nii.gz:
+
+        if (ends_with(filename, {".nii", ".nii.gz", ".NII", ".NII.GZ"})) {
+            Mgh mgh;
+            read_nifti(&mgh, filename);
+            return mgh.data.data_mri_float;
+        }
+
+================================================================================
+8. FILE-LEVEL ORGANIZATION
+================================================================================
+
+All NIfTI functions go into include/libfs.h (header-only, consistent with the
+rest of the library).  The NIfTI-specific structs and functions are grouped
+together in a clearly marked section, positioned after the existing MGH code.
+
+New tests go into src/libfs_tests.cpp.  A new example
+examples/read_nifti/read_nifti.cpp demonstrates reading a NIfTI file and
+optionally converting to MGH.
+
+================================================================================
+9. ESTIMATED EFFORT
+================================================================================
+
+    Component                                    Est. LOC
+    --------                                     --------
+    nifti_1_header struct + NiftiFile struct       ~50
+    Endianness / byte-swap for header              ~30
+    FS hack detection + false-positive mitigation  ~45
+    Overflow-safe dimension validation             ~30
+    read_nifti() → Mgh  (file + stream overloads)  ~90
+    read_nifti_gz() via zlib                       ~40
+    read_nifti_to_native() → NiftiFile             ~60
+    write_nifti() / write_nifti_gz()               ~90
+    nifti_to_mgh() / mgh_to_nifti() converters     ~50
+    Data type mapping tables                       ~25
+    Transform extraction (sform/qform → RAS)       ~40
+    Documentation & comments                       ~60
+    ----------------------------------------------------------
+    Total header additions                        ~610
+
+    Tests (libfs_tests.cpp)                       ~300
+    Example program (read_nifti.cpp)               ~80
+    ==========================================================
+    Grand total                                   ~990 lines
