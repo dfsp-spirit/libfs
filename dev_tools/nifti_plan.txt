@@ -39,12 +39,23 @@ save as MGH" becomes zero-cost if we populate fs::Mgh directly.
 Therefore:
 
     2.1 PRIMARY API: read_nifti() → fills an fs::Mgh struct.
+        Signature:
+            void read_nifti(Mgh *mgh, const std::string &filename,
+                            bool force_standard = false);
+            void read_nifti(Mgh *mgh, std::istream *is,
+                            bool force_standard = false);
+
         - Map NIfTI data types to MRI_* constants.
         - Standard 4D volumes:  dim1length=dim[1], dim2length=dim[2],
                                 dim3length=dim[3], dim4length=dim[4]
         - FS hack surfaces:     dim1length=true_n_vertices, dim2/3/4 same
         - Spatial metadata (voxel sizes, transform) stored in MghHeader
           RAS fields where possible.
+        - force_standard flag (default false): when true, reject any file
+          that does not conform to the NIfTI-1 specification, including
+          the FreeSurfer hack.  Useful for strict validation or when
+          ingesting data from untrusted sources where the hack should
+          not be expected.
 
     2.2 OPTIONAL "NATIVE" API: read_nifti_to_native() → returns a NiftiFile
         struct with the full NIfTI-1 header preserved (qform_code, sform_code,
@@ -189,18 +200,15 @@ Do not trust hdr.dim[1] blindly.  The hack has a specific multi-factor signature
         // else: leave hack_detected = false; the file is likely corrupted.
     }
 
-STEP 4.4: OVERFLOW-SAFE MEMORY ALLOCATION
-Prevent buffer over-reads caused by maliciously large Y, Z, or T dimensions.
-
-    // 1. Force 64-bit unsigned math to prevent multiplication overflow
-    uint64_t dim2 = (hdr.dim[2] > 0) ? hdr.dim[2] : 1;
-    uint64_t dim3 = (hdr.dim[3] > 0) ? hdr.dim[3] : 1;
-    uint64_t dim4 = (hdr.dim[4] > 0) ? hdr.dim[4] : 1;
-
-    uint64_t total_elements = static_cast<uint64_t>(true_x) * dim2 * dim3 * dim4;
-    uint64_t expected_payload_bytes = total_elements * (hdr.bitpix / 8);
-
-    // 2. Reuse existing libfs security helpers
+    // --- force_standard check ---
+    // When the caller requested strict NIfTI-1 conformance, reject
+    // any hack signature immediately, no recovery attempted.
+    if (force_standard && hack_detected) {
+        throw std::runtime_error(
+            "NIfTI file does not conform to the NIfTI-1 standard: "
+            "dim[1] overflow detected (likely FreeSurfer hack). "
+            "Re-run with force_standard=false to recover surface data.");
+    }
     if (!fs::util::check_alloc(total_elements, hdr.bitpix / 8)) {
         throw std::runtime_error("NIfTI dimensions exceed allocation limit.");
     }
@@ -293,19 +301,22 @@ Edge cases for writing:
 NIfTI files are very commonly gzip-compressed (.nii.gz).  We provide native
 read support following the existing libfs pattern for .mgz:
 
-    6.1 read_nifti_gz(Mgh *mgh, const std::string &filename)
+    6.1 read_nifti_gz(Mgh *mgh, const std::string &filename,
+                       bool force_standard = false)
         - Requires LIBFS_HAS_ZLIB (same optional dependency as read_mgz).
         - Decompress the entire .nii.gz into a buffer via gzread().
         - Wrap the buffer in std::istringstream.
-        - Delegate to the stream-based read_nifti() overload.
+        - Delegate to the stream-based read_nifti() overload, forwarding
+          the force_standard flag.
 
     6.2 The filename-based read_nifti() auto-detects .nii.gz by suffix and
         dispatches to read_nifti_gz() automatically:
 
-        void read_nifti(Mgh *mgh, const std::string &filename) {
+        void read_nifti(Mgh *mgh, const std::string &filename,
+                        bool force_standard) {
             if (fs::util::ends_with(filename, ".nii.gz") ||
                 fs::util::ends_with(filename, ".NII.GZ")) {
-                read_nifti_gz(mgh, filename);
+                read_nifti_gz(mgh, filename, force_standard);
             } else {
                 // plain .nii path
                 ...
