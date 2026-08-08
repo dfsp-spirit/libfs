@@ -1,6 +1,8 @@
 # libfs
 A portable, header-only, single file, no-dependency, mildly templated, C++11 library for accessing [FreeSurfer](https://freesurfer.net/) neuroimaging file formats.
 
+libfs supports both MGH and NIfTI, including full header support (vox2ras matrix, q-form/s-form) and conversion between them.
+
 <!-- badges: start -->
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8090828.svg)](https://doi.org/10.5281/zenodo.8090828)
 ![unittests](https://github.com/dfsp-spirit/libfs/actions/workflows/unittests.yml/badge.svg?branch=main)
@@ -16,11 +18,14 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
     * Wavefront object format (.obj)
     * Stanford PLY format (.ply, ascii version)
     * Object File Format (.off, both the plain version and the COFF variant including per-vertex colors are supported).
-  - can export meshes to the following standard mesh file formats: Wavefront object, Stanford PLY (ascii version).
+  - can export meshes to the following standard mesh file formats: Wavefront object, Stanford PLY (ascii version), OFF.
 * read and write FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from/to binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
-  - also reads and writes the gzip-compressed MGZ variant (`read_mgz` / `write_mgz`) and NIfTI `.nii.gz` files (via `read_nifti` / `write_nifti` / `read_desc_data`). These functions require an explicit opt-in: `#define LIBFS_HAS_ZLIB` before including `libfs.h` and link with `-lz`.
+  - also reads and writes the gzip-compressed MGZ variant (`read_mgz` / `write_mgz`). Requires an explicit opt-in: `#define LIBFS_HAS_ZLIB` before including `libfs.h` and link with `-lz`.
+* read and write NIfTI-1 files (`.nii`) with automatic detection of the FreeSurfer per-vertex data hack (`read_nifti` / `write_nifti`). No dependencies.
+  - the same functions also handle gzip-compressed `.nii.gz` files when zlib is enabled (same opt-in as MGZ above).
+  - the convenience function `read_desc_data()` auto-detects curv, MGH, and NIfTI (both `.nii` and `.nii.gz` when zlib is enabled).
 * map per-vertex data to RGBA colors using viridis colormap, with NAN handling
 * security measures to protect against invalid / malformed / malicious input files
 
