@@ -19,6 +19,7 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
 * read FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
+  - also reads and writes the gzip-compressed MGZ variant (`read_mgz` / `write_mgz`), available automatically when zlib is present on the system (just link with `-lz`).
 * map per-vertex data to RGBA colors using viridis colormap, with NAN handling
 * security measures to protect against invalid / malformed / malicious input files
 
@@ -31,10 +32,11 @@ Supported data types for the MGH format include:
 
 #### A note on the MGZ format
 
-The MGZ format is just a gzipped version of the MGH format. While the MGZ format is not supported directly by `libfs`, you have two options to read and write MGZ files:
+The MGZ format is just a gzipped version of the MGH format. `libfs` provides native `read_mgz()` and `write_mgz()` functions that are available automatically when zlib is present on your system — just link with `-lz`. No other dependencies are needed.
 
-* You can use `zlib` and the [zstr](https://github.com/mateidavid/zstr/) header-only C++ library (a stream wrapper around `zlib`) in combination with `libfs` to read MGZ files. It's easy and a complete example program that does it can be found in [examples/read_mgz/](./examples/read_mgz/). The program also contains an example for writing an MGZ file. While `zlib` itself is not header-only, it should be available *everywhere anyways*, so it should not drag you into dependency hell.
-* You can extract the MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
+If your compiler or toolchain does not support automatic zlib detection, you can `#define LIBFS_HAS_ZLIB` before including `libfs.h` to enable the MGZ functions manually.
+
+If you cannot use zlib at all, you can still extract MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
 
 #### What `libfs` is **not**
@@ -76,7 +78,8 @@ See the [examples directory](./examples/) for some full demo programs which use 
 * [examples/read_curv/read_curv.cpp](./examples/read_curv/read_curv.cpp): demo program that reads a FreeSurfer per-vertex data file, containing one value for every vertex of a matching surface, in surface vertex order (e.g., cortical thickness at that vertex)
 * [examples/read_label/read_label.cpp](./examples/read_label/read_label.cpp): demo program that reads a FreeSurfer label file, assigning one value to a subset of vertices (e.g., 1 to all vertices in a certain region, and 0 to all others).
 * [examples/read_mgh/read_mgh.cpp](./examples/read_mgh/read_mgh.cpp): demo program that reads a FreeSurfer MGH file, containing a 3D or 4D image.
-* [examples/read_mgz/read_mgz.cpp](./examples/read_mgz/read_mgz.cpp): demo program that reads a FreeSurfer MGZ file, containing a compressed 3D or 4D image.
+* [examples/read_mgz/read_mgz.cpp](./examples/read_mgz/read_mgz.cpp): demo program that reads and writes a FreeSurfer MGZ file using the `zstr` stream wrapper around zlib (the pre-v0.5 approach).
+* [examples/read_mgz_native/read_mgz_native.cpp](./examples/read_mgz_native/read_mgz_native.cpp): demo program that reads and writes a FreeSurfer MGZ file using the native `read_mgz()` / `write_mgz()` functions. Requires zlib (`-lz`).
 * [examples/read_surf/read_surf.cpp](./examples/read_surf/read_surf.cpp): demo program that reads a FreeSurfer cortical mesh (a.k.a. brain surface) file.
 * [examples/vertex_color_export/vertex_color_export.cpp](./examples/vertex_color_export/vertex_color_export.cpp): demo program that reads a brain mesh, per-vertex morphometry data (cortical thickness), and a cortex label, masks the medial wall vertices to NaN, maps the thickness to vertex colors using the viridis colormap (NaN -> white by default), and exports the colored mesh to a PLY file.
 
@@ -143,7 +146,7 @@ The API docs can be browsed online at [dfsp-spirit.github.io/libfs/](https://dfs
 * Function naming:
   - Functions that read data are called `read_*`, e.g., `read_curv` and `read_mgh`.
   - Functions that write data to files are called `write_*`, e.g., `write_curv` and `write_mgh`.
-* Most `read_*`/`write_*` functions are overloaded and accept either a `const std::string& filename` argument or a `std::istream *is`/`std::ostream *os` as a source/sink. This allows you to pass streams and bring your own gunzip (see [examples/read_mgz/](./examples/read_mgz/)).
+* Most `read_*`/`write_*` functions are overloaded and accept either a `const std::string& filename` argument or a `std::istream *is`/`std::ostream *os` as a source/sink. This allows you to pass streams for custom decompression (e.g., if you want to use a different zlib wrapper).
 * You can control the output of libfs by defining a log level for libfs before importing the libfs header file, see the API docs for details. An example can be seen at the very top of the [demo app](./src/demo_main.cpp).
 
 
@@ -212,7 +215,7 @@ The examples are small, stand-alone programs in the `examples/` directory. Each 
 
 In the repo root, just run `./examples/run_all_examples.bash` from your system shell. This script will also compile them (requires `g++`).
 
-Note that the `read_mgz` example requires `zlib`.
+Note that the `read_mgz` example requires `zlib` (link with `-lz`).
 
 
 ### Running the demo app

@@ -25,8 +25,11 @@ cd $bd/read_label && g++ -std=c++11 -I../../include/ read_label.cpp -o read_labe
 echo "$apptag ========== Running MGH example... =========="
 cd $bd/read_mgh && g++ -std=c++11 -I../../include/ read_mgh.cpp -o read_mgh && ./read_mgh && cd ..
 
-echo "$apptag ========== Running MGZ example (requires zlib)... =========="
+echo "$apptag ========== Running MGZ example (zstr, requires zlib)... =========="
 cd $bd/read_mgz && g++ -std=c++11 -I../../include/ -I./include_zstr/ read_mgz.cpp -o read_mgz -lz && ./read_mgz && cd ..
+
+echo "$apptag ========== Running MGZ native example (requires zlib)... =========="
+cd $bd/read_mgz_native && g++ -std=c++11 -I../../include/ read_mgz_native.cpp -o read_mgz_native -lz && ./read_mgz_native && cd ..
 
 echo "$apptag ========== Running surf example... =========="
 cd $bd/read_surf && g++ -std=c++11 -I../../include/ read_surf.cpp -o read_surf && ./read_surf && cd ..

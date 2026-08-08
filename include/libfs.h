@@ -17,6 +17,35 @@
 #include <cstdint>
 #include <cstring>
 
+// -- Optional MGZ (gzipped MGH) support via zlib ----------------------------------
+// When LIBFS_HAS_ZLIB is defined, read_mgz() and write_mgz() become available.
+// Just link with -lz.
+//
+// Detection logic (in order of precedence):
+//   1. If you #define LIBFS_HAS_ZLIB before including this header, that is
+//      respected unconditionally — use this for non-CMake builds or when your
+//      toolchain does not support __has_include.
+//   2. Otherwise, if the compiler supports __has_include and <zlib.h> is found,
+//      it is auto-defined.  (The nested #if guards use only standard C++98
+//      defined() and short-circuit evaluation — no compiler-specific extensions
+//      are ever evaluated on toolchains that lack them.)
+//   3. If neither applies, the MGZ functions are simply absent.  Nothing breaks,
+//      no warning, no error.
+//
+// All of this is compile-time only; there is zero runtime overhead when MGZ
+// support is not enabled.
+#ifndef LIBFS_HAS_ZLIB
+#if defined(__has_include)
+#if __has_include(<zlib.h>)
+#define LIBFS_HAS_ZLIB
+#endif
+#endif
+#endif
+#ifdef LIBFS_HAS_ZLIB
+#include <zlib.h>
+#endif
+// -- End optional MGZ support -----------------------------------------------------
+
 #define LIBFS_VERSION "0.4.2"
 #define LIBFS_VERISION_MAJOR 0   # deprecated, use LIBFS_VERSION_MAJOR instead
 #define LIBFS_VERISION_MINOR 4   # deprecated, use LIBFS_VERSION_MINOR instead
@@ -2723,7 +2752,11 @@ namespace fs
 #ifdef LIBFS_DBG_INFO
       if (fs::util::ends_with(filename, ".mgz"))
       {
-        std::cout << LIBFS_APPTAG << "Note: your MGH filename ends with '.mgz'. Keep in mind that MGZ format is not supported directly. You can ignore this message if you wrapped a gz stream.\n";
+#ifndef LIBFS_HAS_ZLIB
+        std::cout << LIBFS_APPTAG << "Note: your MGH filename ends with '.mgz'. MGZ support requires zlib: link with -lz. If you already have zlib and see this, #define LIBFS_HAS_ZLIB before including libfs.h, or upgrade your compiler.\n";
+#else
+        std::cout << LIBFS_APPTAG << "Note: your MGH filename ends with '.mgz'. Did you mean to call read_mgz() instead of read_mgh()?\n";
+#endif
       }
 #endif
       throw std::runtime_error("Not reading MGH data from file '" + filename + "', data type " + std::to_string(mgh->header.dtype) + " not supported yet.\n");
@@ -3902,6 +3935,99 @@ namespace fs
       throw std::runtime_error("Unable to open MGH file '" + filename + "' for writing.\n");
     }
   }
+
+#ifdef LIBFS_HAS_ZLIB
+
+  /// @brief Read a FreeSurfer volume file in MGZ format (gzipped MGH) into the given Mgh struct.
+  /// @details The MGZ format is just a gzipped MGH file. This function uses zlib to decompress the
+  ///          file and then delegates to the stream-based read_mgh(). Requires linking with -lz.
+  /// @param mgh An Mgh instance that should be filled with the data from the file.
+  /// @param filename Path to the input MGZ file.
+  /// @throws std::runtime_error if the file cannot be opened or decompressed.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mgh mgh;
+  /// fs::read_mgz(&mgh, "brain.mgz");
+  /// @endcode
+  inline void read_mgz(Mgh *mgh, const std::string &filename)
+  {
+    gzFile gz = gzopen(filename.c_str(), "rb");
+    if (!gz)
+    {
+      int errnum = 0;
+      const char *errstr = gzerror(gz, &errnum);
+      throw std::runtime_error("Could not open MGZ file '" + filename + "' for reading: " +
+                               (errstr ? std::string(errstr) : "unknown error") + "\n");
+    }
+    std::vector<char> buf;
+    char chunk[131072];
+    int n;
+    while ((n = gzread(gz, chunk, sizeof(chunk))) > 0)
+    {
+      buf.insert(buf.end(), chunk, chunk + n);
+    }
+    if (n < 0)
+    {
+      int errnum = 0;
+      const char *errstr = gzerror(gz, &errnum);
+      gzclose(gz);
+      throw std::runtime_error("Error decompressing MGZ file '" + filename + "': " +
+                               (errstr ? std::string(errstr) : "unknown error") + "\n");
+    }
+    gzclose(gz);
+    std::istringstream iss(std::string(buf.data(), buf.size()));
+    read_mgh(mgh, &iss);
+  }
+
+  /// @brief Write MGH data to an MGZ format file (gzipped MGH).
+  /// @details This function uses zlib to compress the data after writing it with the
+  ///          stream-based write_mgh(). Requires linking with -lz.
+  /// @param mgh An Mgh instance that should be written.
+  /// @param filename Path to the output MGZ file.
+  /// @throws std::runtime_error if the file cannot be opened or written.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Mgh mgh;
+  /// fs::read_mgz(&mgh, "brain.mgz");
+  /// // Do something with 'mgh' here, maybe?
+  /// fs::write_mgz(mgh, "output.mgz");
+  /// @endcode
+  inline void write_mgz(const Mgh &mgh, const std::string &filename)
+  {
+    std::ostringstream oss;
+    write_mgh(mgh, oss);
+    std::string data = oss.str();
+
+    gzFile gz = gzopen(filename.c_str(), "wb");
+    if (!gz)
+    {
+      int errnum = 0;
+      const char *errstr = gzerror(gz, &errnum);
+      throw std::runtime_error("Could not open MGZ file '" + filename + "' for writing: " +
+                               (errstr ? std::string(errstr) : "unknown error") + "\n");
+    }
+    z_size_t total_written = 0;
+    while (total_written < data.size())
+    {
+      int written = gzwrite(gz, data.data() + total_written, static_cast<unsigned int>(data.size() - total_written));
+      if (written <= 0)
+      {
+        int errnum = 0;
+        const char *errstr = gzerror(gz, &errnum);
+        gzclose(gz);
+        throw std::runtime_error("Error writing MGZ file '" + filename + "': " +
+                                 (errstr ? std::string(errstr) : "unknown error") + "\n");
+      }
+      total_written += static_cast<z_size_t>(written);
+    }
+    gzclose(gz);
+  }
+
+#endif // LIBFS_HAS_ZLIB
 
   /// Models a FreeSurfer label.
   /// Can be a surface or volume label.
