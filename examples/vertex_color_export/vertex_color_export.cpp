@@ -1,6 +1,6 @@
 // Demo program that reads a brain mesh, per-vertex data (cortical thickness),
 // and a cortex label, then maps the thickness data to vertex colors using the
-// viridis colormap and exports the colored mesh to a PLY file.
+// viridis colormap and exports the colored mesh to PLY, OBJ, and OFF files.
 //
 // The cortex label is used to mask out medial wall vertices: their thickness
 // value is set to NaN before applying the colormap, and the viridis function
@@ -24,10 +24,14 @@
 //    2) per-vertex data for that mesh in curv format. Default: '../read_curv/lh.thickness'
 //    3) a cortex label file, a binary map over the vertices. Default: '../read_label/lh.cortex.label'
 //
-// It then writes the output file 'lh.white.thickness.colored.ply' to the
-// current directory, which you can open in Meshlab or other viewers to inspect
-// the vertex colors. Note that in Blender, you will have to manually configure
-// the software to display vertex colors, simply opening the mesh does NOT
+// It then writes three output files to the current directory:
+//    lh.white.thickness.colored.ply  — Stanford PLY format (ascii)
+//    lh.white.thickness.colored.obj  — Wavefront OBJ format
+//    lh.white.thickness.colored.off  — Object File Format (COFF with vertex colors)
+//
+// You can open any of these in Meshlab or other viewers that support vertex
+// colors. Note that in Blender, you will have to manually configure the
+// software to display vertex colors, simply opening the mesh does NOT
 // display them.
 
 #include "libfs.h"
@@ -43,7 +47,7 @@ int main(int argc, char** argv) {
     std::string surface_fname = "../read_surf/lh.white";
     std::string curv_fname = "../read_curv/lh.thickness";
     std::string label_fname = "../read_label/lh.cortex.label";
-    std::string output_fname = "lh.white.thickness.colored.ply";
+    std::string output_fname_base = "lh.white.thickness.colored";
 
     if (argc == 4) {
         surface_fname = argv[1];
@@ -56,7 +60,7 @@ int main(int argc, char** argv) {
         std::cout << "   curv_file    : str, path to a FreeSurfer curv file.     Default: '../read_curv/lh.thickness'\n";
         std::cout << "   label_file   : str, path to a FreeSurfer label file.    Default: '../read_label/lh.cortex.label'\n";
         std::cout << "Note: call with no arguments to use the defaults listed above.\n";
-        std::cout << "The output PLY file is written to '" << output_fname << "' in the current directory.\n";
+        std::cout << "The output files (PLY, OBJ, OFF) are written to the current directory.\n";
         exit(1);
     }
 
@@ -135,10 +139,22 @@ int main(int argc, char** argv) {
     std::vector<uint8_t> colors = fs::util::viridis(thickness);
     std::cout << "Generated " << colors.size() << " color values (" << colors.size() / 3 << " vertices * 3 channels).\n";
 
-    // ---- Step f) Export the mesh with per-vertex colors to a PLY file. ----
-    std::cout << "Writing colored mesh to PLY file '" << output_fname << "'.\n";
-    surface.to_ply_file(output_fname, colors);
-    std::cout << "Done. Open '" << output_fname << "' in Meshlab (or another PLY viewer that supports vertex colors) to inspect it.\n";
+    // ---- Step f) Export the mesh with per-vertex colors to PLY, OBJ, and OFF files. ----
+    std::string ply_fname = output_fname_base + ".ply";
+    std::string obj_fname = output_fname_base + ".obj";
+    std::string off_fname = output_fname_base + ".off";
+
+    std::cout << "Writing colored mesh to PLY file '" << ply_fname << "'.\n";
+    surface.to_ply_file(ply_fname, colors);
+
+    std::cout << "Writing colored mesh to OBJ file '" << obj_fname << "'.\n";
+    surface.to_obj_file(obj_fname, colors);
+
+    std::cout << "Writing colored mesh to OFF file '" << off_fname << "'.\n";
+    surface.to_off_file(off_fname, colors);
+
+    std::cout << "Done. Open '" << ply_fname << "', '" << obj_fname << "', or '" << off_fname << "'\n"
+              << "in Meshlab (or another viewer that supports vertex colors) to inspect it.\n";
 
     exit(0);
 }

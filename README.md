@@ -39,6 +39,8 @@ If your compiler or toolchain does not support automatic zlib detection, you can
 
 If you cannot use zlib at all, you can still extract MGZ files manually on the command line before running your program or convert them using the FreeSurfer `mri_convert` command line program: `mri_convert file.mgz file.mgh`.
 
+If you prefer using the existing stream-based `read_mgh()`/`write_mgh()` overloads with a C++ stream wrapper around zlib, the [read_mgz example](./examples/read_mgz/) shows how to do this with the `zstr` header-only library (still requires `-lz`).
+
 
 #### What `libfs` is **not**
 
