@@ -1525,7 +1525,7 @@ TEST_CASE("NIfTI-1: round-trip write/read", "[nifti]")
     fs::Mgh mgh;
     fs::read_nifti(&mgh, nii_file);
 
-    std::string tmp_file = "/tmp/libfs_test_roundtrip.nii";
+    std::string tmp_file = "libfs_test_roundtrip.nii";
     fs::write_nifti(mgh, tmp_file);
 
     fs::Mgh mgh2;
@@ -1601,7 +1601,7 @@ TEST_CASE("NIfTI-1: reject unsupported data type", "[nifti]")
     int16_t bad_dtype = 64;
     std::memcpy(&raw[70], &bad_dtype, 2);
 
-    std::string tmp_file = "/tmp/libfs_test_baddtype.nii";
+    std::string tmp_file = "libfs_test_baddtype.nii";
     std::ofstream ofs(tmp_file, std::ios::binary);
     REQUIRE(ofs.is_open());
     ofs.write(raw.data(), static_cast<std::streamsize>(raw.size()));
@@ -1623,7 +1623,7 @@ TEST_CASE("NIfTI-1: write rejects oversized dimensions", "[nifti]")
     mgh.header.dtype = fs::MRI_FLOAT;
     mgh.data.data_mri_float.resize(40000, 0.0f);
 
-    std::string tmp_file = "/tmp/libfs_test_oversized.nii";
+    std::string tmp_file = "libfs_test_oversized.nii";
     REQUIRE_THROWS_AS(fs::write_nifti(mgh, tmp_file), std::runtime_error);
 }
 
@@ -1670,7 +1670,7 @@ TEST_CASE("NIfTI-1: RAS roundtrip MGH→NIfTI→MGH preserves spatial metadata",
     std::vector<float> orig_Pxyz_c = mgh_orig.header.Pxyz_c;
 
     // Roundtrip through NIfTI.
-    std::string tmp_file = "/tmp/libfs_test_ras_roundtrip.nii";
+    std::string tmp_file = "libfs_test_ras_roundtrip.nii";
     fs::write_nifti(mgh_orig, tmp_file);
 
     fs::Mgh mgh_rt;
@@ -1724,7 +1724,7 @@ TEST_CASE("NIfTI-1: MGH without RAS data writes sform_code=0", "[nifti][ras]")
     mgh.header.zsize = 2.0f;
     mgh.data.data_mri_float.resize(64, 0.0f);
 
-    std::string tmp_file = "/tmp/libfs_test_noras.nii";
+    std::string tmp_file = "libfs_test_noras.nii";
     fs::write_nifti(mgh, tmp_file);
 
     // Read back and verify RAS is not set.
