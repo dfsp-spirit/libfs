@@ -50,6 +50,8 @@ examples/*/read_mgz
 examples/*/read_surf
 examples/*/descriptor_info
 examples/*/vertex_color_export
+examples/write_annot/write_annot
+examples/write_subjectsfile/write_subjectsfile
 
 # Generated output from examples
 examples/*/*.mgh
