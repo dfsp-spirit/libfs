@@ -822,6 +822,15 @@ namespace fs
   bool _ends_with(std::string const &fullString, std::string const &ending);
   size_t _vidx_2d(size_t, size_t, size_t);
   struct MghHeader;
+  struct Mgh;
+
+  // NIfTI-1 forward declarations (needed by read_desc_data).
+  void read_nifti(Mgh *, std::istream *, bool force_standard = false);
+  void read_nifti(Mgh *, const std::string &, bool force_standard = false);
+#ifdef LIBFS_HAS_ZLIB
+  inline void read_nifti_gz(Mgh *, const std::string &, bool force_standard = false);
+  inline void write_nifti_gz(const Mgh &, const std::string &);
+#endif
 
   /// @brief Models a triangular mesh, used for brain surface meshes.
   ///
@@ -3596,8 +3605,8 @@ namespace fs
     return (curv.data);
   }
 
-  /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv format or MGH format file.
-  /// @param filename Path to a file from which to read the data. If the name ends with '.mgh' or '.MGH', this function assumes it is an MGH file. Otherwise it assumes it is a curv file. If it is an MGH file, it must contain data of type MRI_FLOAT, and it must only contain data for one subject, i.e., all dimensions with the exception of the first one should have size 1.
+  /// @brief Read per-vertex brain morphometry data from a FreeSurfer curv, MGH, or NIfTI format file.
+  /// @param filename Path to a file from which to read the data. If the name ends with '.mgh' / '.MGH' it is read as MGH; if it ends with '.nii' / '.nii.gz' it is read as NIfTI; otherwise it is assumed to be a curv file.  The data must be of type MRI_FLOAT, and only one spatial dimension may have size > 1.
   /// @return a vector of float values, one per vertex.
   /// @throws runtime_error if the file cannot be opened, domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
   ///
@@ -3608,6 +3617,8 @@ namespace fs
   /// std::vector<float> data1 = fs::read_desc_data(curv_fname);
   /// std::string mgh_fname = "lh.thickness.mgh";
   /// std::vector<float> data2 = fs::read_desc_data(mgh_fname);
+  /// std::string nii_fname = "lh.thickness.nii.gz";
+  /// std::vector<float> data3 = fs::read_desc_data(nii_fname);
   /// @endcode
   std::vector<float> read_desc_data(const std::string &filename)
   {
@@ -3628,6 +3639,29 @@ namespace fs
       if (num_gt_1 > 1)
       {
         std::cerr << "MGH file '" << filename << "' contains more than one non-empty dimension. Returning concatinated data.\n";
+      }
+      return mgh.data.data_mri_float;
+    }
+    else if (fs::util::ends_with(filename, {".NII", ".nii", ".NII.GZ", ".nii.gz"}))
+    {
+      fs::Mgh mgh;
+      fs::read_nifti(&mgh, filename);
+      if (mgh.header.dtype != fs::MRI_FLOAT)
+      {
+        throw std::runtime_error("read_desc_data currently only supports NIfTI files with FLOAT32 data.\n");
+      }
+      int num_gt_1 = 0;
+      std::vector<int> dims = {mgh.header.dim1length, mgh.header.dim2length, mgh.header.dim3length, mgh.header.dim4length};
+      for (size_t i = 0; i < dims.size(); i++)
+      {
+        if (dims[i] > 1)
+        {
+          num_gt_1++;
+        }
+      }
+      if (num_gt_1 > 1)
+      {
+        std::cerr << "NIfTI file '" << filename << "' contains more than one non-empty dimension. Returning concatenated data.\n";
       }
       return mgh.data.data_mri_float;
     }
@@ -4143,6 +4177,783 @@ namespace fs
   }
 
 #endif // LIBFS_HAS_ZLIB
+
+  // ========================================================================
+  // NIfTI-1 Support
+  // ========================================================================
+
+  /// NIfTI-1 data type constants.
+  const int16_t NIFTI_DT_NONE       = 0;
+  const int16_t NIFTI_DT_BINARY     = 1;
+  const int16_t NIFTI_DT_UINT8      = 2;
+  const int16_t NIFTI_DT_INT16      = 4;
+  const int16_t NIFTI_DT_INT32      = 8;
+  const int16_t NIFTI_DT_FLOAT32    = 16;
+  const int16_t NIFTI_DT_COMPLEX64  = 32;
+  const int16_t NIFTI_DT_FLOAT64    = 64;
+  const int16_t NIFTI_DT_RGB24      = 128;
+  const int16_t NIFTI_DT_INT8       = 256;
+  const int16_t NIFTI_DT_UINT16     = 512;
+  const int16_t NIFTI_DT_UINT32     = 768;
+  const int16_t NIFTI_DT_INT64      = 1024;
+  const int16_t NIFTI_DT_UINT64     = 1280;
+  const int16_t NIFTI_DT_FLOAT128   = 1536;
+  const int16_t NIFTI_DT_COMPLEX128 = 1792;
+  const int16_t NIFTI_DT_COMPLEX256 = 2048;
+
+  /// NIfTI-1 header structure (348 bytes, packed).
+#pragma pack(push, 1)
+  struct Nifti1Header
+  {
+    int32_t sizeof_hdr;       ///< must be 348
+    char    data_type[10];    ///< unused
+    char    db_name[18];      ///< unused
+    int32_t extents;          ///< unused
+    int16_t session_error;    ///< unused
+    char    regular;          ///< unused
+    char    dim_info;         ///< MRI slice ordering
+    int16_t dim[8];           ///< dim[0]=ndim, dim[1..7]=dimensions
+    float   intent_p1;        ///< intent parameter 1
+    float   intent_p2;        ///< intent parameter 2
+    float   intent_p3;        ///< intent parameter 3
+    int16_t intent_code;      ///< NIfTI intent code
+    int16_t datatype;         ///< NIfTI data type code
+    int16_t bitpix;           ///< bits per voxel
+    int16_t slice_start;      ///< first slice index
+    float   pixdim[8];        ///< voxel dimensions (mm)
+    float   vox_offset;       ///< byte offset to data from header start
+    float   scl_slope;        ///< scaling slope
+    float   scl_inter;        ///< scaling intercept
+    int16_t slice_end;        ///< last slice index
+    char    slice_code;       ///< slice timing code
+    char    xyzt_units;       ///< units for pixdim[] dimensions
+    float   cal_max;          ///< calibrated max
+    float   cal_min;          ///< calibrated min
+    float   slice_duration;   ///< slice timing duration
+    float   toffset;          ///< time offset
+    int32_t glmax;            ///< global max (unused)
+    int32_t glmin;            ///< global min (unused)
+    char    descrip[80];      ///< description
+    char    aux_file[24];     ///< auxiliary filename
+    int16_t qform_code;       ///< quaternion transform code (>0 = valid)
+    int16_t sform_code;       ///< affine transform code (>0 = valid)
+    float   quatern_b;        ///< quaternion b param
+    float   quatern_c;        ///< quaternion c param
+    float   quatern_d;        ///< quaternion d param
+    float   qoffset_x;        ///< quaternion x shift
+    float   qoffset_y;        ///< quaternion y shift
+    float   qoffset_z;        ///< quaternion z shift
+    float   srow_x[4];        ///< affine transform row x
+    float   srow_y[4];        ///< affine transform row y
+    float   srow_z[4];        ///< affine transform row z
+    char    intent_name[16];  ///< intent name
+    char    magic[4];         ///< "n+1\0" (single file) or "ni1\0" (header/img pair)
+  };
+#pragma pack(pop)
+
+  // --- Internal NIfTI helpers ---
+
+  /// @brief Map a NIfTI-1 data type code to an MGH MRI_* constant.
+  /// @throws std::runtime_error if the NIfTI type is unsupported.
+  /// @private
+  inline int _nifti_dtype_to_mri(int16_t nifti_dtype)
+  {
+    switch (nifti_dtype)
+    {
+    case NIFTI_DT_UINT8:   return MRI_UCHAR;
+    case NIFTI_DT_INT16:   return MRI_SHORT;
+    case NIFTI_DT_INT32:   return MRI_INT;
+    case NIFTI_DT_FLOAT32: return MRI_FLOAT;
+    default:
+      throw std::runtime_error("Unsupported NIfTI data type " + std::to_string(nifti_dtype) +
+                               ".  Supported types: UINT8 (2), INT16 (4), INT32 (8), FLOAT32 (16).\n");
+    }
+  }
+
+  /// @brief Map an MGH MRI_* data type to a NIfTI-1 data type code.
+  /// @throws std::runtime_error if the MGH type is unsupported for NIfTI output.
+  /// @private
+  inline int16_t _mri_dtype_to_nifti(int32_t mri_dtype)
+  {
+    switch (mri_dtype)
+    {
+    case MRI_UCHAR: return NIFTI_DT_UINT8;
+    case MRI_SHORT: return NIFTI_DT_INT16;
+    case MRI_INT:   return NIFTI_DT_INT32;
+    case MRI_FLOAT: return NIFTI_DT_FLOAT32;
+    default:
+      throw std::runtime_error("Unsupported MGH data type " + std::to_string(mri_dtype) +
+                               " for NIfTI output.\n");
+    }
+  }
+
+  /// @brief Read and validate a NIfTI-1 header from a stream, detecting endianness.
+  /// @param is  Input stream positioned at byte 0 of the NIfTI file.
+  /// @param file_is_bigendian  [out] set to true if the file is big-endian.
+  /// @return The parsed and byte-order-corrected header.
+  /// @throws std::runtime_error on short read or invalid sizeof_hdr.
+  /// @private
+  inline Nifti1Header _read_nifti1_header(std::istream &is, bool &file_is_bigendian)
+  {
+    Nifti1Header hdr;
+    is.read(reinterpret_cast<char *>(&hdr), sizeof(Nifti1Header));
+    if (static_cast<size_t>(is.gcount()) != sizeof(Nifti1Header))
+    {
+      throw std::runtime_error("NIfTI file too small for header: expected " +
+                               std::to_string(sizeof(Nifti1Header)) + " bytes.\n");
+    }
+
+    // Detect endianness: sizeof_hdr must be 348.
+    if (hdr.sizeof_hdr != 348)
+    {
+      int32_t swapped = _swap_endian(hdr.sizeof_hdr);
+      if (swapped == 348)
+      {
+        file_is_bigendian = true;
+      }
+      else
+      {
+        throw std::runtime_error("Invalid NIfTI file: sizeof_hdr = " +
+                                 std::to_string(hdr.sizeof_hdr) + " (expected 348).\n");
+      }
+    }
+    else
+    {
+      file_is_bigendian = false;
+    }
+
+    // If file endianness differs from host, byte-swap the numeric fields.
+    bool need_swap = (file_is_bigendian != _is_bigendian());
+    if (need_swap)
+    {
+      hdr.sizeof_hdr    = 348; // already correct, keep it
+      hdr.extents       = _swap_endian(hdr.extents);
+      hdr.session_error = _swap_endian(hdr.session_error);
+      // dim_info, regular are char — no swap
+      for (int i = 0; i < 8; i++) hdr.dim[i]        = _swap_endian(hdr.dim[i]);
+      hdr.intent_p1     = _swap_endian(hdr.intent_p1);
+      hdr.intent_p2     = _swap_endian(hdr.intent_p2);
+      hdr.intent_p3     = _swap_endian(hdr.intent_p3);
+      hdr.intent_code   = _swap_endian(hdr.intent_code);
+      hdr.datatype      = _swap_endian(hdr.datatype);
+      hdr.bitpix        = _swap_endian(hdr.bitpix);
+      hdr.slice_start   = _swap_endian(hdr.slice_start);
+      for (int i = 0; i < 8; i++) hdr.pixdim[i]     = _swap_endian(hdr.pixdim[i]);
+      hdr.vox_offset    = _swap_endian(hdr.vox_offset);
+      hdr.scl_slope     = _swap_endian(hdr.scl_slope);
+      hdr.scl_inter     = _swap_endian(hdr.scl_inter);
+      hdr.slice_end     = _swap_endian(hdr.slice_end);
+      // slice_code, xyzt_units are char — no swap
+      hdr.cal_max       = _swap_endian(hdr.cal_max);
+      hdr.cal_min       = _swap_endian(hdr.cal_min);
+      hdr.slice_duration = _swap_endian(hdr.slice_duration);
+      hdr.toffset       = _swap_endian(hdr.toffset);
+      hdr.glmax         = _swap_endian(hdr.glmax);
+      hdr.glmin         = _swap_endian(hdr.glmin);
+      hdr.qform_code    = _swap_endian(hdr.qform_code);
+      hdr.sform_code    = _swap_endian(hdr.sform_code);
+      hdr.quatern_b     = _swap_endian(hdr.quatern_b);
+      hdr.quatern_c     = _swap_endian(hdr.quatern_c);
+      hdr.quatern_d     = _swap_endian(hdr.quatern_d);
+      hdr.qoffset_x     = _swap_endian(hdr.qoffset_x);
+      hdr.qoffset_y     = _swap_endian(hdr.qoffset_y);
+      hdr.qoffset_z     = _swap_endian(hdr.qoffset_z);
+      for (int i = 0; i < 4; i++) hdr.srow_x[i]   = _swap_endian(hdr.srow_x[i]);
+      for (int i = 0; i < 4; i++) hdr.srow_y[i]   = _swap_endian(hdr.srow_y[i]);
+      for (int i = 0; i < 4; i++) hdr.srow_z[i]   = _swap_endian(hdr.srow_z[i]);
+    }
+
+    // Validate magic.
+    if (std::memcmp(hdr.magic, "n+1\0", 4) != 0 &&
+        std::memcmp(hdr.magic, "ni1\0", 4) != 0)
+    {
+      // The magic may also need swapping.
+      throw std::runtime_error("NIfTI file has invalid magic string.  "
+                               "Only single-file .nii (n+1) is supported.\n");
+    }
+
+    return hdr;
+  }
+
+  /// @brief Read a single value from a NIfTI data stream with known file endianness.
+  /// @private
+  template <typename T>
+  inline T _nifti_read_data_element(std::istream &is, bool file_is_bigendian)
+  {
+    T val;
+    is.read(reinterpret_cast<char *>(&val), sizeof(T));
+    if (static_cast<size_t>(is.gcount()) != sizeof(T))
+    {
+      throw std::runtime_error("Unexpected end of NIfTI data stream.\n");
+    }
+    if (file_is_bigendian != _is_bigendian())
+    {
+      val = _swap_endian(val);
+    }
+    return val;
+  }
+
+  /// @brief Write a single value to a NIfTI data stream in the file's endianness.
+  /// @private
+  template <typename T>
+  inline void _nifti_write_data_element(std::ostream &os, T val, bool file_is_bigendian)
+  {
+    if (file_is_bigendian != _is_bigendian())
+    {
+      val = _swap_endian(val);
+    }
+    os.write(reinterpret_cast<const char *>(&val), sizeof(T));
+  }
+
+  /// @brief Extract RAS spatial metadata from a NIfTI-1 header into an MghHeader.
+  /// @details Prefers sform over qform.  Sets ras_good_flag = 1 on success.
+  /// @private
+  inline void _nifti_extract_ras(const Nifti1Header &hdr, MghHeader *mgh_header)
+  {
+    if (hdr.sform_code > 0)
+    {
+      // Use affine (sform) transform.
+      mgh_header->ras_good_flag = 1;
+      mgh_header->xsize = hdr.pixdim[1];
+      mgh_header->ysize = hdr.pixdim[2];
+      mgh_header->zsize = hdr.pixdim[3];
+      mgh_header->Mdc.clear();
+      mgh_header->Pxyz_c.clear();
+      // Mdc: 3×3 rotation/scale part of srow (column-major to row-major, but
+      // MGH stores 9 floats in row-major order: [r11,r12,r13, r21,r22,r23, r31,r32,r33]).
+      // srow_x = [r11, r12, r13, tx], srow_y = [r21, r22, r23, ty], srow_z = [r31, r32, r33, tz].
+      mgh_header->Mdc.push_back(hdr.srow_x[0]); mgh_header->Mdc.push_back(hdr.srow_x[1]); mgh_header->Mdc.push_back(hdr.srow_x[2]);
+      mgh_header->Mdc.push_back(hdr.srow_y[0]); mgh_header->Mdc.push_back(hdr.srow_y[1]); mgh_header->Mdc.push_back(hdr.srow_y[2]);
+      mgh_header->Mdc.push_back(hdr.srow_z[0]); mgh_header->Mdc.push_back(hdr.srow_z[1]); mgh_header->Mdc.push_back(hdr.srow_z[2]);
+      mgh_header->Pxyz_c.push_back(hdr.srow_x[3]);
+      mgh_header->Pxyz_c.push_back(hdr.srow_y[3]);
+      mgh_header->Pxyz_c.push_back(hdr.srow_z[3]);
+    }
+    else if (hdr.qform_code > 0)
+    {
+      // Compute rotation from quaternion and store as affine.
+      float b = hdr.quatern_b;
+      float c = hdr.quatern_c;
+      float d = hdr.quatern_d;
+      float a = std::sqrt(std::max(0.0f, 1.0f - (b * b + c * c + d * d)));
+      float qfac = (hdr.pixdim[0] < 0.0f) ? -1.0f : 1.0f;
+
+      mgh_header->ras_good_flag = 1;
+      mgh_header->xsize = hdr.pixdim[1];
+      mgh_header->ysize = hdr.pixdim[2];
+      mgh_header->zsize = hdr.pixdim[3];
+      mgh_header->Mdc.clear();
+      mgh_header->Pxyz_c.clear();
+
+      // Rotation matrix from unit quaternion.
+      float R11 = a * a + b * b - c * c - d * d;
+      float R12 = 2.0f * (b * c - a * d);
+      float R13 = 2.0f * (b * d + a * c);
+      float R21 = 2.0f * (b * c + a * d);
+      float R22 = a * a + c * c - b * b - d * d;
+      float R23 = 2.0f * (c * d - a * b);
+      float R31 = 2.0f * (b * d - a * c);
+      float R32 = 2.0f * (c * d + a * b);
+      float R33 = a * a + d * d - b * b - c * c;
+
+      // Apply pixdim scaling and qfac.
+      float sx = hdr.pixdim[1];
+      float sy = hdr.pixdim[2];
+      float sz = hdr.pixdim[3] * qfac;
+
+      mgh_header->Mdc.push_back(R11 * sx); mgh_header->Mdc.push_back(R12 * sy); mgh_header->Mdc.push_back(R13 * sz);
+      mgh_header->Mdc.push_back(R21 * sx); mgh_header->Mdc.push_back(R22 * sy); mgh_header->Mdc.push_back(R23 * sz);
+      mgh_header->Mdc.push_back(R31 * sx); mgh_header->Mdc.push_back(R32 * sy); mgh_header->Mdc.push_back(R33 * sz);
+
+      mgh_header->Pxyz_c.push_back(hdr.qoffset_x);
+      mgh_header->Pxyz_c.push_back(hdr.qoffset_y);
+      mgh_header->Pxyz_c.push_back(hdr.qoffset_z);
+    }
+    else
+    {
+      // No valid spatial transform — just store voxel sizes.
+      mgh_header->ras_good_flag = 0;
+      mgh_header->xsize = hdr.pixdim[1];
+      mgh_header->ysize = hdr.pixdim[2];
+      mgh_header->zsize = hdr.pixdim[3];
+    }
+  }
+
+  // --- Public NIfTI read API ---
+
+  /// @brief Read a NIfTI-1 file into an Mgh struct (stream overload).
+  /// @param mgh   The Mgh instance to fill with the NIfTI data.
+  /// @param is    An open input stream positioned at the start of the NIfTI file.
+  /// @param force_standard  If true, reject non-conformant headers including the FreeSurfer hack.
+  /// @throws std::runtime_error on unsupported data types, I/O errors, or dimension overflows.
+  void read_nifti(Mgh *mgh, std::istream *is, bool force_standard)
+  {
+    // 1. Determine stream size (for FS hack recovery and validation).
+    std::streampos start_pos = is->tellg();
+    is->seekg(0, std::ios::end);
+    std::streamsize total_file_size = is->tellg();
+    is->seekg(start_pos, std::ios::beg);
+
+    // 2. Read and validate header.
+    bool file_is_bigendian = false;
+    Nifti1Header hdr = _read_nifti1_header(*is, file_is_bigendian);
+
+    // 3. Detect FreeSurfer hack.
+    int64_t true_dim1 = hdr.dim[1];
+    bool hack_detected = false;
+
+    // dim[1] is int16_t; values > 32767 wrap to negative via signed overflow.
+    if (hdr.dim[1] < 0 && hdr.dim[2] == 1 && hdr.dim[3] == 1)
+    {
+      int bytes_per_element = hdr.bitpix / 8;
+      // dim[4]: NIfTI convention says dim[i] for i>dim[0] should be 1,
+      // but FreeSurfer files may set it to 0.  Treat 0 and 1 both as 1 frame.
+      int64_t frames = (hdr.dim[4] > 1) ? static_cast<int64_t>(hdr.dim[4]) : 1;
+
+      int64_t payload_bytes = total_file_size - static_cast<int64_t>(hdr.vox_offset);
+      int64_t computed_x = payload_bytes / (bytes_per_element * frames);
+
+      // False-positive mitigation: only accept if the recovered vertex count
+      // is in a plausible range for a FreeSurfer surface mesh (1K – 5M vertices).
+      if (computed_x >= 1000 && computed_x <= 5000000)
+      {
+        hack_detected = true;
+        true_dim1 = computed_x;
+      }
+    }
+
+    // If the caller requested strict conformance, reject the hack.
+    if (force_standard && hack_detected)
+    {
+      throw std::runtime_error(
+          "NIfTI file does not conform to the NIfTI-1 standard: "
+          "dim[1] overflow detected (likely FreeSurfer hack).  "
+          "Re-run with force_standard=false to recover surface data.\n");
+    }
+
+    // 4. Map dimensions (treat dim[i] <= 0 as 1).
+    int32_t dim2 = (hdr.dim[2] > 0) ? hdr.dim[2] : 1;
+    int32_t dim3 = (hdr.dim[3] > 0) ? hdr.dim[3] : 1;
+    int32_t dim4 = (hdr.dim[4] > 0) ? hdr.dim[4] : 1;
+    int     bytes_per_element = hdr.bitpix / 8;
+
+    // 5. Overflow-safe size validation.
+    uint64_t total_elements = static_cast<uint64_t>(true_dim1) *
+                              static_cast<uint64_t>(dim2) *
+                              static_cast<uint64_t>(dim3) *
+                              static_cast<uint64_t>(dim4);
+    uint64_t expected_payload = total_elements * static_cast<uint64_t>(bytes_per_element);
+
+    if (!fs::util::check_alloc(static_cast<size_t>(total_elements), static_cast<size_t>(bytes_per_element)))
+    {
+      throw std::runtime_error("NIfTI dimensions exceed maximum allowed allocation (" +
+                               std::to_string(LIBFS_MAX_ALLOC_BYTES) + " bytes).\n");
+    }
+
+    uint64_t available_bytes = static_cast<uint64_t>(total_file_size) - static_cast<uint64_t>(hdr.vox_offset);
+    if (expected_payload > available_bytes)
+    {
+      throw std::runtime_error("Corrupted NIfTI file: dimensions require " +
+                               std::to_string(expected_payload) + " bytes but only " +
+                               std::to_string(available_bytes) + " available.\n");
+    }
+
+    if (hdr.vox_offset < 348 || static_cast<uint64_t>(hdr.vox_offset) >= static_cast<uint64_t>(total_file_size))
+    {
+      throw std::runtime_error("Corrupted NIfTI file: invalid vox_offset " +
+                               std::to_string(hdr.vox_offset) + ".\n");
+    }
+
+    // 6. Map data type and prepare MGH header.
+    int mri_dtype = _nifti_dtype_to_mri(hdr.datatype);
+    mgh->header.dim1length = static_cast<int32_t>(true_dim1);
+    mgh->header.dim2length = dim2;
+    mgh->header.dim3length = dim3;
+    mgh->header.dim4length = dim4;
+    mgh->header.dtype = mri_dtype;
+    mgh->header.dof = 0;
+
+    // Extract spatial metadata.
+    _nifti_extract_ras(hdr, &mgh->header);
+
+    // 7. Skip any extensions and seek to voxel data.
+    is->seekg(start_pos + std::streamoff(static_cast<int64_t>(hdr.vox_offset)), std::ios::beg);
+
+    // 8. Read data and apply scaling.
+    float slope = (hdr.scl_slope != 0.0f) ? hdr.scl_slope : 1.0f;
+    float inter = hdr.scl_inter;
+    size_t num_voxels = static_cast<size_t>(total_elements);
+    // Suppress unused variable warning in builds without LIBFS_DBG_INFO
+    (void)num_voxels;
+
+#ifdef LIBFS_DBG_INFO
+    std::cout << LIBFS_APPTAG << "Reading NIfTI file: " << true_dim1 << "x" << dim2
+              << "x" << dim3 << "x" << dim4 << " (" << num_voxels << " voxels), dtype="
+              << hdr.datatype << (hack_detected ? " [FS hack]" : "") << "\n";
+#endif
+
+    if (mri_dtype == MRI_INT)
+    {
+      mgh->data.data_mri_int.reserve(num_voxels);
+      for (size_t i = 0; i < num_voxels; i++)
+      {
+        int32_t raw = _nifti_read_data_element<int32_t>(*is, file_is_bigendian);
+        mgh->data.data_mri_int.push_back(static_cast<int32_t>(std::round(raw * slope + inter)));
+      }
+    }
+    else if (mri_dtype == MRI_FLOAT)
+    {
+      mgh->data.data_mri_float.reserve(num_voxels);
+      for (size_t i = 0; i < num_voxels; i++)
+      {
+        float raw = _nifti_read_data_element<float>(*is, file_is_bigendian);
+        mgh->data.data_mri_float.push_back(raw * slope + inter);
+      }
+    }
+    else if (mri_dtype == MRI_UCHAR)
+    {
+      mgh->data.data_mri_uchar.reserve(num_voxels);
+      for (size_t i = 0; i < num_voxels; i++)
+      {
+        uint8_t raw = _nifti_read_data_element<uint8_t>(*is, file_is_bigendian);
+        mgh->data.data_mri_uchar.push_back(static_cast<uint8_t>(std::max(0.0f, std::min(255.0f, std::round(raw * slope + inter)))));
+      }
+    }
+    else if (mri_dtype == MRI_SHORT)
+    {
+      mgh->data.data_mri_short.reserve(num_voxels);
+      for (size_t i = 0; i < num_voxels; i++)
+      {
+        int16_t raw = _nifti_read_data_element<int16_t>(*is, file_is_bigendian);
+        mgh->data.data_mri_short.push_back(static_cast<short>(std::round(raw * slope + inter)));
+      }
+    }
+  }
+
+  /// @brief Read a NIfTI-1 file into an Mgh struct (filename overload).
+  /// @details Auto-detects .nii and .nii.gz by file extension.
+  /// @param mgh   The Mgh instance to fill with the NIfTI data.
+  /// @param filename  Path to the input file (.nii or .nii.gz).
+  /// @param force_standard  If true, reject non-conformant headers including the FreeSurfer hack.
+  /// @throws std::runtime_error on unsupported data types, I/O errors, or dimension overflows.
+  void read_nifti(Mgh *mgh, const std::string &filename, bool force_standard)
+  {
+    if (fs::util::ends_with(filename, ".nii.gz") || fs::util::ends_with(filename, ".NII.GZ"))
+    {
+#ifdef LIBFS_HAS_ZLIB
+      read_nifti_gz(mgh, filename, force_standard);
+      return;
+#else
+      throw std::runtime_error("Cannot read .nii.gz file '" + filename +
+                               "': zlib support not enabled.  "
+                               "Link with -lz or decompress the file first.\n");
+#endif
+    }
+
+    std::ifstream ifs(filename, std::ios::binary);
+    if (!ifs.is_open())
+    {
+      throw std::runtime_error("Could not open NIfTI file '" + filename + "' for reading.\n");
+    }
+    read_nifti(mgh, &ifs, force_standard);
+    ifs.close();
+  }
+
+  // --- NIfTI write API ---
+
+  /// @brief Write MGH data to a NIfTI-1 file (stream overload).
+  /// @details Writes a standard volumetric NIfTI-1 file in big-endian byte order
+  ///          (NIfTI-1 standard).  The FreeSurfer hack is never produced.
+  /// @param mgh  The Mgh data to write.
+  /// @param os   An open output stream.
+  /// @throws std::runtime_error if any dimension exceeds 32767 or the data type is unsupported.
+  void write_nifti(const Mgh &mgh, std::ostream &os)
+  {
+    // Validate dimensions: NIfTI-1 uses int16_t for dim[].
+    if (mgh.header.dim1length > 32767 || mgh.header.dim2length > 32767 ||
+        mgh.header.dim3length > 32767 || mgh.header.dim4length > 32767)
+    {
+      throw std::runtime_error("MGH dimensions exceed NIfTI-1 int16 limit (32767).  "
+                               "Cannot write as NIfTI.\n");
+    }
+
+    bool file_is_bigendian = true; // NIfTI standard is big-endian on disk.
+
+    // Build header (all zeroed first).
+    Nifti1Header hdr;
+    std::memset(&hdr, 0, sizeof(hdr));
+    hdr.sizeof_hdr = 348;
+    hdr.dim[0] = 4; // always 4D for our purposes
+    hdr.dim[1] = static_cast<int16_t>(mgh.header.dim1length);
+    hdr.dim[2] = static_cast<int16_t>(mgh.header.dim2length);
+    hdr.dim[3] = static_cast<int16_t>(mgh.header.dim3length);
+    hdr.dim[4] = static_cast<int16_t>(mgh.header.dim4length);
+    hdr.dim[5] = 1;
+    hdr.dim[6] = 1;
+    hdr.dim[7] = 1;
+
+    hdr.datatype = _mri_dtype_to_nifti(mgh.header.dtype);
+    hdr.bitpix = 0;
+    switch (mgh.header.dtype)
+    {
+    case MRI_UCHAR: hdr.bitpix = 8;  break;
+    case MRI_SHORT: hdr.bitpix = 16; break;
+    case MRI_INT:   hdr.bitpix = 32; break;
+    case MRI_FLOAT: hdr.bitpix = 32; break;
+    }
+
+    // Voxel sizes and spatial transform.
+    hdr.pixdim[0] = 1.0f;
+    hdr.pixdim[1] = mgh.header.xsize > 0.0f ? mgh.header.xsize : 1.0f;
+    hdr.pixdim[2] = mgh.header.ysize > 0.0f ? mgh.header.ysize : 1.0f;
+    hdr.pixdim[3] = mgh.header.zsize > 0.0f ? mgh.header.zsize : 1.0f;
+    hdr.pixdim[4] = 1.0f;
+    hdr.pixdim[5] = 1.0f;
+    hdr.pixdim[6] = 1.0f;
+    hdr.pixdim[7] = 1.0f;
+
+    hdr.vox_offset = 352.0f; // 348-byte header + 4-byte extension indicator
+    hdr.scl_slope  = 1.0f;
+    hdr.scl_inter  = 0.0f;
+
+    if (mgh.header.ras_good_flag == 1 && mgh.header.Mdc.size() >= 9 && mgh.header.Pxyz_c.size() >= 3)
+    {
+      hdr.sform_code = 1; // Scanner Anatomical
+      hdr.qform_code = 1;
+      hdr.srow_x[0] = mgh.header.Mdc[0]; hdr.srow_x[1] = mgh.header.Mdc[1]; hdr.srow_x[2] = mgh.header.Mdc[2]; hdr.srow_x[3] = mgh.header.Pxyz_c[0];
+      hdr.srow_y[0] = mgh.header.Mdc[3]; hdr.srow_y[1] = mgh.header.Mdc[4]; hdr.srow_y[2] = mgh.header.Mdc[5]; hdr.srow_y[3] = mgh.header.Pxyz_c[1];
+      hdr.srow_z[0] = mgh.header.Mdc[6]; hdr.srow_z[1] = mgh.header.Mdc[7]; hdr.srow_z[2] = mgh.header.Mdc[8]; hdr.srow_z[3] = mgh.header.Pxyz_c[2];
+
+      // Set quaternion fields from sform for consistency (optional, but good practice).
+      hdr.quatern_b = 0.0f;
+      hdr.quatern_c = 0.0f;
+      hdr.quatern_d = 0.0f;
+      hdr.qoffset_x = hdr.srow_x[3];
+      hdr.qoffset_y = hdr.srow_y[3];
+      hdr.qoffset_z = hdr.srow_z[3];
+    }
+    else
+    {
+      hdr.sform_code = 0;
+      hdr.qform_code = 0;
+    }
+
+    // Set magic for single-file NIfTI.
+    std::memcpy(hdr.magic, "n+1\0", 4);
+
+    // Write header.
+    bool need_swap = (file_is_bigendian != _is_bigendian());
+    if (need_swap)
+    {
+      Nifti1Header hdr_swapped = hdr;
+      hdr_swapped.sizeof_hdr    = _swap_endian(hdr.sizeof_hdr);
+      hdr_swapped.extents       = _swap_endian(hdr.extents);
+      hdr_swapped.session_error = _swap_endian(hdr.session_error);
+      for (int i = 0; i < 8; i++) hdr_swapped.dim[i]        = _swap_endian(hdr.dim[i]);
+      hdr_swapped.intent_p1     = _swap_endian(hdr.intent_p1);
+      hdr_swapped.intent_p2     = _swap_endian(hdr.intent_p2);
+      hdr_swapped.intent_p3     = _swap_endian(hdr.intent_p3);
+      hdr_swapped.intent_code   = _swap_endian(hdr.intent_code);
+      hdr_swapped.datatype      = _swap_endian(hdr.datatype);
+      hdr_swapped.bitpix        = _swap_endian(hdr.bitpix);
+      hdr_swapped.slice_start   = _swap_endian(hdr.slice_start);
+      for (int i = 0; i < 8; i++) hdr_swapped.pixdim[i]     = _swap_endian(hdr.pixdim[i]);
+      hdr_swapped.vox_offset    = _swap_endian(hdr.vox_offset);
+      hdr_swapped.scl_slope     = _swap_endian(hdr.scl_slope);
+      hdr_swapped.scl_inter     = _swap_endian(hdr.scl_inter);
+      hdr_swapped.slice_end     = _swap_endian(hdr.slice_end);
+      hdr_swapped.cal_max       = _swap_endian(hdr.cal_max);
+      hdr_swapped.cal_min       = _swap_endian(hdr.cal_min);
+      hdr_swapped.slice_duration = _swap_endian(hdr.slice_duration);
+      hdr_swapped.toffset       = _swap_endian(hdr.toffset);
+      hdr_swapped.glmax         = _swap_endian(hdr.glmax);
+      hdr_swapped.glmin         = _swap_endian(hdr.glmin);
+      hdr_swapped.qform_code    = _swap_endian(hdr.qform_code);
+      hdr_swapped.sform_code    = _swap_endian(hdr.sform_code);
+      hdr_swapped.quatern_b     = _swap_endian(hdr.quatern_b);
+      hdr_swapped.quatern_c     = _swap_endian(hdr.quatern_c);
+      hdr_swapped.quatern_d     = _swap_endian(hdr.quatern_d);
+      hdr_swapped.qoffset_x     = _swap_endian(hdr.qoffset_x);
+      hdr_swapped.qoffset_y     = _swap_endian(hdr.qoffset_y);
+      hdr_swapped.qoffset_z     = _swap_endian(hdr.qoffset_z);
+      for (int i = 0; i < 4; i++) hdr_swapped.srow_x[i]   = _swap_endian(hdr.srow_x[i]);
+      for (int i = 0; i < 4; i++) hdr_swapped.srow_y[i]   = _swap_endian(hdr.srow_y[i]);
+      for (int i = 0; i < 4; i++) hdr_swapped.srow_z[i]   = _swap_endian(hdr.srow_z[i]);
+      os.write(reinterpret_cast<const char *>(&hdr_swapped), sizeof(Nifti1Header));
+    }
+    else
+    {
+      os.write(reinterpret_cast<const char *>(&hdr), sizeof(Nifti1Header));
+    }
+
+    // Write 4-byte extension indicator (0 = no extensions).
+    int32_t ext_indicator = 0;
+    if (file_is_bigendian != _is_bigendian())
+    {
+      ext_indicator = _swap_endian(ext_indicator);
+    }
+    os.write(reinterpret_cast<const char *>(&ext_indicator), 4);
+
+    // Write voxel data.
+    size_t num_values = mgh.header.num_values();
+    if (mgh.header.dtype == MRI_INT)
+    {
+      for (size_t i = 0; i < num_values; i++)
+      {
+        _nifti_write_data_element<int32_t>(os, mgh.data.data_mri_int[i], file_is_bigendian);
+      }
+    }
+    else if (mgh.header.dtype == MRI_FLOAT)
+    {
+      for (size_t i = 0; i < num_values; i++)
+      {
+        _nifti_write_data_element<float>(os, mgh.data.data_mri_float[i], file_is_bigendian);
+      }
+    }
+    else if (mgh.header.dtype == MRI_UCHAR)
+    {
+      for (size_t i = 0; i < num_values; i++)
+      {
+        _nifti_write_data_element<uint8_t>(os, mgh.data.data_mri_uchar[i], file_is_bigendian);
+      }
+    }
+    else if (mgh.header.dtype == MRI_SHORT)
+    {
+      for (size_t i = 0; i < num_values; i++)
+      {
+        _nifti_write_data_element<short>(os, mgh.data.data_mri_short[i], file_is_bigendian);
+      }
+    }
+    else
+    {
+      throw std::domain_error("Unsupported MRI data type " + std::to_string(mgh.header.dtype) +
+                              " for NIfTI output.\n");
+    }
+  }
+
+  /// @brief Write MGH data to a NIfTI-1 file (filename overload).
+  /// @param mgh  The Mgh data to write.
+  /// @param filename  Path to the output file (.nii or .nii.gz).
+  /// @throws std::runtime_error if the file cannot be opened.
+  void write_nifti(const Mgh &mgh, const std::string &filename)
+  {
+    if (fs::util::ends_with(filename, ".nii.gz") || fs::util::ends_with(filename, ".NII.GZ"))
+    {
+#ifdef LIBFS_HAS_ZLIB
+      write_nifti_gz(mgh, filename);
+      return;
+#else
+      throw std::runtime_error("Cannot write .nii.gz file '" + filename +
+                               "': zlib support not enabled.  Link with -lz.\n");
+#endif
+    }
+
+    std::ofstream ofs(filename, std::ofstream::out | std::ofstream::binary);
+    if (!ofs.is_open())
+    {
+      throw std::runtime_error("Unable to open NIfTI file '" + filename + "' for writing.\n");
+    }
+    write_nifti(mgh, ofs);
+    ofs.close();
+  }
+
+  // --- Gzip-compressed NIfTI (.nii.gz) ---
+
+#ifdef LIBFS_HAS_ZLIB
+
+  /// @brief Read a gzip-compressed NIfTI-1 file (.nii.gz) into an Mgh struct.
+  /// @details Decompresses with zlib, then delegates to stream-based read_nifti().
+  /// @param mgh   The Mgh instance to fill.
+  /// @param filename  Path to the .nii.gz file.
+  /// @param force_standard  If true, reject non-conformant headers.
+  inline void read_nifti_gz(Mgh *mgh, const std::string &filename, bool force_standard)
+  {
+    gzFile gz = gzopen(filename.c_str(), "rb");
+    if (!gz)
+    {
+      int errnum = 0;
+      const char *errstr = gzerror(gz, &errnum);
+      throw std::runtime_error("Could not open NIfTI.GZ file '" + filename + "' for reading: " +
+                               (errstr ? std::string(errstr) : "unknown error") + "\n");
+    }
+    std::vector<char> buf;
+    char chunk[131072];
+    int n;
+    while ((n = gzread(gz, chunk, sizeof(chunk))) > 0)
+    {
+      buf.insert(buf.end(), chunk, chunk + n);
+    }
+    if (n < 0)
+    {
+      int errnum = 0;
+      const char *errstr = gzerror(gz, &errnum);
+      gzclose(gz);
+      throw std::runtime_error("Error decompressing NIfTI.GZ file '" + filename + "': " +
+                               (errstr ? std::string(errstr) : "unknown error") + "\n");
+    }
+    gzclose(gz);
+    std::istringstream iss(std::string(buf.data(), buf.size()));
+    read_nifti(mgh, &iss, force_standard);
+  }
+
+  /// @brief Write MGH data to a gzip-compressed NIfTI-1 file (.nii.gz).
+  /// @details Compresses with zlib after writing NIfTI via stream-based write_nifti().
+  /// @param mgh   The Mgh data to write.
+  /// @param filename  Path to the .nii.gz output file.
+  inline void write_nifti_gz(const Mgh &mgh, const std::string &filename)
+  {
+    std::ostringstream oss;
+    write_nifti(mgh, oss);
+    std::string data = oss.str();
+
+    gzFile gz = gzopen(filename.c_str(), "wb");
+    if (!gz)
+    {
+      int errnum = 0;
+      const char *errstr = gzerror(gz, &errnum);
+      throw std::runtime_error("Could not open NIfTI.GZ file '" + filename + "' for writing: " +
+                               (errstr ? std::string(errstr) : "unknown error") + "\n");
+    }
+    z_size_t total_written = 0;
+    while (total_written < data.size())
+    {
+      z_size_t remaining = data.size() - total_written;
+      z_size_t chunk = (remaining > 131072) ? 131072 : remaining;
+      int written = gzwrite(gz, data.data() + total_written, static_cast<unsigned int>(chunk));
+      if (written <= 0)
+      {
+        int errnum = 0;
+        const char *errstr = gzerror(gz, &errnum);
+        gzclose(gz);
+        throw std::runtime_error("Error writing NIfTI.GZ file '" + filename + "': " +
+                                 (errstr ? std::string(errstr) : "unknown error") + "\n");
+      }
+      total_written += static_cast<z_size_t>(written);
+    }
+    gzclose(gz);
+  }
+
+#endif // LIBFS_HAS_ZLIB  (NIfTI GZ support)
+
+  // --- NIfTI ↔ MGH conversion helpers ---
+
+  /// @brief Convert a NIfTI-1 file directly to MGH by reading it.
+  /// @details This is just a convenience wrapper: read_nifti already populates
+  ///          an Mgh struct, so this provides a more explicit name for the
+  ///          "convert" use case.
+  /// @param filename  Path to the input .nii or .nii.gz file.
+  /// @return An Mgh instance containing the NIfTI data.
+  /// @throws std::runtime_error on read errors.
+  inline Mgh nifti_to_mgh(const std::string &filename)
+  {
+    Mgh mgh;
+    read_nifti(&mgh, filename);
+    return mgh;
+  }
+
+  // ========================================================================
+  // End NIfTI-1 Support
+  // ========================================================================
 
   /// Models a FreeSurfer label.
   /// Can be a surface or volume label.

@@ -1371,3 +1371,260 @@ TEST_CASE( "The viridis colormap function works" ) {
     }
 }
 
+
+// ─── NIfTI-1 Tests ─────────────────────────────────────────────────────────
+
+TEST_CASE("NIfTI-1: read FS hack surface file (.nii.gz)", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "surf", "lh.thickness.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    fs::read_nifti(&mgh, nii_file);
+
+    SECTION("Dimensions are correct for FS hack surface")
+    {
+        REQUIRE(mgh.header.dim1length == 149244);
+        REQUIRE(mgh.header.dim2length == 1);
+        REQUIRE(mgh.header.dim3length == 1);
+        REQUIRE(mgh.header.dim4length == 1);
+    }
+
+    SECTION("Data type is MRI_FLOAT")
+    {
+        REQUIRE(mgh.header.dtype == fs::MRI_FLOAT);
+    }
+
+    SECTION("Data vector has correct size")
+    {
+        REQUIRE(mgh.data.data_mri_float.size() == 149244);
+    }
+
+    SECTION("First values match expected")
+    {
+        REQUIRE(mgh.data.data_mri_float[0] == Approx(2.561705));
+        REQUIRE(mgh.data.data_mri_float[100] == Approx(2.579938));
+    }
+}
+
+TEST_CASE("NIfTI-1: read small INT32 volume (.nii.gz)", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "vol27int.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    fs::read_nifti(&mgh, nii_file);
+
+    SECTION("Dimensions are correct")
+    {
+        REQUIRE(mgh.header.dim1length == 3);
+        REQUIRE(mgh.header.dim2length == 3);
+        REQUIRE(mgh.header.dim3length == 3);
+        REQUIRE(mgh.header.dim4length == 1);
+    }
+
+    SECTION("Data type is MRI_INT")
+    {
+        REQUIRE(mgh.header.dtype == fs::MRI_INT);
+    }
+
+    SECTION("Data vector has 27 elements")
+    {
+        REQUIRE(mgh.data.data_mri_int.size() == 27);
+    }
+}
+
+TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii, uncompressed)", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.nii"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    fs::read_nifti(&mgh, nii_file);
+
+    SECTION("Dimensions are 256x256x256")
+    {
+        REQUIRE(mgh.header.dim1length == 256);
+        REQUIRE(mgh.header.dim2length == 256);
+        REQUIRE(mgh.header.dim3length == 256);
+    }
+
+    SECTION("Data type is MRI_UCHAR")
+    {
+        REQUIRE(mgh.header.dtype == fs::MRI_UCHAR);
+    }
+
+    SECTION("Data vector has correct size")
+    {
+        REQUIRE(mgh.data.data_mri_uchar.size() == 256 * 256 * 256);
+    }
+}
+
+TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii.gz)", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    fs::read_nifti(&mgh, nii_file);
+
+    SECTION("Dimensions are 256x256x256")
+    {
+        REQUIRE(mgh.header.dim1length == 256);
+        REQUIRE(mgh.header.dim2length == 256);
+        REQUIRE(mgh.header.dim3length == 256);
+    }
+
+    SECTION("Data vector has correct size")
+    {
+        REQUIRE(mgh.data.data_mri_uchar.size() == 256 * 256 * 256);
+    }
+}
+
+TEST_CASE("NIfTI-1: force_standard rejects FS hack", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "surf", "lh.thickness.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    REQUIRE_THROWS_AS(fs::read_nifti(&mgh, nii_file, true), std::runtime_error);
+}
+
+TEST_CASE("NIfTI-1: round-trip write/read", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "vol27int.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh;
+    fs::read_nifti(&mgh, nii_file);
+
+    std::string tmp_file = "/tmp/libfs_test_roundtrip.nii";
+    fs::write_nifti(mgh, tmp_file);
+
+    fs::Mgh mgh2;
+    fs::read_nifti(&mgh2, tmp_file);
+
+    SECTION("Dimensions match after round-trip")
+    {
+        REQUIRE(mgh2.header.dim1length == mgh.header.dim1length);
+        REQUIRE(mgh2.header.dim2length == mgh.header.dim2length);
+        REQUIRE(mgh2.header.dim3length == mgh.header.dim3length);
+        REQUIRE(mgh2.header.dim4length == mgh.header.dim4length);
+    }
+
+    SECTION("Data type matches after round-trip")
+    {
+        REQUIRE(mgh2.header.dtype == mgh.header.dtype);
+    }
+
+    SECTION("Data values match after round-trip")
+    {
+        REQUIRE(mgh2.data.data_mri_int.size() == mgh.data.data_mri_int.size());
+        for (size_t i = 0; i < mgh.data.data_mri_int.size(); i++)
+        {
+            REQUIRE(mgh2.data.data_mri_int[i] == mgh.data.data_mri_int[i]);
+        }
+    }
+
+    std::remove(tmp_file.c_str());
+}
+
+TEST_CASE("NIfTI-1: read_desc_data with NIfTI", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "surf", "lh.thickness.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    std::vector<float> data = fs::read_desc_data(nii_file);
+
+    SECTION("Data size matches")
+    {
+        REQUIRE(data.size() == 149244);
+    }
+
+    SECTION("First values match expected")
+    {
+        REQUIRE(data[0] == Approx(2.561705));
+        REQUIRE(data[100] == Approx(2.579938));
+    }
+}
+
+TEST_CASE("NIfTI-1: reject unsupported data type", "[nifti]")
+{
+    // Corrupt the first file's datatype to an unsupported value and write temp.
+    std::string src_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.nii"});
+    if (!fs::util::file_exists(src_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << src_file << "'." << std::endl;
+    }
+
+    // Read raw bytes, corrupt datatype, write temp.
+    std::ifstream ifs(src_file, std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::vector<char> raw((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    ifs.close();
+    REQUIRE(raw.size() >= 348);
+
+    // datatype is at offset 70 (int16_t).  Set to DT_FLOAT64 = 64 (unsupported).
+    int16_t bad_dtype = 64;
+    std::memcpy(&raw[70], &bad_dtype, 2);
+
+    std::string tmp_file = "/tmp/libfs_test_baddtype.nii";
+    std::ofstream ofs(tmp_file, std::ios::binary);
+    REQUIRE(ofs.is_open());
+    ofs.write(raw.data(), static_cast<std::streamsize>(raw.size()));
+    ofs.close();
+
+    fs::Mgh mgh;
+    REQUIRE_THROWS_AS(fs::read_nifti(&mgh, tmp_file), std::runtime_error);
+
+    std::remove(tmp_file.c_str());
+}
+
+TEST_CASE("NIfTI-1: write rejects oversized dimensions", "[nifti]")
+{
+    fs::Mgh mgh;
+    mgh.header.dim1length = 40000; // > 32767, cannot fit in NIfTI int16
+    mgh.header.dim2length = 1;
+    mgh.header.dim3length = 1;
+    mgh.header.dim4length = 1;
+    mgh.header.dtype = fs::MRI_FLOAT;
+    mgh.data.data_mri_float.resize(40000, 0.0f);
+
+    std::string tmp_file = "/tmp/libfs_test_oversized.nii";
+    REQUIRE_THROWS_AS(fs::write_nifti(mgh, tmp_file), std::runtime_error);
+}
+
+TEST_CASE("NIfTI-1: nifti_to_mgh convenience function", "[nifti]")
+{
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "vol27int.nii.gz"});
+    if (!fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test NIfTI file at '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh mgh = fs::nifti_to_mgh(nii_file);
+    REQUIRE(mgh.header.dim1length == 3);
+    REQUIRE(mgh.data.data_mri_int.size() == 27);
+}
+

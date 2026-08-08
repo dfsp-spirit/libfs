@@ -33,6 +33,12 @@ add_executable(run_libfs_tests ${SOURCE_FILES})
 target_include_directories(run_libfs_tests PRIVATE third_party)  # catch.hpp
 target_link_libraries(run_libfs_tests PRIVATE libfs::libfs)
 
+# Optional zlib support (for .nii.gz / .mgz compressed formats).
+find_package(ZLIB)
+if(ZLIB_FOUND)
+    target_link_libraries(run_libfs_tests PRIVATE ZLIB::ZLIB)
+endif()
+
 set_property(TARGET run_libfs_tests PROPERTY CXX_STANDARD 11)
 set_property(TARGET run_libfs_tests PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET run_libfs_tests PROPERTY CXX_EXTENSIONS OFF)
@@ -52,6 +58,11 @@ endif()
 set(SOURCE_FILES_DEMO src/demo_main.cpp include/libfs.h)
 add_executable(demo_libfs ${SOURCE_FILES_DEMO})
 target_link_libraries(demo_libfs PRIVATE libfs::libfs)
+
+# Optional zlib support (for .nii.gz / .mgz compressed formats).
+if(ZLIB_FOUND)
+    target_link_libraries(demo_libfs PRIVATE ZLIB::ZLIB)
+endif()
 
 set_property(TARGET demo_libfs PROPERTY CXX_STANDARD 11)
 set_property(TARGET demo_libfs PROPERTY CXX_STANDARD_REQUIRED ON)
