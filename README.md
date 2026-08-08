@@ -17,7 +17,7 @@ A portable, header-only, single file, no-dependency, mildly templated, C++11 lib
     * Stanford PLY format (.ply, ascii version)
     * Object File Format (.off, both the plain version and the COFF variant including per-vertex colors are supported).
   - can export meshes to the following standard mesh file formats: Wavefront object, Stanford PLY (ascii version).
-* read FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
+* read and write FreeSurfer brain surface parcellations, i.e., the result of applying a brain atlas, from/to binary annot format files (like `$SUBJECTS_DIR/label/lh.aparc.annot`).
 * read and write FreeSurfer ASCII label files (like `$SUBJECTS_DIR/label/lh.cortex.label`).
 * read and write FreeSurfer 4D volume files (typically 3D voxels + a fourth time/subject dimension) from binary MGH format files (like `$SUBJECTS_DIR/mri/brain.mgh` or `$SUBJECTS_DIR/surf/lh.thickness.fwhm5.fsaverage.mgh`).
   - also reads and writes the gzip-compressed MGZ variant (`read_mgz` / `write_mgz`), available automatically when zlib is present on the system (just link with `-lz`).
@@ -76,12 +76,14 @@ See [dfsp-spirit.github.io/libfs/](https://dfsp-spirit.github.io/libfs/).
 See the [examples directory](./examples/) for some full demo programs which use the library. The example above is a minimal version of the [read_curv example](./examples/read_curv/read_curv.cpp). Other examples include:
 
 * [examples/read_annot/read_annot.cpp](./examples/read_annot/read_annot.cpp): demo program that reads a FreeSurfer cortical parcellation file (atlas mapped to a subject)
+* [examples/write_annot/write_annot.cpp](./examples/write_annot/write_annot.cpp): demo program that reads an annot file, writes it back, and verifies the round-trip.
 * [examples/read_curv/read_curv.cpp](./examples/read_curv/read_curv.cpp): demo program that reads a FreeSurfer per-vertex data file, containing one value for every vertex of a matching surface, in surface vertex order (e.g., cortical thickness at that vertex)
 * [examples/read_label/read_label.cpp](./examples/read_label/read_label.cpp): demo program that reads a FreeSurfer label file, assigning one value to a subset of vertices (e.g., 1 to all vertices in a certain region, and 0 to all others).
 * [examples/read_mgh/read_mgh.cpp](./examples/read_mgh/read_mgh.cpp): demo program that reads a FreeSurfer MGH file, containing a 3D or 4D image.
 * [examples/read_mgz/read_mgz.cpp](./examples/read_mgz/read_mgz.cpp): demo program that reads and writes a FreeSurfer MGZ file using the `zstr` stream wrapper around zlib (the pre-v0.5 approach).
 * [examples/read_mgz_native/read_mgz_native.cpp](./examples/read_mgz_native/read_mgz_native.cpp): demo program that reads and writes a FreeSurfer MGZ file using the native `read_mgz()` / `write_mgz()` functions. Requires zlib (`-lz`).
 * [examples/read_surf/read_surf.cpp](./examples/read_surf/read_surf.cpp): demo program that reads a FreeSurfer cortical mesh (a.k.a. brain surface) file.
+* [examples/write_subjectsfile/write_subjectsfile.cpp](./examples/write_subjectsfile/write_subjectsfile.cpp): demo program that creates a subjects file, writes it, and reads it back to verify the round-trip.
 * [examples/vertex_color_export/vertex_color_export.cpp](./examples/vertex_color_export/vertex_color_export.cpp): demo program that reads a brain mesh, per-vertex morphometry data (cortical thickness), and a cortex label, masks the medial wall vertices to NaN, maps the thickness to vertex colors using the viridis colormap (NaN -> white by default), and exports the colored mesh to a PLY file.
 
 

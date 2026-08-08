@@ -2790,6 +2790,35 @@ namespace fs
     return (subjects);
   }
 
+  /// @brief Write a vector of subject identifiers to a FreeSurfer subjects file.
+  /// @param filename Path to the output file (one subject ID per line).
+  /// @param subjects The subject identifiers to write.
+  /// @throws std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// std::vector<std::string> subjects = {"subject1", "subject2"};
+  /// fs::write_subjectsfile("subjects.txt", subjects);
+  /// @endcode
+  void write_subjectsfile(const std::string &filename, const std::vector<std::string> &subjects)
+  {
+    std::ofstream ofs;
+    ofs.open(filename, std::ofstream::out);
+    if (ofs.is_open())
+    {
+      for (size_t i = 0; i < subjects.size(); i++)
+      {
+        ofs << subjects[i] << "\n";
+      }
+      ofs.close();
+    }
+    else
+    {
+      throw std::runtime_error("Unable to open subjects file '" + filename + "' for writing.\n");
+    }
+  }
+
   /// @brief Read MGH data from a stream.
   /// @param mgh An Mgh instance that should be filled with the data from the stream.
   /// @param is Pointer to an open istream from which to read the MGH data.
@@ -3716,6 +3745,19 @@ namespace fs
     os.write(reinterpret_cast<const char *>(&b3), sizeof(b3));
   }
 
+  /// Write a fixed-length C-style string to a binary stream. Writes exactly @p len bytes
+  /// (padded with null bytes if the string is shorter, truncated if longer).
+  ///
+  /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
+  /// @private
+  void _fwritefixedlengthstring(std::ostream &os, const std::string &str, size_t len)
+  {
+    std::string buf(len, '\0');
+    size_t copy_len = str.size() < len ? str.size() : len;
+    std::memcpy(&buf[0], str.data(), copy_len);
+    os.write(buf.data(), static_cast<std::streamsize>(len));
+  }
+
   /// Read a '\n'-terminated ASCII string from a stream.
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
@@ -3757,6 +3799,82 @@ namespace fs
       str = str.substr(0, length - 1);
     }
     return str;
+  }
+
+  /// @brief Write a FreeSurfer annotation (brain surface parcellation) to a stream.
+  /// @param annot The Annot instance to write.
+  /// @param os An open output stream (binary mode).
+  /// @see There exists an overload to write to a file.
+  /// @throws std::domain_error if the annot or colortable data is inconsistent.
+  void write_annot(const Annot &annot, std::ostream &os)
+  {
+    int32_t num_vertices = static_cast<int32_t>(annot.num_vertices());
+    _fwritet<int32_t>(os, num_vertices);
+
+    // Interleaved vertex indices and labels.
+    for (size_t i = 0; i < static_cast<size_t>(num_vertices); i++)
+    {
+      _fwritet<int32_t>(os, annot.vertex_indices[i]);
+      _fwritet<int32_t>(os, annot.vertex_labels[i]);
+    }
+
+    // Colortable presence flag + version tag (version 2, no old-format entries).
+    _fwritet<int32_t>(os, 1);  // has_colortable
+    _fwritet<int32_t>(os, -2); // version tag: negative means new format, abs value is version
+
+    int32_t num_entries = static_cast<int32_t>(annot.colortable.num_entries());
+    _fwritet<int32_t>(os, num_entries);
+
+    // Original filename (not meaningful when writing, write "unknown" as placeholder).
+    std::string orig_filename = "unknown";
+    int32_t orig_filename_len = static_cast<int32_t>(orig_filename.size());
+    _fwritet<int32_t>(os, orig_filename_len);
+    _fwritefixedlengthstring(os, orig_filename, static_cast<size_t>(orig_filename_len));
+
+    // Duplicate num_entries (yes, the format stores it twice).
+    _fwritet<int32_t>(os, num_entries);
+
+    for (int32_t i = 0; i < num_entries; i++)
+    {
+      _fwritet<int32_t>(os, annot.colortable.id[i]);
+      // Name length: strlen + 1 for the trailing null byte, matching _freadfixedlengthstring(strip_last_char=true).
+      int32_t name_len = static_cast<int32_t>(annot.colortable.name[i].size()) + 1;
+      _fwritet<int32_t>(os, name_len);
+      _fwritefixedlengthstring(os, annot.colortable.name[i] + '\0', static_cast<size_t>(name_len));
+      _fwritet<int32_t>(os, annot.colortable.r[i]);
+      _fwritet<int32_t>(os, annot.colortable.g[i]);
+      _fwritet<int32_t>(os, annot.colortable.b[i]);
+      _fwritet<int32_t>(os, annot.colortable.a[i]);
+    }
+  }
+
+  /// @brief Write a FreeSurfer annotation (brain surface parcellation) to a file.
+  /// @param annot The Annot instance to write.
+  /// @param filename Path to the output file.
+  /// @see There exists an overload to write to a stream.
+  /// @throws std::runtime_error if the file cannot be opened.
+  ///
+  /// #### Examples
+  ///
+  /// @code
+  /// fs::Annot annot;
+  /// fs::read_annot(&annot, "lh.aparc.annot");
+  /// // modify annot here …
+  /// fs::write_annot(annot, "lh.aparc.modified.annot");
+  /// @endcode
+  void write_annot(const Annot &annot, const std::string &filename)
+  {
+    std::ofstream ofs;
+    ofs.open(filename, std::ofstream::out | std::ofstream::binary);
+    if (ofs.is_open())
+    {
+      write_annot(annot, ofs);
+      ofs.close();
+    }
+    else
+    {
+      throw std::runtime_error("Unable to open annot file '" + filename + "' for writing.\n");
+    }
   }
 
   /// @brief Write curv data to a stream.

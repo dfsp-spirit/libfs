@@ -18,6 +18,7 @@ Current WIP
 * NEW: `Mesh::from_obj()` now parses per-vertex colors from OBJ files using the widely-supported `x y z r g b` convention (6 floats per vertex line, where the last 3 are RGB as floats in [0,1]).
 * NEW: `Mesh::to_obj(col)` / `Mesh::to_obj_file(f, col)` overloads — export OBJ files with vertex colors using the same `x y z r g b` convention.
 * NEW: `fs::write_mesh(mesh, filename, col)` overload — write a mesh to PLY, OBJ, or OFF format with vertex colors, auto-detected by file extension.
+* NEW: Add support for writing annot files
 
 
 v0.4.2: Fix version defines

@@ -44,6 +44,8 @@ run_example read_mgh        "g++ -std=c++11 -I../../include/ read_mgh.cpp -o rea
 run_example read_mgz        "g++ -std=c++11 -I../../include/ -I./include_zstr/ read_mgz.cpp -o read_mgz -lz && ./read_mgz"
 run_example read_mgz_native "g++ -std=c++11 -I../../include/ read_mgz_native.cpp -o read_mgz_native -lz && ./read_mgz_native"
 run_example read_surf       "g++ -std=c++11 -I../../include/ read_surf.cpp -o read_surf && ./read_surf"
+run_example write_annot     "g++ -std=c++11 -I../../include/ write_annot.cpp -o write_annot && ./write_annot"
+run_example write_subjectsfile "g++ -std=c++11 -I../../include/ write_subjectsfile.cpp -o write_subjectsfile && ./write_subjectsfile"
 run_example descriptor_info "g++ -std=c++11 -I../../include/ descriptor_info.cpp -o descriptor_info && ./descriptor_info"
 run_example vertex_color_export "g++ -std=c++11 -I../../include/ vertex_color_export.cpp -o vertex_color_export && ./vertex_color_export"
 
