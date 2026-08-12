@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <map>
+#include <tuple>
 #include <unordered_set>
 #include <unordered_map>
 #include <cmath>
@@ -2064,96 +2065,153 @@ namespace fs
         throw std::domain_error("Internal error: parsed face count " + std::to_string(faces.size()) + " is not a multiple of 3.\n");
       }
 
-      // -- Post-parse: resolve per-vertex normals and texture coordinates --
-      std::vector<float> resolved_normals;
-      std::vector<float> resolved_texcoords;
+      // -- Post-parse: vertex deduplication by (position, texcoord, normal) tuple --
+      // OBJ's data model is per-face-corner: the same vertex position can appear
+      // with different texcoords/normals in different faces (at texture seams and
+      // sharp edges). We build a new vertex list where each unique combination
+      // becomes its own vertex, correctly handling these cases.
       int32_t num_normals = static_cast<int32_t>(raw_normals.size() / 3);
       int32_t num_texcoords = static_cast<int32_t>(raw_texcoords.size() / 2);
 
-      if (has_any_vn)
+      if (has_any_vn && num_normals == 0)
       {
-        if (num_normals == 0)
+        throw std::domain_error("OBJ file references vertex normals in faces but contains no 'vn' lines.\n");
+      }
+      if (has_any_vt && num_texcoords == 0)
+      {
+        throw std::domain_error("OBJ file references texture coordinates in faces but contains no 'vt' lines.\n");
+      }
+
+      // Tuple key: (vertex_index, texcoord_index, normal_index)
+      // Use -1 for absent texcoord or normal.
+      using CornerKey = std::tuple<int32_t, int32_t, int32_t>;
+      std::map<CornerKey, int32_t> corner_to_new_vertex;
+
+      std::vector<float> dedup_vertices;
+      std::vector<float> dedup_texcoords;
+      std::vector<float> dedup_normals;
+      std::vector<uint8_t> dedup_vertex_colors;
+      std::vector<int> dedup_faces;
+
+      size_t num_face_corners = faces.size();
+      dedup_faces.reserve(num_face_corners);
+
+      for (size_t fi = 0; fi < num_face_corners; fi++)
+      {
+        int32_t vidx = static_cast<int32_t>(faces[fi]); // already 0-based vertex index
+
+        // Resolve texcoord index: -1 means absent.
+        int32_t tidx = -1;
+        if (has_any_vt)
         {
-          throw std::domain_error("OBJ file references vertex normals in faces but contains no 'vn' lines.\n");
-        }
-        resolved_normals.assign(static_cast<size_t>(nv) * 3, 0.0f);
-        for (size_t fi = 0; fi < faces.size(); fi++)
-        {
-          int vn_idx = face_vn_indices[fi];
-          if (vn_idx == 0)
+          int vt_raw = face_vt_indices[fi];
+          if (vt_raw != 0)
           {
-            continue; // no normal for this face vertex
-          }
-          // Resolve 1-based (possibly negative) normal index
-          int nidx;
-          if (vn_idx < 0)
-          {
-            if (vn_idx < -num_normals)
+            if (vt_raw < 0)
             {
-              throw std::domain_error("Negative normal index " + std::to_string(vn_idx) + " exceeds normal count " + std::to_string(num_normals) + ".\n");
+              if (vt_raw < -num_texcoords)
+              {
+                throw std::domain_error("Negative texcoord index " + std::to_string(vt_raw) + " exceeds texcoord count " + std::to_string(num_texcoords) + ".\n");
+              }
+              tidx = num_texcoords + vt_raw; // -1 → num_texcoords-1
             }
-            nidx = num_normals + vn_idx; // -1 → num_normals-1
+            else
+            {
+              tidx = vt_raw - 1;
+            }
+            if (tidx < 0 || tidx >= num_texcoords)
+            {
+              throw std::domain_error("Texcoord index out of range [1, " + std::to_string(num_texcoords) + "].\n");
+            }
           }
-          else
+        }
+
+        // Resolve normal index: -1 means absent.
+        int32_t nidx = -1;
+        if (has_any_vn)
+        {
+          int vn_raw = face_vn_indices[fi];
+          if (vn_raw != 0)
           {
-            nidx = vn_idx - 1;
+            if (vn_raw < 0)
+            {
+              if (vn_raw < -num_normals)
+              {
+                throw std::domain_error("Negative normal index " + std::to_string(vn_raw) + " exceeds normal count " + std::to_string(num_normals) + ".\n");
+              }
+              nidx = num_normals + vn_raw; // -1 → num_normals-1
+            }
+            else
+            {
+              nidx = vn_raw - 1;
+            }
+            if (nidx < 0 || nidx >= num_normals)
+            {
+              throw std::domain_error("Normal index out of range [1, " + std::to_string(num_normals) + "].\n");
+            }
           }
-          if (nidx < 0 || nidx >= num_normals)
+        }
+
+        CornerKey key(vidx, tidx, nidx);
+        auto it = corner_to_new_vertex.find(key);
+        if (it != corner_to_new_vertex.end())
+        {
+          // Existing combination: reuse index.
+          dedup_faces.push_back(it->second);
+        }
+        else
+        {
+          // New combination: create vertex entry.
+          int32_t new_idx = static_cast<int32_t>(dedup_vertices.size() / 3);
+          corner_to_new_vertex[key] = new_idx;
+          dedup_faces.push_back(new_idx);
+
+          // Copy vertex position.
+          dedup_vertices.push_back(vertices[static_cast<size_t>(vidx) * 3]);
+          dedup_vertices.push_back(vertices[static_cast<size_t>(vidx) * 3 + 1]);
+          dedup_vertices.push_back(vertices[static_cast<size_t>(vidx) * 3 + 2]);
+
+          // Copy texcoord (or 0,0 if absent).
+          if (tidx >= 0)
           {
-            throw std::domain_error("Normal index out of range [1, " + std::to_string(num_normals) + "].\n");
+            dedup_texcoords.push_back(raw_texcoords[static_cast<size_t>(tidx) * 2]);
+            dedup_texcoords.push_back(raw_texcoords[static_cast<size_t>(tidx) * 2 + 1]);
           }
-          int vidx = faces[fi]; // already resolved to 0-based
-          // Last face referencing this vertex wins (documented limitation).
-          resolved_normals[static_cast<size_t>(vidx) * 3]     = raw_normals[static_cast<size_t>(nidx) * 3];
-          resolved_normals[static_cast<size_t>(vidx) * 3 + 1] = raw_normals[static_cast<size_t>(nidx) * 3 + 1];
-          resolved_normals[static_cast<size_t>(vidx) * 3 + 2] = raw_normals[static_cast<size_t>(nidx) * 3 + 2];
+          else if (has_any_vt)
+          {
+            dedup_texcoords.push_back(0.0f);
+            dedup_texcoords.push_back(0.0f);
+          }
+
+          // Copy normal (or 0,0,0 if absent).
+          if (nidx >= 0)
+          {
+            dedup_normals.push_back(raw_normals[static_cast<size_t>(nidx) * 3]);
+            dedup_normals.push_back(raw_normals[static_cast<size_t>(nidx) * 3 + 1]);
+            dedup_normals.push_back(raw_normals[static_cast<size_t>(nidx) * 3 + 2]);
+          }
+          else if (has_any_vn)
+          {
+            dedup_normals.push_back(0.0f);
+            dedup_normals.push_back(0.0f);
+            dedup_normals.push_back(0.0f);
+          }
+
+          // Copy vertex color from the source position vertex (if colors exist).
+          if (detected_format == 1)
+          {
+            dedup_vertex_colors.push_back(vertex_colors[static_cast<size_t>(vidx) * 3]);
+            dedup_vertex_colors.push_back(vertex_colors[static_cast<size_t>(vidx) * 3 + 1]);
+            dedup_vertex_colors.push_back(vertex_colors[static_cast<size_t>(vidx) * 3 + 2]);
+          }
         }
       }
 
-      if (has_any_vt)
-      {
-        if (num_texcoords == 0)
-        {
-          throw std::domain_error("OBJ file references texture coordinates in faces but contains no 'vt' lines.\n");
-        }
-        resolved_texcoords.assign(static_cast<size_t>(nv) * 2, 0.0f);
-        for (size_t fi = 0; fi < faces.size(); fi++)
-        {
-          int vt_idx = face_vt_indices[fi];
-          if (vt_idx == 0)
-          {
-            continue; // no texcoord for this face vertex
-          }
-          // Resolve 1-based (possibly negative) texcoord index
-          int tidx;
-          if (vt_idx < 0)
-          {
-            if (vt_idx < -num_texcoords)
-            {
-              throw std::domain_error("Negative texcoord index " + std::to_string(vt_idx) + " exceeds texcoord count " + std::to_string(num_texcoords) + ".\n");
-            }
-            tidx = num_texcoords + vt_idx; // -1 → num_texcoords-1
-          }
-          else
-          {
-            tidx = vt_idx - 1;
-          }
-          if (tidx < 0 || tidx >= num_texcoords)
-          {
-            throw std::domain_error("Texcoord index out of range [1, " + std::to_string(num_texcoords) + "].\n");
-          }
-          int vidx = faces[fi]; // already resolved to 0-based
-          // Last face referencing this vertex wins (documented limitation).
-          resolved_texcoords[static_cast<size_t>(vidx) * 2]     = raw_texcoords[static_cast<size_t>(tidx) * 2];
-          resolved_texcoords[static_cast<size_t>(vidx) * 2 + 1] = raw_texcoords[static_cast<size_t>(tidx) * 2 + 1];
-        }
-      }
-
-      mesh->vertices = vertices;
-      mesh->faces = faces;
-      mesh->vertex_colors = vertex_colors;
-      mesh->vertex_normals = resolved_normals;
-      mesh->vertex_texcoords = resolved_texcoords;
+      mesh->vertices = dedup_vertices;
+      mesh->faces = dedup_faces;
+      mesh->vertex_colors = dedup_vertex_colors;
+      mesh->vertex_normals = dedup_normals;
+      mesh->vertex_texcoords = dedup_texcoords;
     }
 
     /// @brief Read a brainmesh from a Wavefront object format mesh file.

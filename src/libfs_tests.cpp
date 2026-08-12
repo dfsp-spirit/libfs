@@ -698,15 +698,17 @@ TEST_CASE( "Importing and exporting meshes works" ) {
         fs::Mesh surface_obj;
         fs::read_mesh(&surface_obj, obj_file);
 
-        // Check vertex and face counts
-        REQUIRE( surface_obj.vertices.size() == size_t(149244 * 3));
+        // Check vertex and face counts.
+        // After deduplication by (position, texcoord, normal), vertices at texture
+        // seams and sharp edges are split into separate entries.
+        REQUIRE( surface_obj.vertices.size() == size_t(895296 * 3));
         REQUIRE( surface_obj.faces.size() == size_t(298484 * 3));
 
         // Check face vertex indices
         int vmin_entry = *std::min_element(surface_obj.faces.begin(), surface_obj.faces.end()); // could use minmax for single call
         int vmax_entry = *std::max_element(surface_obj.faces.begin(), surface_obj.faces.end());
         REQUIRE(vmin_entry == 0);
-        REQUIRE(vmax_entry == 149243);
+        REQUIRE(vmax_entry == 895295);
 
         // We do not test the coordinate range for this file, as the Blender import/export seems to have messed with
         // the coordinates.
@@ -980,8 +982,24 @@ TEST_CASE( "Importing and exporting meshes works" ) {
 
         REQUIRE(surface3.num_vertices() == surface2.num_vertices());
         REQUIRE(surface3.vertex_colors.size() == col_in.size());
-        for (size_t i = 0; i < col_in.size(); i++) {
-            REQUIRE((int)surface3.vertex_colors[i] == (int)col_in[i]);
+        // Deduplication may reorder vertices; match colors by position.
+        for (size_t vi = 0; vi < surface2.num_vertices(); vi++) {
+            float px = surface2.vertices[vi * 3];
+            float py = surface2.vertices[vi * 3 + 1];
+            float pz = surface2.vertices[vi * 3 + 2];
+            bool found = false;
+            for (size_t vj = 0; vj < surface3.num_vertices(); vj++) {
+                if (surface3.vertices[vj * 3] == Approx(px) &&
+                    surface3.vertices[vj * 3 + 1] == Approx(py) &&
+                    surface3.vertices[vj * 3 + 2] == Approx(pz)) {
+                    REQUIRE((int)surface3.vertex_colors[vj * 3] == (int)col_in[vi * 3]);
+                    REQUIRE((int)surface3.vertex_colors[vj * 3 + 1] == (int)col_in[vi * 3 + 1]);
+                    REQUIRE((int)surface3.vertex_colors[vj * 3 + 2] == (int)col_in[vi * 3 + 2]);
+                    found = true;
+                    break;
+                }
+            }
+            REQUIRE(found);
         }
     }
 
@@ -1013,8 +1031,24 @@ TEST_CASE( "Importing and exporting meshes works" ) {
 
         REQUIRE(surface3.num_vertices() == surface2.num_vertices());
         REQUIRE(surface3.vertex_colors.size() == col_in.size());
-        for (size_t i = 0; i < col_in.size(); i++) {
-            REQUIRE((int)surface3.vertex_colors[i] == (int)col_in[i]);
+        // Deduplication may reorder vertices; match colors by position.
+        for (size_t vi = 0; vi < surface2.num_vertices(); vi++) {
+            float px = surface2.vertices[vi * 3];
+            float py = surface2.vertices[vi * 3 + 1];
+            float pz = surface2.vertices[vi * 3 + 2];
+            bool found = false;
+            for (size_t vj = 0; vj < surface3.num_vertices(); vj++) {
+                if (surface3.vertices[vj * 3] == Approx(px) &&
+                    surface3.vertices[vj * 3 + 1] == Approx(py) &&
+                    surface3.vertices[vj * 3 + 2] == Approx(pz)) {
+                    REQUIRE((int)surface3.vertex_colors[vj * 3] == (int)col_in[vi * 3]);
+                    REQUIRE((int)surface3.vertex_colors[vj * 3 + 1] == (int)col_in[vi * 3 + 1]);
+                    REQUIRE((int)surface3.vertex_colors[vj * 3 + 2] == (int)col_in[vi * 3 + 2]);
+                    found = true;
+                    break;
+                }
+            }
+            REQUIRE(found);
         }
     }
 
@@ -1045,8 +1079,24 @@ TEST_CASE( "Importing and exporting meshes works" ) {
             fs::Mesh s;
             fs::read_mesh(&s, f);
             REQUIRE(s.vertex_colors.size() == col_in.size());
-            for (size_t i = 0; i < col_in.size(); i++) {
-                REQUIRE((int)s.vertex_colors[i] == (int)col_in[i]);
+            // Deduplication may reorder vertices; match colors by position.
+            for (size_t vi = 0; vi < surface2.num_vertices(); vi++) {
+                float px = surface2.vertices[vi * 3];
+                float py = surface2.vertices[vi * 3 + 1];
+                float pz = surface2.vertices[vi * 3 + 2];
+                bool found = false;
+                for (size_t vj = 0; vj < s.num_vertices(); vj++) {
+                    if (s.vertices[vj * 3] == Approx(px) &&
+                        s.vertices[vj * 3 + 1] == Approx(py) &&
+                        s.vertices[vj * 3 + 2] == Approx(pz)) {
+                        REQUIRE((int)s.vertex_colors[vj * 3] == (int)col_in[vi * 3]);
+                        REQUIRE((int)s.vertex_colors[vj * 3 + 1] == (int)col_in[vi * 3 + 1]);
+                        REQUIRE((int)s.vertex_colors[vj * 3 + 2] == (int)col_in[vi * 3 + 2]);
+                        found = true;
+                        break;
+                    }
+                }
+                REQUIRE(found);
             }
         }
         // OFF
@@ -1962,14 +2012,15 @@ TEST_CASE("OBJ loader handles mixed positive and negative indices", "[obj][featu
 
     REQUIRE(m.num_vertices() == 4);
     REQUIRE(m.num_faces() == 2);
-    // First triangle: 0, 3, 1
+    // Deduplication re-indexes vertices by first encounter order:
+    // face corners [0,3,1,0,1,2] → unique keys (0),(3),(1),(2) → [0,1,2,0,2,3]
     REQUIRE(m.faces[0] == 0);
-    REQUIRE(m.faces[1] == 3);
-    REQUIRE(m.faces[2] == 1);
-    // Second triangle: 0, 1, 2
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 2);
+    // Second triangle: 0, 2, 3
     REQUIRE(m.faces[3] == 0);
-    REQUIRE(m.faces[4] == 1);
-    REQUIRE(m.faces[5] == 2);
+    REQUIRE(m.faces[4] == 2);
+    REQUIRE(m.faces[5] == 3);
 }
 
 TEST_CASE("OBJ loader handles faces with slashes (vn/vt syntax)", "[obj][feature]")
@@ -2014,9 +2065,11 @@ TEST_CASE("OBJ loader handles faces with double slashes (//vn syntax)", "[obj][f
 
     REQUIRE(m.num_vertices() == 3);
     REQUIRE(m.num_faces() == 1);
-    REQUIRE(m.faces[0] == 2);
+    // Deduplication by (vi, -1, vni): each corner has a different normal,
+    // so all three become unique vertices with sequential indices.
+    REQUIRE(m.faces[0] == 0);
     REQUIRE(m.faces[1] == 1);
-    REQUIRE(m.faces[2] == 0);
+    REQUIRE(m.faces[2] == 2);
 }
 
 TEST_CASE("OBJ loader handles quad with slashes", "[obj][feature]")
@@ -2558,9 +2611,29 @@ TEST_CASE("OBJ round-trip preserves texture coordinates", "[obj][feature][texcoo
     REQUIRE(m2.num_vertices() == m1.num_vertices());
     REQUIRE(m2.has_texcoords());
     REQUIRE(m2.vertex_texcoords.size() == m1.vertex_texcoords.size());
-    for (size_t i = 0; i < m1.vertex_texcoords.size(); i++)
+    // After deduplication, vertex/texcoord ordering may differ from the original.
+    // Verify that each original (position, texcoord) pair is preserved.
+    for (size_t vi = 0; vi < m1.num_vertices(); vi++)
     {
-        REQUIRE(m2.vertex_texcoords[i] == Approx(m1.vertex_texcoords[i]));
+        float px = m1.vertices[vi * 3];
+        float py = m1.vertices[vi * 3 + 1];
+        float pz = m1.vertices[vi * 3 + 2];
+        float tu = m1.vertex_texcoords[vi * 2];
+        float tv = m1.vertex_texcoords[vi * 2 + 1];
+        bool found = false;
+        for (size_t vj = 0; vj < m2.num_vertices(); vj++)
+        {
+            if (m2.vertices[vj * 3] == Approx(px) &&
+                m2.vertices[vj * 3 + 1] == Approx(py) &&
+                m2.vertices[vj * 3 + 2] == Approx(pz))
+            {
+                REQUIRE(m2.vertex_texcoords[vj * 2] == Approx(tu));
+                REQUIRE(m2.vertex_texcoords[vj * 2 + 1] == Approx(tv));
+                found = true;
+                break;
+            }
+        }
+        REQUIRE(found);
     }
 }
 
