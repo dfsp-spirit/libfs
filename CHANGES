@@ -2,8 +2,8 @@ libfs Changes
 ===============
 
 
-Current WIP
------------
+v0.6.0 -- Improved generic mesh file readers
+----------------------------------------------
 * NEW: Add new features to OBJ reader (quads, relative indices, texture coords, ...) and improve its security
 * NEW: Improve security of the OFF and PLY readers
 
