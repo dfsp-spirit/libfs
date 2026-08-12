@@ -930,6 +930,8 @@ namespace fs
   /// of length `3n`, in which 3 consecutive values represent the x, y and z coordinate of the same vertex.
   /// The `m` faces are stored as a vector of `3m` integers, where 3 consecutive values represent the 3 vertices (by index)
   /// making up the respective face. Vertex indices are 0-based.
+  /// Optional per-vertex data (colors, normals, texture coordinates) use the same interleaved layout:
+  /// all values for vertex 0 appear first, then vertex 1, etc. Empty vectors indicate absent data.
   /// #### Examples
   ///
   /// @code
@@ -972,6 +974,16 @@ namespace fs
     std::vector<float> vertices;   ///< *n x 3* vector of the *x*,*y*,*z* coordinates for the *n* vertices. The x,y,z coordinates for a single vertex form consecutive entries.
     std::vector<int32_t> faces;    ///< *n x 3* vector of the 3 vertex indices for the *n* triangles or faces. The 3 vertices of a single face form consecutive entries.
     std::vector<uint8_t> vertex_colors; ///< *n x 3* vector of RGB color values, 3 per vertex (v0_r, v0_g, v0_b, v1_r, ...). Empty if no vertex colors are available. Populated by from_ply() and from_off() when the file contains colors. Same interleave format as used by to_ply(col) / to_off(col).
+    std::vector<float> vertex_normals;  ///< *n x 3* vector of normal vectors (nx,ny,nz), one per vertex in the same order as `vertices`. Empty if no normals are available. Populated by from_obj() when the OBJ file contains `vn` lines.
+    std::vector<float> vertex_texcoords; ///< *n x 2* vector of texture coordinates (u,v), one per vertex in the same order as `vertices`. Empty if no texcoords are available. Populated by from_obj() when the OBJ file contains `vt` lines.
+
+    /// @brief Return whether this mesh has per-vertex normals.
+    /// @return true if `vertex_normals` is non-empty (and thus its size matches `vertices.size()`).
+    bool has_normals() const { return !vertex_normals.empty(); }
+
+    /// @brief Return whether this mesh has per-vertex texture coordinates.
+    /// @return true if `vertex_texcoords` is non-empty (and thus its size matches `vertices.size() / 3 * 2`).
+    bool has_texcoords() const { return !vertex_texcoords.empty(); }
 
     /// @brief Construct and return a simple cube mesh.
     /// @return fs::Mesh instance representing a cube.
@@ -1125,6 +1137,8 @@ namespace fs
     /// @brief Return string representing the mesh in Wavefront Object (.obj) format with vertex colors.
     /// @param col u_char vector of RGB color values, 3 per vertex. They must appear by vertex, i.e. in order v0_red, v0_green, v0_blue, v1_red, v1_green, v1_blue. Leave empty if you do not want colors.
     /// @details Colors are written using the widely-supported convention of 6 floats per vertex line: `v x y z r g b`, where RGB are floating-point values in [0, 1].
+    /// If the mesh has vertex normals (`vertex_normals` non-empty), `vn` lines are emitted and faces use `v//vn` notation.
+    /// If the mesh has texture coordinates (`vertex_texcoords` non-empty), `vt` lines are emitted and faces use `v/vt` or `v/vt/vn` notation.
     /// @throws std::invalid_argument if the number of vertex colors does not match the number of vertices.
     ///
     /// #### Examples
@@ -1137,6 +1151,9 @@ namespace fs
     std::string to_obj(const std::vector<uint8_t> col) const
     {
       bool use_vertex_colors = col.size() != 0;
+      bool use_normals = this->has_normals();
+      bool use_texcoords = this->has_texcoords();
+
       std::stringstream objs;
       for (size_t vidx = 0; vidx < this->vertices.size(); vidx += 3)
       { // vertex coords
@@ -1151,9 +1168,55 @@ namespace fs
         }
         objs << "\n";
       }
+
+      // Emit texture coordinates if present.
+      if (use_texcoords)
+      {
+        for (size_t vidx = 0; vidx < this->vertex_texcoords.size(); vidx += 2)
+        {
+          objs << "vt " << vertex_texcoords[vidx] << " " << vertex_texcoords[vidx + 1] << "\n";
+        }
+      }
+
+      // Emit vertex normals if present.
+      if (use_normals)
+      {
+        for (size_t vidx = 0; vidx < this->vertex_normals.size(); vidx += 3)
+        {
+          objs << "vn " << vertex_normals[vidx] << " " << vertex_normals[vidx + 1] << " " << vertex_normals[vidx + 2] << "\n";
+        }
+      }
+
       for (size_t fidx = 0; fidx < this->faces.size(); fidx += 3)
       { // faces: vertex indices, 1-based
-        objs << "f " << faces[fidx] + 1 << " " << faces[fidx + 1] + 1 << " " << faces[fidx + 2] + 1 << "\n";
+        int v0 = faces[fidx] + 1;
+        int v1 = faces[fidx + 1] + 1;
+        int v2 = faces[fidx + 2] + 1;
+
+        objs << "f ";
+        if (use_texcoords && use_normals)
+        {
+          objs << v0 << "/" << v0 << "/" << v0 << " "
+               << v1 << "/" << v1 << "/" << v1 << " "
+               << v2 << "/" << v2 << "/" << v2;
+        }
+        else if (use_texcoords)
+        {
+          objs << v0 << "/" << v0 << " "
+               << v1 << "/" << v1 << " "
+               << v2 << "/" << v2;
+        }
+        else if (use_normals)
+        {
+          objs << v0 << "//" << v0 << " "
+               << v1 << "//" << v1 << " "
+               << v2 << "//" << v2;
+        }
+        else
+        {
+          objs << v0 << " " << v1 << " " << v2;
+        }
+        objs << "\n";
       }
       return (objs.str());
     }
@@ -1631,6 +1694,12 @@ namespace fs
       std::vector<float> vertices;
       std::vector<int> faces;
       std::vector<uint8_t> vertex_colors;
+      std::vector<float> raw_normals;    // raw `vn` data: 3 floats per normal, 1-based indexed
+      std::vector<float> raw_texcoords;  // raw `vt` data: 2 floats per texcoord, 1-based indexed
+      std::vector<int> face_vt_indices;  // per-face-vertex texcoord index (0 = absent), parallel to `faces`
+      std::vector<int> face_vn_indices;  // per-face-vertex normal index (0 = absent), parallel to `faces`
+      bool has_any_vt = false;
+      bool has_any_vn = false;
       int detected_format = -1; // -1 = unknown, 0 = no vertex colors, 1 = has vertex colors (r g b after x y z)
 
 #ifdef LIBFS_DBG_INFO
@@ -1749,6 +1818,42 @@ namespace fs
               vertex_colors.push_back(static_cast<uint8_t>(bi));
             }
           }
+          else if (fs::util::starts_with(line, "vn "))
+          {
+            // -- Feature: parse vertex normals (plan #3) --
+            std::string elem_type_identifier;
+            float nx, ny, nz;
+            if (!(iss >> elem_type_identifier >> nx >> ny >> nz))
+            {
+              throw std::domain_error("Could not parse vertex normal line " + std::to_string(line_idx + 1) + " of OBJ data, invalid format.\n");
+            }
+            assert(elem_type_identifier == "vn");
+            if (!util::is_finite_float(nx) || !util::is_finite_float(ny) || !util::is_finite_float(nz))
+            {
+              throw std::domain_error("Non-finite vertex normal on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+            }
+            raw_normals.push_back(nx);
+            raw_normals.push_back(ny);
+            raw_normals.push_back(nz);
+          }
+          else if (fs::util::starts_with(line, "vt "))
+          {
+            // -- Feature: parse texture coordinates (plan #4) --
+            std::string elem_type_identifier;
+            float u, v;
+            if (!(iss >> elem_type_identifier >> u >> v))
+            {
+              throw std::domain_error("Could not parse texture coordinate line " + std::to_string(line_idx + 1) + " of OBJ data, invalid format.\n");
+            }
+            assert(elem_type_identifier == "vt");
+            if (!util::is_finite_float(u) || !util::is_finite_float(v))
+            {
+              throw std::domain_error("Non-finite texture coordinate on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+            }
+            raw_texcoords.push_back(u);
+            raw_texcoords.push_back(v);
+            // Ignore optional 3rd component (w), if present.
+          }
           else if (fs::util::starts_with(line, "f "))
           {
             std::string elem_type_identifier;
@@ -1783,38 +1888,92 @@ namespace fs
             }
 #endif
 
-            // Parse all vertex indices from tokens (handle slashes, negative indices, stoi exceptions).
+            // Parse all vertex indices from tokens, properly splitting v/vt/vn.
             std::vector<int> raw_indices;
+            std::vector<int> tok_vt_indices;
+            std::vector<int> tok_vn_indices;
             raw_indices.reserve(face_tokens.size());
+            tok_vt_indices.reserve(face_tokens.size());
+            tok_vn_indices.reserve(face_tokens.size());
             for (size_t ti = 0; ti < face_tokens.size(); ti++)
             {
-              std::string raw = face_tokens[ti];
+              const std::string &token = face_tokens[ti];
 
-              // The OBJ format allows to specify face indices with slashes to also set normal and material indices.
-              // So instead of a line like 'f 22 34 45', we could get 'f 3/1 4/2 5/3' or 'f 6/4/1 3/5/3 7/6/5' or 'f 7//1 8//2 9//3'.
-              // We need to extract the stuff before the first slash and interpret it as int to get the vertex index we are looking for.
-              std::size_t slash_pos = raw.find("/");
-              if (slash_pos != std::string::npos)
+              // Split "v/vt/vn", "v//vn", "v/vt", or just "v".
+              // Count slashes to determine format.
+              size_t slash1 = token.find('/');
+              std::string v_part, vt_part, vn_part;
+              if (slash1 == std::string::npos)
               {
-                raw = raw.substr(0, slash_pos);
+                // "v" only
+                v_part = token;
+              }
+              else
+              {
+                v_part = token.substr(0, slash1);
+                size_t slash2 = token.find('/', slash1 + 1);
+                if (slash2 == std::string::npos)
+                {
+                  // "v/vt" — texcoord only, no normal
+                  vt_part = token.substr(slash1 + 1);
+                }
+                else
+                {
+                  // "v//vn" or "v/vt/vn"
+                  if (slash2 == slash1 + 1)
+                  {
+                    // "v//vn" — empty texcoord field
+                    vn_part = token.substr(slash2 + 1);
+                  }
+                  else
+                  {
+                    // "v/vt/vn"
+                    vt_part = token.substr(slash1 + 1, slash2 - slash1 - 1);
+                    vn_part = token.substr(slash2 + 1);
+                  }
+                }
               }
 
-              // -- Security: try/catch around std::stoi (plan #7) --
+              // Parse vertex index.
               int vi;
-              try
-              {
-                vi = std::stoi(raw);
+              try { vi = std::stoi(v_part); }
+              catch (const std::invalid_argument &) {
+                throw std::domain_error("Invalid face vertex index '" + v_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
               }
-              catch (const std::invalid_argument &)
-              {
-                throw std::domain_error("Invalid face index '" + raw + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+              catch (const std::out_of_range &) {
+                throw std::domain_error("Face vertex index '" + v_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
               }
-              catch (const std::out_of_range &)
-              {
-                throw std::domain_error("Face index '" + raw + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
-              }
-
               raw_indices.push_back(vi);
+
+              // Parse optional texcoord index.
+              int vti = 0;
+              if (!vt_part.empty())
+              {
+                try { vti = std::stoi(vt_part); }
+                catch (const std::invalid_argument &) {
+                  throw std::domain_error("Invalid texcoord index '" + vt_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                }
+                catch (const std::out_of_range &) {
+                  throw std::domain_error("Texcoord index '" + vt_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                }
+                has_any_vt = true;
+              }
+              tok_vt_indices.push_back(vti);
+
+              // Parse optional normal index.
+              int vni = 0;
+              if (!vn_part.empty())
+              {
+                try { vni = std::stoi(vn_part); }
+                catch (const std::invalid_argument &) {
+                  throw std::domain_error("Invalid normal index '" + vn_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                }
+                catch (const std::out_of_range &) {
+                  throw std::domain_error("Normal index '" + vn_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                }
+                has_any_vn = true;
+              }
+              tok_vn_indices.push_back(vni);
             }
 
             // -- Feature: fan triangulation for quads and n-gons (plan #1) --
@@ -1822,9 +1981,18 @@ namespace fs
             // Indices are stored as-is (1-based, possibly negative) and resolved in the post-parse pass.
             for (size_t ti = 1; ti + 1 < raw_indices.size(); ti++)
             {
+              // Vertex indices
               faces.push_back(raw_indices[0]);
               faces.push_back(raw_indices[ti]);
               faces.push_back(raw_indices[ti + 1]);
+              // Parallel texcoord indices
+              face_vt_indices.push_back(tok_vt_indices[0]);
+              face_vt_indices.push_back(tok_vt_indices[ti]);
+              face_vt_indices.push_back(tok_vt_indices[ti + 1]);
+              // Parallel normal indices
+              face_vn_indices.push_back(tok_vn_indices[0]);
+              face_vn_indices.push_back(tok_vn_indices[ti]);
+              face_vn_indices.push_back(tok_vn_indices[ti + 1]);
             }
           }
           else
@@ -1896,9 +2064,96 @@ namespace fs
         throw std::domain_error("Internal error: parsed face count " + std::to_string(faces.size()) + " is not a multiple of 3.\n");
       }
 
+      // -- Post-parse: resolve per-vertex normals and texture coordinates --
+      std::vector<float> resolved_normals;
+      std::vector<float> resolved_texcoords;
+      int32_t num_normals = static_cast<int32_t>(raw_normals.size() / 3);
+      int32_t num_texcoords = static_cast<int32_t>(raw_texcoords.size() / 2);
+
+      if (has_any_vn)
+      {
+        if (num_normals == 0)
+        {
+          throw std::domain_error("OBJ file references vertex normals in faces but contains no 'vn' lines.\n");
+        }
+        resolved_normals.assign(static_cast<size_t>(nv) * 3, 0.0f);
+        for (size_t fi = 0; fi < faces.size(); fi++)
+        {
+          int vn_idx = face_vn_indices[fi];
+          if (vn_idx == 0)
+          {
+            continue; // no normal for this face vertex
+          }
+          // Resolve 1-based (possibly negative) normal index
+          int nidx;
+          if (vn_idx < 0)
+          {
+            if (vn_idx < -num_normals)
+            {
+              throw std::domain_error("Negative normal index " + std::to_string(vn_idx) + " exceeds normal count " + std::to_string(num_normals) + ".\n");
+            }
+            nidx = num_normals + vn_idx; // -1 → num_normals-1
+          }
+          else
+          {
+            nidx = vn_idx - 1;
+          }
+          if (nidx < 0 || nidx >= num_normals)
+          {
+            throw std::domain_error("Normal index out of range [1, " + std::to_string(num_normals) + "].\n");
+          }
+          int vidx = faces[fi]; // already resolved to 0-based
+          // Last face referencing this vertex wins (documented limitation).
+          resolved_normals[static_cast<size_t>(vidx) * 3]     = raw_normals[static_cast<size_t>(nidx) * 3];
+          resolved_normals[static_cast<size_t>(vidx) * 3 + 1] = raw_normals[static_cast<size_t>(nidx) * 3 + 1];
+          resolved_normals[static_cast<size_t>(vidx) * 3 + 2] = raw_normals[static_cast<size_t>(nidx) * 3 + 2];
+        }
+      }
+
+      if (has_any_vt)
+      {
+        if (num_texcoords == 0)
+        {
+          throw std::domain_error("OBJ file references texture coordinates in faces but contains no 'vt' lines.\n");
+        }
+        resolved_texcoords.assign(static_cast<size_t>(nv) * 2, 0.0f);
+        for (size_t fi = 0; fi < faces.size(); fi++)
+        {
+          int vt_idx = face_vt_indices[fi];
+          if (vt_idx == 0)
+          {
+            continue; // no texcoord for this face vertex
+          }
+          // Resolve 1-based (possibly negative) texcoord index
+          int tidx;
+          if (vt_idx < 0)
+          {
+            if (vt_idx < -num_texcoords)
+            {
+              throw std::domain_error("Negative texcoord index " + std::to_string(vt_idx) + " exceeds texcoord count " + std::to_string(num_texcoords) + ".\n");
+            }
+            tidx = num_texcoords + vt_idx; // -1 → num_texcoords-1
+          }
+          else
+          {
+            tidx = vt_idx - 1;
+          }
+          if (tidx < 0 || tidx >= num_texcoords)
+          {
+            throw std::domain_error("Texcoord index out of range [1, " + std::to_string(num_texcoords) + "].\n");
+          }
+          int vidx = faces[fi]; // already resolved to 0-based
+          // Last face referencing this vertex wins (documented limitation).
+          resolved_texcoords[static_cast<size_t>(vidx) * 2]     = raw_texcoords[static_cast<size_t>(tidx) * 2];
+          resolved_texcoords[static_cast<size_t>(vidx) * 2 + 1] = raw_texcoords[static_cast<size_t>(tidx) * 2 + 1];
+        }
+      }
+
       mesh->vertices = vertices;
       mesh->faces = faces;
       mesh->vertex_colors = vertex_colors;
+      mesh->vertex_normals = resolved_normals;
+      mesh->vertex_texcoords = resolved_texcoords;
     }
 
     /// @brief Read a brainmesh from a Wavefront object format mesh file.
@@ -2178,6 +2433,8 @@ namespace fs
       std::vector<float> vertices;
       std::vector<int> faces;
       std::vector<uint8_t> vertex_colors;
+      std::vector<float> ply_normals;    // collected per-vertex normals (3 floats per vertex)
+      std::vector<float> ply_texcoords;  // collected per-vertex texcoords (2 floats per vertex)
 
       bool in_header = true;
       size_t num_verts = 0;
@@ -2304,6 +2561,8 @@ namespace fs
             if (vertices.size() < num_verts * 3)
             {
               float x = 0.0f, y = 0.0f, z = 0.0f;
+              float nx = 0.0f, ny = 0.0f, nz = 0.0f;
+              float s = 0.0f, t = 0.0f;
               int r = 0, g = 0, b = 0;
               if (vertex_properties.empty())
               {
@@ -2321,14 +2580,14 @@ namespace fs
                   if (pname == "x") { iss >> x; }
                   else if (pname == "y") { iss >> y; }
                   else if (pname == "z") { iss >> z; }
+                  else if (pname == "nx") { iss >> nx; }
+                  else if (pname == "ny") { iss >> ny; }
+                  else if (pname == "nz") { iss >> nz; }
+                  else if (pname == "s" || pname == "u") { iss >> s; }
+                  else if (pname == "t" || pname == "v") { iss >> t; }
                   else if (pname == "red") { iss >> r; }
                   else if (pname == "green") { iss >> g; }
                   else if (pname == "blue") { iss >> b; }
-                  else if (pname == "nx" || pname == "ny" || pname == "nz")
-                  {
-                    // Skip normals.
-                    float dummy; iss >> dummy;
-                  }
                   else
                   {
                     // Skip unknown property.
@@ -2372,6 +2631,42 @@ namespace fs
                 vertex_colors.push_back(static_cast<uint8_t>(r));
                 vertex_colors.push_back(static_cast<uint8_t>(g));
                 vertex_colors.push_back(static_cast<uint8_t>(b));
+              }
+
+              // Collect normals if declared in header.
+              bool has_nx = false, has_ny = false, has_nz = false;
+              for (size_t pi = 0; pi < vertex_properties.size(); pi++)
+              {
+                if (vertex_properties[pi] == "nx") has_nx = true;
+                if (vertex_properties[pi] == "ny") has_ny = true;
+                if (vertex_properties[pi] == "nz") has_nz = true;
+              }
+              if (has_nx && has_ny && has_nz)
+              {
+                if (!util::is_finite_float(nx) || !util::is_finite_float(ny) || !util::is_finite_float(nz))
+                {
+                  throw std::domain_error("Non-finite normal on line " + std::to_string(line_idx) + " of PLY data.\n");
+                }
+                ply_normals.push_back(nx);
+                ply_normals.push_back(ny);
+                ply_normals.push_back(nz);
+              }
+
+              // Collect texcoords if declared in header.
+              bool has_s = false, has_t = false;
+              for (size_t pi = 0; pi < vertex_properties.size(); pi++)
+              {
+                if (vertex_properties[pi] == "s" || vertex_properties[pi] == "u") has_s = true;
+                if (vertex_properties[pi] == "t" || vertex_properties[pi] == "v") has_t = true;
+              }
+              if (has_s && has_t)
+              {
+                if (!util::is_finite_float(s) || !util::is_finite_float(t))
+                {
+                  throw std::domain_error("Non-finite texcoord on line " + std::to_string(line_idx) + " of PLY data.\n");
+                }
+                ply_texcoords.push_back(s);
+                ply_texcoords.push_back(t);
               }
             }
             else
@@ -2436,6 +2731,8 @@ namespace fs
       mesh->vertices = vertices;
       mesh->faces = faces;
       mesh->vertex_colors = vertex_colors;
+      mesh->vertex_normals = ply_normals;
+      mesh->vertex_texcoords = ply_texcoords;
     }
 
     /// @brief Read a brainmesh from a Stanford PLY format mesh file.
@@ -2624,10 +2921,20 @@ namespace fs
     std::string to_ply(const std::vector<uint8_t> col) const
     {
       bool use_vertex_colors = col.size() != 0;
+      bool use_normals = this->has_normals();
+      bool use_texcoords = this->has_texcoords();
       std::stringstream plys;
       plys << "ply\nformat ascii 1.0\n";
       plys << "element vertex " << this->num_vertices() << "\n";
       plys << "property float x\nproperty float y\nproperty float z\n";
+      if (use_normals)
+      {
+        plys << "property float nx\nproperty float ny\nproperty float nz\n";
+      }
+      if (use_texcoords)
+      {
+        plys << "property float s\nproperty float t\n";
+      }
       if (use_vertex_colors)
       {
         if (col.size() != this->vertices.size())
@@ -2647,6 +2954,15 @@ namespace fs
       for (size_t vidx = 0; vidx < this->vertices.size(); vidx += 3)
       { // vertex coords
         plys << vertices[vidx] << " " << vertices[vidx + 1] << " " << vertices[vidx + 2];
+        if (use_normals)
+        {
+          plys << " " << vertex_normals[vidx] << " " << vertex_normals[vidx + 1] << " " << vertex_normals[vidx + 2];
+        }
+        if (use_texcoords)
+        {
+          size_t tcidx = (vidx / 3) * 2;
+          plys << " " << vertex_texcoords[tcidx] << " " << vertex_texcoords[tcidx + 1];
+        }
         if (use_vertex_colors)
         {
           plys << " " << (int)col[vidx] << " " << (int)col[vidx + 1] << " " << (int)col[vidx + 2];

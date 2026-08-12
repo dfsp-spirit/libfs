@@ -1979,6 +1979,12 @@ TEST_CASE("OBJ loader handles faces with slashes (vn/vt syntax)", "[obj][feature
         "v 0 0 0\n"
         "v 1 0 0\n"
         "v 0 1 0\n"
+        "vt 0 0\n"
+        "vt 1 0\n"
+        "vt 0 1\n"
+        "vn 0 0 1\n"
+        "vn 0 0 1\n"
+        "vn 0 0 1\n"
         "f 1/1/1 2/2/2 3/3/3\n";
     std::istringstream iss(obj_data);
     fs::Mesh m;
@@ -1998,6 +2004,9 @@ TEST_CASE("OBJ loader handles faces with double slashes (//vn syntax)", "[obj][f
         "v 0 0 0\n"
         "v 1 0 0\n"
         "v 0 1 0\n"
+        "vn 0 0 1\n"
+        "vn 0 0 1\n"
+        "vn 0 0 1\n"
         "f 3//1 2//2 1//3\n"; // reversed order
     std::istringstream iss(obj_data);
     fs::Mesh m;
@@ -2018,6 +2027,8 @@ TEST_CASE("OBJ loader handles quad with slashes", "[obj][feature]")
         "v 1 0 0\n"
         "v 1 1 0\n"
         "v 0 1 0\n"
+        "vt 0 0\nvt 1 0\nvt 1 1\nvt 0 1\n"
+        "vn 0 0 1\nvn 0 0 1\nvn 0 0 1\nvn 0 0 1\n"
         "f 1/1/1 2/2/2 3/3/3 4/4/4\n";
     std::istringstream iss(obj_data);
     fs::Mesh m;
@@ -2390,5 +2401,282 @@ TEST_CASE("PLY loader rejects non-triangular faces", "[ply]")
     std::istringstream iss(ply_data);
     fs::Mesh m;
     REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+
+
+// ============================================================================
+// OBJ Loader: vertex normals and texture coordinates (plan #3, #4)
+// ============================================================================
+
+TEST_CASE("OBJ loader parses vertex normals from vn lines", "[obj][feature][normals]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "vn 0 0 1\n"
+        "vn 1 0 0\n"
+        "vn 0 1 0\n"
+        "f 1//1 2//2 3//3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.has_normals());
+    REQUIRE(m.vertex_normals.size() == 9);
+    // Vertex 0 gets normal from vn 1: (0,0,1)
+    REQUIRE(m.vertex_normals[0] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[1] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[2] == Approx(1.0f));
+    // Vertex 1 gets normal from vn 2: (1,0,0)
+    REQUIRE(m.vertex_normals[3] == Approx(1.0f));
+    REQUIRE(m.vertex_normals[4] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[5] == Approx(0.0f));
+    // Vertex 2 gets normal from vn 3: (0,1,0)
+    REQUIRE(m.vertex_normals[6] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[7] == Approx(1.0f));
+    REQUIRE(m.vertex_normals[8] == Approx(0.0f));
+}
+
+TEST_CASE("OBJ loader parses texture coordinates from vt lines", "[obj][feature][texcoords]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "vt 0 0\n"
+        "vt 1 0\n"
+        "vt 0 1\n"
+        "f 1/1 2/2 3/3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.has_texcoords());
+    REQUIRE(m.vertex_texcoords.size() == 6);
+    // Vertex 0: texcoord from vt 1: (0,0)
+    REQUIRE(m.vertex_texcoords[0] == Approx(0.0f));
+    REQUIRE(m.vertex_texcoords[1] == Approx(0.0f));
+    // Vertex 1: texcoord from vt 2: (1,0)
+    REQUIRE(m.vertex_texcoords[2] == Approx(1.0f));
+    REQUIRE(m.vertex_texcoords[3] == Approx(0.0f));
+    // Vertex 2: texcoord from vt 3: (0,1)
+    REQUIRE(m.vertex_texcoords[4] == Approx(0.0f));
+    REQUIRE(m.vertex_texcoords[5] == Approx(1.0f));
+}
+
+TEST_CASE("OBJ loader handles both normals and texcoords in faces", "[obj][feature]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "vn 0 0 1\n"
+        "vn 1 0 0\n"
+        "vn 0 1 0\n"
+        "vt 0 0\n"
+        "vt 1 0\n"
+        "vt 0 1\n"
+        "f 1/1/1 2/2/2 3/3/3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.has_normals());
+    REQUIRE(m.has_texcoords());
+}
+
+TEST_CASE("OBJ loader throws when faces reference vn but no vn lines", "[obj][security]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "f 1//1 2//2 3//3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OBJ loader throws when faces reference vt but no vt lines", "[obj][security]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "f 1/1 2/2 3/3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OBJ round-trip preserves vertex normals", "[obj][feature][normals]")
+{
+    fs::Mesh m1 = fs::Mesh::construct_cube();
+    // Assign per-vertex normals
+    for (size_t vi = 0; vi < m1.num_vertices(); vi++)
+    {
+        m1.vertex_normals.push_back(0.0f);
+        m1.vertex_normals.push_back(0.0f);
+        m1.vertex_normals.push_back(1.0f);
+    }
+
+    // Write and re-read
+    std::string obj_str = m1.to_obj();
+    std::istringstream iss(obj_str);
+    fs::Mesh m2;
+    fs::Mesh::from_obj(&m2, &iss);
+
+    REQUIRE(m2.num_vertices() == m1.num_vertices());
+    REQUIRE(m2.has_normals());
+    REQUIRE(m2.vertex_normals.size() == m1.vertex_normals.size());
+    for (size_t i = 0; i < m1.vertex_normals.size(); i++)
+    {
+        REQUIRE(m2.vertex_normals[i] == Approx(m1.vertex_normals[i]));
+    }
+}
+
+TEST_CASE("OBJ round-trip preserves texture coordinates", "[obj][feature][texcoords]")
+{
+    fs::Mesh m1 = fs::Mesh::construct_cube();
+    // Assign per-vertex texcoords
+    for (size_t vi = 0; vi < m1.num_vertices(); vi++)
+    {
+        m1.vertex_texcoords.push_back(static_cast<float>(vi) * 0.1f);
+        m1.vertex_texcoords.push_back(static_cast<float>(vi) * 0.1f + 0.5f);
+    }
+
+    // Write and re-read
+    std::string obj_str = m1.to_obj();
+    std::istringstream iss(obj_str);
+    fs::Mesh m2;
+    fs::Mesh::from_obj(&m2, &iss);
+
+    REQUIRE(m2.num_vertices() == m1.num_vertices());
+    REQUIRE(m2.has_texcoords());
+    REQUIRE(m2.vertex_texcoords.size() == m1.vertex_texcoords.size());
+    for (size_t i = 0; i < m1.vertex_texcoords.size(); i++)
+    {
+        REQUIRE(m2.vertex_texcoords[i] == Approx(m1.vertex_texcoords[i]));
+    }
+}
+
+TEST_CASE("OBJ loader defaults to no normals/texcoords when not present", "[obj][feature]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "f 1 2 3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE_FALSE(m.has_normals());
+    REQUIRE_FALSE(m.has_texcoords());
+    REQUIRE(m.vertex_normals.empty());
+    REQUIRE(m.vertex_texcoords.empty());
+}
+
+TEST_CASE("PLY loader parses vertex normals", "[ply][feature][normals]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 2\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "property float nx\n"
+        "property float ny\n"
+        "property float nz\n"
+        "element face 0\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0 0 0 1\n"
+        "1 0 0 1 0 0\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    fs::Mesh::from_ply(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 2);
+    REQUIRE(m.has_normals());
+    REQUIRE(m.vertex_normals.size() == 6);
+    REQUIRE(m.vertex_normals[0] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[1] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[2] == Approx(1.0f));
+    REQUIRE(m.vertex_normals[3] == Approx(1.0f));
+    REQUIRE(m.vertex_normals[4] == Approx(0.0f));
+    REQUIRE(m.vertex_normals[5] == Approx(0.0f));
+}
+
+TEST_CASE("PLY loader parses texture coordinates", "[ply][feature][texcoords]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 2\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "property float s\n"
+        "property float t\n"
+        "element face 0\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0 0.0 0.0\n"
+        "1 0 0 0.5 1.0\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    fs::Mesh::from_ply(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 2);
+    REQUIRE(m.has_texcoords());
+    REQUIRE(m.vertex_texcoords.size() == 4);
+    REQUIRE(m.vertex_texcoords[0] == Approx(0.0f));
+    REQUIRE(m.vertex_texcoords[1] == Approx(0.0f));
+    REQUIRE(m.vertex_texcoords[2] == Approx(0.5f));
+    REQUIRE(m.vertex_texcoords[3] == Approx(1.0f));
+}
+
+TEST_CASE("PLY loader handles all properties together", "[ply][feature]")
+{
+    // x y z nx ny nz s t red green blue
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 1\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "property float nx\n"
+        "property float ny\n"
+        "property float nz\n"
+        "property float s\n"
+        "property float t\n"
+        "property uchar red\n"
+        "property uchar green\n"
+        "property uchar blue\n"
+        "element face 0\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0 0 0 1 0.5 0.5 255 128 0\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    fs::Mesh::from_ply(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 1);
+    REQUIRE(m.has_normals());
+    REQUIRE(m.has_texcoords());
+    REQUIRE(m.vertex_colors.size() == 3);
+    REQUIRE(m.vertex_normals[2] == Approx(1.0f));
+    REQUIRE(m.vertex_texcoords[0] == Approx(0.5f));
+    REQUIRE((int)m.vertex_colors[0] == 255);
+    REQUIRE((int)m.vertex_colors[1] == 128);
+    REQUIRE((int)m.vertex_colors[2] == 0);
 }
 
