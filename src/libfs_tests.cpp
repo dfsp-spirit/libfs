@@ -1788,3 +1788,244 @@ TEST_CASE("NIfTI-1: read NIfTI with sform_code=1 extracts full RAS metadata", "[
     }
 }
 
+
+// ============================================================================
+// OBJ Loader: security and feature tests (plan #1–#14)
+// ============================================================================
+
+TEST_CASE("OBJ loader rejects null mesh pointer", "[obj][security]")
+{
+    std::istringstream iss("v 0 0 0\nf 1 1 1\n");
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(nullptr, &iss), std::invalid_argument);
+}
+
+TEST_CASE("OBJ loader handles invalid face index via stoi", "[obj][security]")
+{
+    // Empty face index field
+    {
+        std::istringstream iss("v 0 0 0\nv 1 0 0\nv 0 1 0\nf  2 3\n");
+        fs::Mesh m;
+        REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+    }
+    // Out-of-range integer
+    {
+        std::istringstream iss("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 99999999999999999999 2 3\n");
+        fs::Mesh m;
+        REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+    }
+    // Non-numeric face index
+    {
+        std::istringstream iss("v 0 0 0\nv 1 0 0\nv 0 1 0\nf abc 2 3\n");
+        fs::Mesh m;
+        REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+    }
+}
+
+TEST_CASE("OBJ loader rejects face index 0", "[obj][security]")
+{
+    std::istringstream iss("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 0 2 3\n");
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OBJ loader rejects out-of-range face index", "[obj][security]")
+{
+    // Index larger than vertex count
+    {
+        std::istringstream iss("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 999\n");
+        fs::Mesh m;
+        REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+    }
+}
+
+TEST_CASE("OBJ loader rejects negative index exceeding vertex count", "[obj][security]")
+{
+    // -10 with only 3 vertices → out of range
+    std::istringstream iss("v 0 0 0\nv 1 0 0\nv 0 1 0\nf -10 2 3\n");
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OBJ loader rejects non-finite vertex coordinates", "[obj][security]")
+{
+    // NaN coordinate
+    {
+        std::istringstream iss("v nan 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+        fs::Mesh m;
+        REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+    }
+    // Inf coordinate
+    {
+        std::istringstream iss("v inf 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n");
+        fs::Mesh m;
+        REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+    }
+}
+
+TEST_CASE("OBJ loader rejects empty file (no vertices)", "[obj]")
+{
+    std::istringstream iss("# just a comment\n");
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OBJ loader rejects face with fewer than 3 vertices", "[obj]")
+{
+    std::istringstream iss("v 0 0 0\nv 1 0 0\nf 1 2\n");
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_obj(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OBJ loader triangulates quads via fan triangulation", "[obj][feature]")
+{
+    // 4 vertices, 1 quad face
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 1 1 0\n"
+        "v 0 1 0\n"
+        "f 1 2 3 4\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    // Quad should produce 2 triangles = 6 face indices
+    REQUIRE(m.num_vertices() == 4);
+    REQUIRE(m.num_faces() == 2);
+    REQUIRE(m.faces.size() == 6);
+
+    // Fan triangulation: (0,1,2), (0,2,3)
+    REQUIRE(m.faces[0] == 0);
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 2);
+    REQUIRE(m.faces[3] == 0);
+    REQUIRE(m.faces[4] == 2);
+    REQUIRE(m.faces[5] == 3);
+}
+
+TEST_CASE("OBJ loader triangulates n-gons (pentagon) via fan triangulation", "[obj][feature]")
+{
+    // 5 vertices, 1 pentagon face
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 1 1 0\n"
+        "v 0.5 1.5 0\n"
+        "v 0 1 0\n"
+        "f 1 2 3 4 5\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    // Pentagon should produce 3 triangles = 9 face indices
+    REQUIRE(m.num_vertices() == 5);
+    REQUIRE(m.num_faces() == 3);
+    REQUIRE(m.faces.size() == 9);
+
+    // Fan triangulation: (0,1,2), (0,2,3), (0,3,4)
+    REQUIRE(m.faces[0] == 0); REQUIRE(m.faces[1] == 1); REQUIRE(m.faces[2] == 2);
+    REQUIRE(m.faces[3] == 0); REQUIRE(m.faces[4] == 2); REQUIRE(m.faces[5] == 3);
+    REQUIRE(m.faces[6] == 0); REQUIRE(m.faces[7] == 3); REQUIRE(m.faces[8] == 4);
+}
+
+TEST_CASE("OBJ loader handles negative (relative) vertex indices", "[obj][feature]")
+{
+    // -1 = last vertex, -2 = second-to-last
+    std::string obj_data =
+        "v 0 0 0\n"  // index 1
+        "v 1 0 0\n"  // index 2
+        "v 0 1 0\n"  // index 3
+        "f -3 -2 -1\n"; // should resolve to 1 2 3 → 0-based: 0 1 2
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.num_faces() == 1);
+    REQUIRE(m.faces[0] == 0);
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 2);
+}
+
+TEST_CASE("OBJ loader handles mixed positive and negative indices", "[obj][feature]")
+{
+    // Mix of positive and negative indices in the same face
+    std::string obj_data =
+        "v 0 0 0\n"  // index 1
+        "v 1 0 0\n"  // index 2
+        "v 1 1 0\n"  // index 3
+        "v 0 1 0\n"  // index 4
+        "f 1 -1 2 -2\n"; // → 1, 4, 2, 3 → fan: (0,3,1), (0,1,2)
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 4);
+    REQUIRE(m.num_faces() == 2);
+    // First triangle: 0, 3, 1
+    REQUIRE(m.faces[0] == 0);
+    REQUIRE(m.faces[1] == 3);
+    REQUIRE(m.faces[2] == 1);
+    // Second triangle: 0, 1, 2
+    REQUIRE(m.faces[3] == 0);
+    REQUIRE(m.faces[4] == 1);
+    REQUIRE(m.faces[5] == 2);
+}
+
+TEST_CASE("OBJ loader handles faces with slashes (vn/vt syntax)", "[obj][feature]")
+{
+    // f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "f 1/1/1 2/2/2 3/3/3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.num_faces() == 1);
+    REQUIRE(m.faces[0] == 0);
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 2);
+}
+
+TEST_CASE("OBJ loader handles faces with double slashes (//vn syntax)", "[obj][feature]")
+{
+    // f v1//vn1 v2//vn2 v3//vn3
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "f 3//1 2//2 1//3\n"; // reversed order
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.num_faces() == 1);
+    REQUIRE(m.faces[0] == 2);
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 0);
+}
+
+TEST_CASE("OBJ loader handles quad with slashes", "[obj][feature]")
+{
+    // Quad with full v/vt/vn syntax
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 1 1 0\n"
+        "v 0 1 0\n"
+        "f 1/1/1 2/2/2 3/3/3 4/4/4\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 4);
+    REQUIRE(m.num_faces() == 2);
+    REQUIRE(m.faces[0] == 0); REQUIRE(m.faces[1] == 1); REQUIRE(m.faces[2] == 2);
+    REQUIRE(m.faces[3] == 0); REQUIRE(m.faces[4] == 2); REQUIRE(m.faces[5] == 3);
+}
+

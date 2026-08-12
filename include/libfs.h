@@ -90,6 +90,23 @@
 #ifndef LIBFS_MAX_COLORTABLE_ENTRIES
 #define LIBFS_MAX_COLORTABLE_ENTRIES 10000
 #endif
+
+/// Maximum line length when reading OBJ files (prevents single-line memory-exhaustion DoS).
+/// A single line longer than this causes a parse error.
+#ifndef LIBFS_MAX_OBJ_LINE_LENGTH
+#define LIBFS_MAX_OBJ_LINE_LENGTH 1048576  // 1 MiB
+#endif
+
+/// Maximum number of lines parsed from an OBJ file (prevents many-tiny-lines CPU-exhaustion DoS).
+#ifndef LIBFS_MAX_OBJ_LINES
+#define LIBFS_MAX_OBJ_LINES 100000000  // 100M lines
+#endif
+
+/// Maximum file size for an OBJ file checked before parsing (prevents reading huge files).
+/// Defaults to the same value as LIBFS_MAX_ALLOC_BYTES.
+#ifndef LIBFS_MAX_OBJ_FILE_SIZE
+#define LIBFS_MAX_OBJ_FILE_SIZE LIBFS_MAX_ALLOC_BYTES
+#endif
 // -- End security configuration --------------------------------------------------------
 
 /// @file
@@ -1571,8 +1588,15 @@ namespace fs
     /// @endcode
     static void from_obj(Mesh *mesh, std::istream *is)
     {
+      // -- Security: null-pointer check (plan #8) --
+      if (!mesh)
+      {
+        throw std::invalid_argument("mesh pointer must not be null");
+      }
+
       std::string line;
       int line_idx = -1;
+      size_t total_lines_processed = 0;
 
       std::vector<float> vertices;
       std::vector<int> faces;
@@ -1583,9 +1607,42 @@ namespace fs
       size_t num_lines_ignored = 0; // Not comments, but custom extensions or material data lines which are ignored by libfs.
 #endif
 
-      while (std::getline(*is, line))
+      while (total_lines_processed < LIBFS_MAX_OBJ_LINES)
       {
-        line_idx += 1;
+        // -- Security: bounded line read to prevent single-line memory exhaustion (plan #10) --
+        line.clear();
+        for (size_t char_count = 0; char_count <= LIBFS_MAX_OBJ_LINE_LENGTH; char_count++)
+        {
+          int ch = is->get();
+          if (ch == std::char_traits<char>::eof())
+          {
+            break;
+          }
+          if (ch == '\n')
+          {
+            break;
+          }
+          if (char_count == LIBFS_MAX_OBJ_LINE_LENGTH)
+          {
+            throw std::runtime_error("OBJ line exceeds maximum allowed line length of " + std::to_string(LIBFS_MAX_OBJ_LINE_LENGTH) + " bytes.\n");
+          }
+          line.push_back(static_cast<char>(ch));
+        }
+        if (line.empty() && is->eof())
+        {
+          break; // EOF with no data
+        }
+        total_lines_processed++;
+        line_idx++;
+
+        // -- Security: check allocation limits before parsing this line (plan #5) --
+        if (!util::check_alloc(vertices.size() + 3, sizeof(float)) ||
+            !util::check_alloc(faces.size() + 12, sizeof(int)) ||
+            !util::check_alloc(vertex_colors.size() + 3, sizeof(uint8_t)))
+        {
+          throw std::runtime_error("OBJ data exceeds maximum allowed memory allocation (" + std::to_string(LIBFS_MAX_ALLOC_BYTES) + " bytes).\n");
+        }
+
         std::istringstream iss(line);
         if (fs::util::starts_with(line, "#"))
         {
@@ -1602,6 +1659,13 @@ namespace fs
               throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx + 1) + " of OBJ data, invalid format.\n");
             }
             assert(elem_type_identifier == "v");
+
+            // -- Security: validate finite coordinates --
+            if (!util::is_finite_float(x) || !util::is_finite_float(y) || !util::is_finite_float(z))
+            {
+              throw std::domain_error("Non-finite vertex coordinate on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+            }
+
             vertices.push_back(x);
             vertices.push_back(y);
             vertices.push_back(z);
@@ -1668,40 +1732,81 @@ namespace fs
           }
           else if (fs::util::starts_with(line, "f "))
           {
-            std::string elem_type_identifier, v0raw, v1raw, v2raw;
-            int v0, v1, v2;
-            if (!(iss >> elem_type_identifier >> v0raw >> v1raw >> v2raw))
+            std::string elem_type_identifier;
+
+            // -- Feature: read all vertex tokens (plan #1) --
+            if (!(iss >> elem_type_identifier))
             {
               throw std::domain_error("Could not parse face line " + std::to_string(line_idx + 1) + " of OBJ data, invalid format.\n");
             }
             assert(elem_type_identifier == "f");
 
-            // The OBJ format allows to specifiy face indices with slashes to also set normal and material indices.
-            // So instead of a line like 'f 22 34 45', we could get 'f 3/1 4/2 5/3' or 'f 6/4/1 3/5/3 7/6/5' or 'f 7//1 8//2 9//3'.
-            // We need to extract the stuff before the first slash and interprete it as int to get the vertex index we are looking for.
-            std::size_t found_v0 = v0raw.find("/");
-            std::size_t found_v1 = v1raw.find("/");
-            std::size_t found_v2 = v2raw.find("/");
-            if (found_v0 != std::string::npos)
+            std::vector<std::string> face_tokens;
             {
-              v0raw = v0raw.substr(0, found_v0);
+              std::string token;
+              while (iss >> token)
+              {
+                face_tokens.push_back(token);
+              }
             }
-            if (found_v1 != std::string::npos)
-            {
-              v1raw = v1raw.substr(0, found_v1);
-            }
-            if (found_v2 != std::string::npos)
-            {
-              v2raw = v2raw.substr(0, found_v2);
-            }
-            v0 = std::stoi(v0raw);
-            v1 = std::stoi(v1raw);
-            v2 = std::stoi(v2raw);
 
-            // The vertex indices in Wavefront OBJ files are 1-based, so we have to substract 1 here.
-            faces.push_back(v0 - 1);
-            faces.push_back(v1 - 1);
-            faces.push_back(v2 - 1);
+            if (face_tokens.size() < 3)
+            {
+              throw std::domain_error("Face line " + std::to_string(line_idx + 1) + " has fewer than 3 vertices, invalid format.\n");
+            }
+
+            // -- Warning for quads/n-gons (plan #13) --
+#ifdef LIBFS_DBG_WARNING
+            if (face_tokens.size() > 3)
+            {
+              std::cout << LIBFS_APPTAG << "[WARNING] Face line " << (line_idx + 1)
+                        << " has " << face_tokens.size() << " vertices; fan-triangulating.\n";
+            }
+#endif
+
+            // Parse all vertex indices from tokens (handle slashes, negative indices, stoi exceptions).
+            std::vector<int> raw_indices;
+            raw_indices.reserve(face_tokens.size());
+            for (size_t ti = 0; ti < face_tokens.size(); ti++)
+            {
+              std::string raw = face_tokens[ti];
+
+              // The OBJ format allows to specify face indices with slashes to also set normal and material indices.
+              // So instead of a line like 'f 22 34 45', we could get 'f 3/1 4/2 5/3' or 'f 6/4/1 3/5/3 7/6/5' or 'f 7//1 8//2 9//3'.
+              // We need to extract the stuff before the first slash and interpret it as int to get the vertex index we are looking for.
+              std::size_t slash_pos = raw.find("/");
+              if (slash_pos != std::string::npos)
+              {
+                raw = raw.substr(0, slash_pos);
+              }
+
+              // -- Security: try/catch around std::stoi (plan #7) --
+              int vi;
+              try
+              {
+                vi = std::stoi(raw);
+              }
+              catch (const std::invalid_argument &)
+              {
+                throw std::domain_error("Invalid face index '" + raw + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+              }
+              catch (const std::out_of_range &)
+              {
+                throw std::domain_error("Face index '" + raw + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+              }
+
+              raw_indices.push_back(vi);
+            }
+
+            // -- Feature: fan triangulation for quads and n-gons (plan #1) --
+            // Emit triangles: (v[0], v[1], v[2]), (v[0], v[2], v[3]), ...
+            // Indices are stored as-is (1-based, possibly negative) and resolved in the post-parse pass.
+            for (size_t ti = 1; ti + 1 < raw_indices.size(); ti++)
+            {
+              faces.push_back(raw_indices[0]);
+              faces.push_back(raw_indices[ti]);
+              faces.push_back(raw_indices[ti + 1]);
+            }
           }
           else
           {
@@ -1713,12 +1818,65 @@ namespace fs
           }
         }
       }
+
+      // -- Security: check if we hit the max-lines limit (plan #11) --
+      if (total_lines_processed >= LIBFS_MAX_OBJ_LINES && !is->eof())
+      {
+        throw std::runtime_error("OBJ file exceeds maximum allowed line count of " + std::to_string(LIBFS_MAX_OBJ_LINES) + ".\n");
+      }
+
 #ifdef LIBFS_DBG_INFO
       if (num_lines_ignored > 0)
       {
         std::cout << LIBFS_APPTAG << "Ignored " << num_lines_ignored << " lines in Wavefront OBJ format mesh file.\n";
       }
 #endif
+
+      // -- Post-parse: resolve negative indices and convert to 0-based (plan #2, #6, #12) --
+      int32_t nv = static_cast<int32_t>(vertices.size() / 3);
+      if (nv == 0)
+      {
+        throw std::domain_error("OBJ file contains no vertices.\n");
+      }
+
+      for (size_t fi = 0; fi < faces.size(); fi++)
+      {
+        int idx = faces[fi];
+        if (idx == 0)
+        {
+          throw std::domain_error("Face index 0 in OBJ data: OBJ indices are 1-based, index 0 is invalid.\n");
+        }
+        if (idx < 0)
+        {
+          // -- Security: guard against integer overflow in negative-index resolution (plan #12) --
+          if (idx < -nv)
+          {
+            throw std::domain_error("Negative face index " + std::to_string(idx) + " exceeds vertex count " + std::to_string(nv) + ".\n");
+          }
+          // Convert negative 1-based-relative to 0-based: -1 → nv-1, -2 → nv-2, etc.
+          idx = nv + idx;
+        }
+        else
+        {
+          // Convert positive 1-based to 0-based.
+          idx = idx - 1;
+        }
+
+        // -- Security: validate face index range (plan #6) --
+        if (idx < 0 || idx >= nv)
+        {
+          throw std::domain_error("Face index " + std::to_string(idx) + " out of range [0, " + std::to_string(nv - 1) + "] after resolution.\n");
+        }
+
+        faces[fi] = idx;
+      }
+
+      // -- Integrity: validate face count is a multiple of 3 (plan #14) --
+      if (faces.size() % 3 != 0)
+      {
+        throw std::domain_error("Internal error: parsed face count " + std::to_string(faces.size()) + " is not a multiple of 3.\n");
+      }
+
       mesh->vertices = vertices;
       mesh->faces = faces;
       mesh->vertex_colors = vertex_colors;
@@ -1743,6 +1901,14 @@ namespace fs
 #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from Wavefront object format file " << filename << ".\n";
 #endif
+      // -- Security: file-size pre-check to reject huge files before parsing (plan #9) --
+      size_t file_size = util::get_file_size(filename);
+      if (file_size > LIBFS_MAX_OBJ_FILE_SIZE)
+      {
+        throw std::runtime_error("OBJ file '" + filename + "' size (" + std::to_string(file_size) +
+                                 " bytes) exceeds maximum allowed (" + std::to_string(LIBFS_MAX_OBJ_FILE_SIZE) + " bytes).\n");
+      }
+
       std::ifstream input(filename, std::fstream::in);
       if (input.is_open())
       {
