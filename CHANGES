@@ -2,6 +2,10 @@ libfs Changes
 ===============
 
 
+Current WIP
+-----------
+* NEW: Add new features to OBJ reader (quads, relative indices, ...) and improve its security
+
 v0.5.0 -- NIfTI support and bug fixes
 --------------------------------------
 * BRK: remove previously deprecated version defined with typos like LIBFS_VERISION_MAJOR, use LIBFS_VERSION_MAJOR etc instead

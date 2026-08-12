@@ -1609,31 +1609,20 @@ namespace fs
 
       while (total_lines_processed < LIBFS_MAX_OBJ_LINES)
       {
-        // -- Security: bounded line read to prevent single-line memory exhaustion (plan #10) --
-        line.clear();
-        for (size_t char_count = 0; char_count <= LIBFS_MAX_OBJ_LINE_LENGTH; char_count++)
+        // -- Use std::getline for performance (buffered I/O), then post-check length (plan #10) --
+        if (!std::getline(*is, line))
         {
-          int ch = is->get();
-          if (ch == std::char_traits<char>::eof())
-          {
-            break;
-          }
-          if (ch == '\n')
-          {
-            break;
-          }
-          if (char_count == LIBFS_MAX_OBJ_LINE_LENGTH)
-          {
-            throw std::runtime_error("OBJ line exceeds maximum allowed line length of " + std::to_string(LIBFS_MAX_OBJ_LINE_LENGTH) + " bytes.\n");
-          }
-          line.push_back(static_cast<char>(ch));
-        }
-        if (line.empty() && is->eof())
-        {
-          break; // EOF with no data
+          break; // EOF or read error
         }
         total_lines_processed++;
         line_idx++;
+
+        if (line.size() > LIBFS_MAX_OBJ_LINE_LENGTH)
+        {
+          throw std::runtime_error("OBJ line " + std::to_string(line_idx + 1) +
+                                   " exceeds maximum allowed line length of " +
+                                   std::to_string(LIBFS_MAX_OBJ_LINE_LENGTH) + " bytes.\n");
+        }
 
         // -- Security: check allocation limits before parsing this line (plan #5) --
         if (!util::check_alloc(vertices.size() + 3, sizeof(float)) ||
