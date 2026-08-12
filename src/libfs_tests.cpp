@@ -2029,3 +2029,366 @@ TEST_CASE("OBJ loader handles quad with slashes", "[obj][feature]")
     REQUIRE(m.faces[3] == 0); REQUIRE(m.faces[4] == 2); REQUIRE(m.faces[5] == 3);
 }
 
+
+// ============================================================================
+// OFF Loader: security tests
+// ============================================================================
+
+TEST_CASE("OFF loader rejects null mesh pointer", "[off][security]")
+{
+    std::istringstream iss("OFF\n0 0 0\n");
+    REQUIRE_THROWS_AS(fs::Mesh::from_off(nullptr, &iss), std::invalid_argument);
+}
+
+TEST_CASE("OFF loader rejects out-of-range face index", "[off][security]")
+{
+    // 3 vertices, face index 5 is out of range
+    std::string off_data =
+        "OFF\n"
+        "3 1 0\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "0 1 0\n"
+        "3 0 1 5\n";
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_off(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OFF loader rejects negative face index", "[off][security]")
+{
+    std::string off_data =
+        "OFF\n"
+        "3 1 0\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "0 1 0\n"
+        "3 0 1 -1\n";
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_off(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OFF loader rejects non-finite vertex coordinate", "[off][security]")
+{
+    std::string off_data =
+        "OFF\n"
+        "3 1 0\n"
+        "nan 0 0\n"
+        "1 0 0\n"
+        "0 1 0\n"
+        "3 0 1 2\n";
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_off(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OFF loader clamps out-of-range vertex colors", "[off][security]")
+{
+    // COFF with color values outside [0,255] — format is: x y z r g b a
+    std::string off_data =
+        "COFF\n"
+        "1 0 0\n"
+        "0 0 0 -10 500 300 0\n"; // r=-10,g=500,b=300 -> clamped to 0,255,255
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    fs::Mesh::from_off(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 1);
+    REQUIRE(m.vertex_colors.size() == 3);
+    REQUIRE((int)m.vertex_colors[0] == 0);   // -10 clamped to 0
+    REQUIRE((int)m.vertex_colors[1] == 255); // 500 clamped to 255
+    REQUIRE((int)m.vertex_colors[2] == 255); // 300 clamped to 255
+}
+
+TEST_CASE("OFF loader works correctly with valid data", "[off]")
+{
+    std::string off_data =
+        "OFF\n"
+        "4 2 0\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "1 1 0\n"
+        "0 1 0\n"
+        "3 0 1 2\n"
+        "3 0 2 3\n";
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    fs::Mesh::from_off(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 4);
+    REQUIRE(m.num_faces() == 2);
+    REQUIRE(m.faces[0] == 0); REQUIRE(m.faces[1] == 1); REQUIRE(m.faces[2] == 2);
+    REQUIRE(m.faces[3] == 0); REQUIRE(m.faces[4] == 2); REQUIRE(m.faces[5] == 3);
+}
+
+TEST_CASE("OFF loader rejects non-triangular faces", "[off]")
+{
+    std::string off_data =
+        "OFF\n"
+        "4 1 0\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "1 1 0\n"
+        "0 1 0\n"
+        "4 0 1 2 3\n"; // quad — not supported
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_off(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OFF loader rejects vertex/face count mismatch", "[off]")
+{
+    // Header says 3 vertices but only 2 provided
+    std::string off_data =
+        "OFF\n"
+        "3 1 0\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "3 0 1 2\n";
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_off(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("OFF loader with COFF reads vertex colors", "[off]")
+{
+    std::string off_data =
+        "COFF\n"
+        "3 1 0\n"
+        "0 0 0 255 0 0 255\n"
+        "1 0 0 0 255 0 255\n"
+        "0 1 0 0 0 255 255\n"
+        "3 0 1 2\n";
+    std::istringstream iss(off_data);
+    fs::Mesh m;
+    fs::Mesh::from_off(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.vertex_colors.size() == 9);
+    REQUIRE((int)m.vertex_colors[0] == 255); REQUIRE((int)m.vertex_colors[1] == 0); REQUIRE((int)m.vertex_colors[2] == 0);
+    REQUIRE((int)m.vertex_colors[3] == 0); REQUIRE((int)m.vertex_colors[4] == 255); REQUIRE((int)m.vertex_colors[5] == 0);
+    REQUIRE((int)m.vertex_colors[6] == 0); REQUIRE((int)m.vertex_colors[7] == 0); REQUIRE((int)m.vertex_colors[8] == 255);
+}
+
+
+// ============================================================================
+// PLY Loader: security tests
+// ============================================================================
+
+TEST_CASE("PLY loader rejects null mesh pointer", "[ply][security]")
+{
+    std::istringstream iss("ply\nformat ascii 1.0\nend_header\n");
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(nullptr, &iss), std::invalid_argument);
+}
+
+TEST_CASE("PLY loader rejects out-of-range face index", "[ply][security]")
+{
+    // 3 vertices, face index 5 is out of range
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 3\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 1\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "0 1 0\n"
+        "3 0 1 5\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("PLY loader rejects negative face index", "[ply][security]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 3\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 1\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "0 1 0\n"
+        "3 0 1 -1\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("PLY loader rejects non-finite vertex coordinate", "[ply][security]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 3\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 1\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "nan 0 0\n"
+        "1 0 0\n"
+        "0 1 0\n"
+        "3 0 1 2\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("PLY loader clamps out-of-range vertex colors", "[ply][security]")
+{
+    // Colors above 255 — PLY parses into int, values are clamped.
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 1\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "property uchar red\n"
+        "property uchar green\n"
+        "property uchar blue\n"
+        "element face 0\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0 300 500 700\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    fs::Mesh::from_ply(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 1);
+    REQUIRE(m.vertex_colors.size() == 3);
+    REQUIRE((int)m.vertex_colors[0] == 255); // 300 clamped to 255
+    REQUIRE((int)m.vertex_colors[1] == 255); // 500 clamped to 255
+    REQUIRE((int)m.vertex_colors[2] == 255); // 700 clamped to 255
+}
+
+TEST_CASE("PLY loader rejects header without end_header", "[ply][security]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 1\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 0\n"
+        "property list uchar int vertex_indices\n";
+    // No 'end_header' line
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("PLY loader throws on vertex count mismatch", "[ply][security]")
+{
+    // Header says 3 vertices but only 2 provided
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 3\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 1\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "3 0 1 2\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+
+TEST_CASE("PLY loader works correctly with valid data", "[ply]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 4\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 2\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "1 1 0\n"
+        "0 1 0\n"
+        "3 0 1 2\n"
+        "3 0 2 3\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    fs::Mesh::from_ply(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 4);
+    REQUIRE(m.num_faces() == 2);
+    REQUIRE(m.faces[0] == 0); REQUIRE(m.faces[1] == 1); REQUIRE(m.faces[2] == 2);
+    REQUIRE(m.faces[3] == 0); REQUIRE(m.faces[4] == 2); REQUIRE(m.faces[5] == 3);
+}
+
+TEST_CASE("PLY loader reads vertex colors with explicit properties", "[ply]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 3\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "property uchar red\n"
+        "property uchar green\n"
+        "property uchar blue\n"
+        "element face 1\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0 255 0 0\n"
+        "1 0 0 0 255 0\n"
+        "0 1 0 0 0 255\n"
+        "3 0 1 2\n";
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    fs::Mesh::from_ply(&m, &iss);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.vertex_colors.size() == 9);
+    REQUIRE((int)m.vertex_colors[0] == 255); REQUIRE((int)m.vertex_colors[1] == 0); REQUIRE((int)m.vertex_colors[2] == 0);
+    REQUIRE((int)m.vertex_colors[3] == 0); REQUIRE((int)m.vertex_colors[4] == 255); REQUIRE((int)m.vertex_colors[5] == 0);
+    REQUIRE((int)m.vertex_colors[6] == 0); REQUIRE((int)m.vertex_colors[7] == 0); REQUIRE((int)m.vertex_colors[8] == 255);
+}
+
+TEST_CASE("PLY loader rejects non-triangular faces", "[ply]")
+{
+    std::string ply_data =
+        "ply\n"
+        "format ascii 1.0\n"
+        "element vertex 4\n"
+        "property float x\n"
+        "property float y\n"
+        "property float z\n"
+        "element face 1\n"
+        "property list uchar int vertex_indices\n"
+        "end_header\n"
+        "0 0 0\n"
+        "1 0 0\n"
+        "1 1 0\n"
+        "0 1 0\n"
+        "4 0 1 2 3\n"; // quad
+    std::istringstream iss(ply_data);
+    fs::Mesh m;
+    REQUIRE_THROWS_AS(fs::Mesh::from_ply(&m, &iss), std::domain_error);
+}
+

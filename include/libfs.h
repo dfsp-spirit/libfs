@@ -107,6 +107,36 @@
 #ifndef LIBFS_MAX_OBJ_FILE_SIZE
 #define LIBFS_MAX_OBJ_FILE_SIZE LIBFS_MAX_ALLOC_BYTES
 #endif
+
+/// Maximum line length when reading OFF files (prevents single-line memory-exhaustion DoS).
+#ifndef LIBFS_MAX_OFF_LINE_LENGTH
+#define LIBFS_MAX_OFF_LINE_LENGTH 1048576  // 1 MiB
+#endif
+
+/// Maximum number of lines parsed from an OFF file (prevents many-tiny-lines CPU-exhaustion DoS).
+#ifndef LIBFS_MAX_OFF_LINES
+#define LIBFS_MAX_OFF_LINES 100000000  // 100M lines
+#endif
+
+/// Maximum file size for an OFF file checked before parsing.
+#ifndef LIBFS_MAX_OFF_FILE_SIZE
+#define LIBFS_MAX_OFF_FILE_SIZE LIBFS_MAX_ALLOC_BYTES
+#endif
+
+/// Maximum line length when reading PLY files (prevents single-line memory-exhaustion DoS).
+#ifndef LIBFS_MAX_PLY_LINE_LENGTH
+#define LIBFS_MAX_PLY_LINE_LENGTH 1048576  // 1 MiB
+#endif
+
+/// Maximum number of lines parsed from a PLY file (prevents many-tiny-lines CPU-exhaustion DoS).
+#ifndef LIBFS_MAX_PLY_LINES
+#define LIBFS_MAX_PLY_LINES 100000000  // 100M lines
+#endif
+
+/// Maximum file size for a PLY file checked before parsing.
+#ifndef LIBFS_MAX_PLY_FILE_SIZE
+#define LIBFS_MAX_PLY_FILE_SIZE LIBFS_MAX_ALLOC_BYTES
+#endif
 // -- End security configuration --------------------------------------------------------
 
 /// @file
@@ -1918,12 +1948,18 @@ namespace fs
     /// @throws std::domain_error if the file format is invalid.
     static void from_off(Mesh *mesh, std::istream *is, const std::string &source_filename = "")
     {
+      // -- Security: null-pointer check (O3) --
+      if (!mesh)
+      {
+        throw std::invalid_argument("mesh pointer must not be null");
+      }
 
       std::string msg_source_file_part = source_filename.empty() ? "" : "'" + source_filename + "'";
 
       std::string line;
       int line_idx = -1;
       int noncomment_line_idx = -1;
+      size_t total_lines_processed = 0;
 
       std::vector<float> vertices;
       std::vector<int> faces;
@@ -1938,9 +1974,23 @@ namespace fs
       int num_verts_this_face, v0, v1, v2; // face, defined by number of vertices and vertex indices.
       std::vector<uint8_t> vertex_colors;
 
-      while (std::getline(*is, line))
+      while (total_lines_processed < LIBFS_MAX_OFF_LINES)
       {
+        // -- Security: bounded line read (O4) --
+        if (!std::getline(*is, line))
+        {
+          break; // EOF or read error
+        }
+        total_lines_processed++;
         line_idx++;
+
+        if (line.size() > LIBFS_MAX_OFF_LINE_LENGTH)
+        {
+          throw std::runtime_error("OFF line " + std::to_string(line_idx + 1) +
+                                   " exceeds maximum allowed line length of " +
+                                   std::to_string(LIBFS_MAX_OFF_LINE_LENGTH) + " bytes.\n");
+        }
+
         std::istringstream iss(line);
         if (fs::util::starts_with(line, "#"))
         {
@@ -1968,6 +2018,14 @@ namespace fs
             {
               throw std::domain_error("Could not parse element count header line " + std::to_string(line_idx + 1) + " of OFF data " + msg_source_file_part + ", invalid format.\n");
             }
+
+            // -- Security: validate header counts against allocation limit (O1) --
+            if (!util::check_alloc(num_vertices, 3 * sizeof(float)) ||
+                !util::check_alloc(num_faces, 3 * sizeof(int)))
+            {
+              throw std::runtime_error("OFF data " + msg_source_file_part + " header declares more vertices/faces than allowed by allocation limit (" +
+                                       std::to_string(LIBFS_MAX_ALLOC_BYTES) + " bytes).\n");
+            }
           }
           else
           {
@@ -1980,6 +2038,10 @@ namespace fs
                 {
                   throw std::domain_error("Could not parse vertex coordinate and color line " + std::to_string(line_idx + 1) + " of COFF data " + msg_source_file_part + ", invalid format.\n");
                 }
+                // -- Security: clamp vertex colors to [0,255] (O8) --
+                if (r < 0) { r = 0; } if (r > 255) { r = 255; }
+                if (g < 0) { g = 0; } if (g > 255) { g = 255; }
+                if (b < 0) { b = 0; } if (b > 255) { b = 255; }
                 vertex_colors.push_back(static_cast<uint8_t>(r));
                 vertex_colors.push_back(static_cast<uint8_t>(g));
                 vertex_colors.push_back(static_cast<uint8_t>(b));
@@ -1991,6 +2053,13 @@ namespace fs
                   throw std::domain_error("Could not parse vertex coordinate line " + std::to_string(line_idx + 1) + " of OFF data " + msg_source_file_part + ", invalid format.\n");
                 }
               }
+
+              // -- Security: validate finite coordinates (O7) --
+              if (!util::is_finite_float(x) || !util::is_finite_float(y) || !util::is_finite_float(z))
+              {
+                throw std::domain_error("Non-finite vertex coordinate on line " + std::to_string(line_idx + 1) + " of OFF data " + msg_source_file_part + ".\n");
+              }
+
               vertices.push_back(x);
               vertices.push_back(y);
               vertices.push_back(z);
@@ -2017,6 +2086,13 @@ namespace fs
           }
         }
       }
+
+      // -- Security: max-lines exceeded (O5) --
+      if (total_lines_processed >= LIBFS_MAX_OFF_LINES && !is->eof())
+      {
+        throw std::runtime_error("OFF file exceeds maximum allowed line count of " + std::to_string(LIBFS_MAX_OFF_LINES) + ".\n");
+      }
+
       if (num_verts_parsed < num_vertices)
       {
         throw std::domain_error("Vertex count mismatch between OFF data " + msg_source_file_part + " header (" + std::to_string(num_vertices) + ") and data (" + std::to_string(num_verts_parsed) + ").\n");
@@ -2025,6 +2101,18 @@ namespace fs
       {
         throw std::domain_error("Face count mismatch between OFF data " + msg_source_file_part + " header  (" + std::to_string(num_faces) + ") and data (" + std::to_string(num_faces_parsed) + ").\n");
       }
+
+      // -- Security: validate face indices against vertex count (O2) --
+      int32_t nv = static_cast<int32_t>(num_vertices);
+      for (size_t fi = 0; fi < faces.size(); fi++)
+      {
+        int idx = faces[fi];
+        if (idx < 0 || idx >= nv)
+        {
+          throw std::domain_error("Face index " + std::to_string(idx) + " out of range [0, " + std::to_string(nv - 1) + "] in OFF data " + msg_source_file_part + ".\n");
+        }
+      }
+
       mesh->vertices = vertices;
       mesh->faces = faces;
       mesh->vertex_colors = vertex_colors;
@@ -2049,6 +2137,14 @@ namespace fs
 #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from OFF format file " << filename << ".\n";
 #endif
+      // -- Security: file-size pre-check (O6) --
+      size_t file_size = util::get_file_size(filename);
+      if (file_size > LIBFS_MAX_OFF_FILE_SIZE)
+      {
+        throw std::runtime_error("OFF file '" + filename + "' size (" + std::to_string(file_size) +
+                                 " bytes) exceeds maximum allowed (" + std::to_string(LIBFS_MAX_OFF_FILE_SIZE) + " bytes).\n");
+      }
+
       std::ifstream input(filename, std::fstream::in);
       if (input.is_open())
       {
@@ -2068,22 +2164,46 @@ namespace fs
     /// @throws std::domain_error if the file format is invalid.
     static void from_ply(Mesh *mesh, std::istream *is)
     {
+      // -- Security: null-pointer check (P4) --
+      if (!mesh)
+      {
+        throw std::invalid_argument("mesh pointer must not be null");
+      }
+
       std::string line;
       int line_idx = -1;
       int noncomment_line_idx = -1;
+      size_t total_lines_processed = 0;
 
       std::vector<float> vertices;
       std::vector<int> faces;
       std::vector<uint8_t> vertex_colors;
 
-      bool in_header = true;                                              // current status
-      int num_verts = -1;
-      int num_faces = -1;
-      bool in_vertex_element = false;                                     // track whether we are inside 'element vertex' in header
-      std::vector<std::string> vertex_properties;                         // ordered list of property names under element vertex
-      while (std::getline(*is, line))
+      bool in_header = true;
+      size_t num_verts = 0;
+      size_t num_faces = 0;
+      bool have_num_verts = false;
+      bool have_num_faces = false;
+      bool in_vertex_element = false;
+      std::vector<std::string> vertex_properties;
+
+      while (total_lines_processed < LIBFS_MAX_PLY_LINES)
       {
-        line_idx += 1;
+        // -- Security: bounded line read (P6) --
+        if (!std::getline(*is, line))
+        {
+          break; // EOF or read error
+        }
+        total_lines_processed++;
+        line_idx++;
+
+        if (line.size() > LIBFS_MAX_PLY_LINE_LENGTH)
+        {
+          throw std::runtime_error("PLY line " + std::to_string(line_idx + 1) +
+                                   " exceeds maximum allowed line length of " +
+                                   std::to_string(LIBFS_MAX_PLY_LINE_LENGTH) + " bytes.\n");
+        }
+
         std::istringstream iss(line);
         if (fs::util::starts_with(line, "comment"))
         {
@@ -2108,23 +2228,55 @@ namespace fs
             if (line == "end_header")
             {
               in_header = false;
+
+              // -- Security: validate header counts after header is complete --
+              if (!have_num_verts || !have_num_faces)
+              {
+                throw std::domain_error("Invalid PLY file: missing element count lines in header.\n");
+              }
+
+              // -- Security: validate header counts against allocation limit (P2) --
+              if (!util::check_alloc(num_verts, 3 * sizeof(float)) ||
+                  !util::check_alloc(num_faces, 3 * sizeof(int)))
+              {
+                throw std::runtime_error("PLY header declares more vertices/faces than allowed by allocation limit (" +
+                                         std::to_string(LIBFS_MAX_ALLOC_BYTES) + " bytes).\n");
+              }
             }
             else if (fs::util::starts_with(line, "element vertex"))
             {
               std::string elem, elem_type_identifier;
-              if (!(iss >> elem >> elem_type_identifier >> num_verts))
+
+              // -- Security: parse count as long long to avoid int overflow (P1) --
+              long long parsed_num_verts;
+              if (!(iss >> elem >> elem_type_identifier >> parsed_num_verts))
               {
                 throw std::domain_error("Could not parse element vertex line of PLY header, invalid format.\n");
               }
+              if (parsed_num_verts < 0)
+              {
+                throw std::domain_error("Negative vertex count in PLY header.\n");
+              }
+              num_verts = static_cast<size_t>(parsed_num_verts);
+              have_num_verts = true;
               in_vertex_element = true;
             }
             else if (fs::util::starts_with(line, "element face"))
             {
               std::string elem, elem_type_identifier;
-              if (!(iss >> elem >> elem_type_identifier >> num_faces))
+
+              // -- Security: parse count as long long to avoid int overflow (P1) --
+              long long parsed_num_faces;
+              if (!(iss >> elem >> elem_type_identifier >> parsed_num_faces))
               {
                 throw std::domain_error("Could not parse element face line of PLY header, invalid format.\n");
               }
+              if (parsed_num_faces < 0)
+              {
+                throw std::domain_error("Negative face count in PLY header.\n");
+              }
+              num_faces = static_cast<size_t>(parsed_num_faces);
+              have_num_faces = true;
               in_vertex_element = false;
             }
             else if (fs::util::starts_with(line, "element "))
@@ -2144,12 +2296,12 @@ namespace fs
           }
           else
           { // in data part.
-            if (num_verts < 1 || num_faces < 1)
+            if (!have_num_verts || !have_num_faces)
             {
               throw std::domain_error("Invalid PLY file: missing element count lines of header.");
             }
             // Read vertices
-            if (vertices.size() < (size_t)num_verts * 3)
+            if (vertices.size() < num_verts * 3)
             {
               float x = 0.0f, y = 0.0f, z = 0.0f;
               int r = 0, g = 0, b = 0;
@@ -2160,9 +2312,6 @@ namespace fs
                 {
                   throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
                 }
-                vertices.push_back(x);
-                vertices.push_back(y);
-                vertices.push_back(z);
               }
               else
               {
@@ -2194,28 +2343,40 @@ namespace fs
                 {
                   throw std::domain_error("Could not parse vertex line " + std::to_string(line_idx) + " of PLY data, invalid format.\n");
                 }
-                vertices.push_back(x);
-                vertices.push_back(y);
-                vertices.push_back(z);
-                // Only store colors if red/green/blue were declared in the header.
-                bool has_r = false, has_g = false, has_b = false;
-                for (size_t pi = 0; pi < vertex_properties.size(); pi++)
-                {
-                  if (vertex_properties[pi] == "red") has_r = true;
-                  if (vertex_properties[pi] == "green") has_g = true;
-                  if (vertex_properties[pi] == "blue") has_b = true;
-                }
-                if (has_r && has_g && has_b)
-                {
-                  vertex_colors.push_back(static_cast<uint8_t>(r));
-                  vertex_colors.push_back(static_cast<uint8_t>(g));
-                  vertex_colors.push_back(static_cast<uint8_t>(b));
-                }
+              }
+
+              // -- Security: validate finite coordinates (P9) --
+              if (!util::is_finite_float(x) || !util::is_finite_float(y) || !util::is_finite_float(z))
+              {
+                throw std::domain_error("Non-finite vertex coordinate on line " + std::to_string(line_idx) + " of PLY data.\n");
+              }
+
+              vertices.push_back(x);
+              vertices.push_back(y);
+              vertices.push_back(z);
+
+              // Only store colors if red/green/blue were declared in the header.
+              bool has_r = false, has_g = false, has_b = false;
+              for (size_t pi = 0; pi < vertex_properties.size(); pi++)
+              {
+                if (vertex_properties[pi] == "red") has_r = true;
+                if (vertex_properties[pi] == "green") has_g = true;
+                if (vertex_properties[pi] == "blue") has_b = true;
+              }
+              if (has_r && has_g && has_b)
+              {
+                // -- Security: clamp vertex colors to [0,255] (P10) --
+                if (r < 0) { r = 0; } if (r > 255) { r = 255; }
+                if (g < 0) { g = 0; } if (g > 255) { g = 255; }
+                if (b < 0) { b = 0; } if (b > 255) { b = 255; }
+                vertex_colors.push_back(static_cast<uint8_t>(r));
+                vertex_colors.push_back(static_cast<uint8_t>(g));
+                vertex_colors.push_back(static_cast<uint8_t>(b));
               }
             }
             else
             {
-              if (faces.size() < (size_t)num_faces * 3)
+              if (faces.size() < num_faces * 3)
               {
                 int verts_per_face, v0, v1, v2;
                 if (!(iss >> verts_per_face >> v0 >> v1 >> v2))
@@ -2234,14 +2395,44 @@ namespace fs
           }
         }
       }
-      if (vertices.size() != (size_t)num_verts * 3)
+
+      // -- Security: max-lines exceeded (P7) --
+      if (total_lines_processed >= LIBFS_MAX_PLY_LINES && !is->eof())
       {
-        std::cerr << "PLY header mentions " << num_verts << " vertices, but found " << vertices.size() / 3 << ".\n";
+        throw std::runtime_error("PLY file exceeds maximum allowed line count of " + std::to_string(LIBFS_MAX_PLY_LINES) + ".\n");
       }
-      if (faces.size() != (size_t)num_faces * 3)
+
+      // -- Throw if header was never terminated --
+      if (in_header)
       {
-        std::cerr << "PLY header mentions " << num_faces << " faces, but found " << faces.size() / 3 << ".\n";
+        throw std::domain_error("Invalid PLY file: header not terminated with 'end_header'.\n");
       }
+
+      // -- Security: throw on count mismatch instead of just warning (P5) --
+      if (vertices.size() != num_verts * 3)
+      {
+        throw std::domain_error("PLY vertex count mismatch: header declares " + std::to_string(num_verts) +
+                                " vertices, but found " + std::to_string(vertices.size() / 3) + ".\n");
+      }
+      if (faces.size() != num_faces * 3)
+      {
+        throw std::domain_error("PLY face count mismatch: header declares " + std::to_string(num_faces) +
+                                " faces, but found " + std::to_string(faces.size() / 3) + ".\n");
+      }
+
+      // -- Security: validate face indices against vertex count (P3) --
+      {
+        int32_t nv = static_cast<int32_t>(num_verts);
+        for (size_t fi = 0; fi < faces.size(); fi++)
+        {
+          int idx = faces[fi];
+          if (idx < 0 || idx >= nv)
+          {
+            throw std::domain_error("Face index " + std::to_string(idx) + " out of range [0, " + std::to_string(nv - 1) + "] in PLY data.\n");
+          }
+        }
+      }
+
       mesh->vertices = vertices;
       mesh->faces = faces;
       mesh->vertex_colors = vertex_colors;
@@ -2265,6 +2456,14 @@ namespace fs
 #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from PLY format file " << filename << ".\n";
 #endif
+      // -- Security: file-size pre-check (P8) --
+      size_t file_size = util::get_file_size(filename);
+      if (file_size > LIBFS_MAX_PLY_FILE_SIZE)
+      {
+        throw std::runtime_error("PLY file '" + filename + "' size (" + std::to_string(file_size) +
+                                 " bytes) exceeds maximum allowed (" + std::to_string(LIBFS_MAX_PLY_FILE_SIZE) + " bytes).\n");
+      }
+
       std::ifstream input(filename, std::fstream::in);
       if (input.is_open())
       {
