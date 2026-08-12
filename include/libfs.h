@@ -340,7 +340,9 @@ namespace fs
     /// @param loglevel the log level, one of `fs::util::LOGTAG_*`.
     inline void log(std::string const &message, std::string const loglevel = "INFO")
     {
+#ifdef LIBFS_DBG_ERROR
       std::cout << LIBFS_APPTAG << "[" << loglevel << "] [" << fs::util::time_tag(std::chrono::system_clock::now()) << "] " << message << "\n";
+#endif
     }
 
     // -- Security / defensive hardening helpers -----------------------------------------
@@ -3189,7 +3191,9 @@ namespace fs
       size_t num_ids = this->id.size();
       if (this->name.size() != num_ids || this->r.size() != num_ids || this->g.size() != num_ids || this->b.size() != num_ids || this->a.size() != num_ids || this->label.size() != num_ids)
       {
+#ifdef LIBFS_DBG_ERROR
         std::cerr << "Inconsistent Colortable, vector sizes do not match.\n";
+#endif
       }
       return num_ids;
     }
@@ -3238,7 +3242,9 @@ namespace fs
       }
       else
       {
+#ifdef LIBFS_DBG_ERROR
         std::cerr << "No such region in annot, returning empty vector.\n";
+#endif
         std::vector<int32_t> empty;
         return (empty);
       }
@@ -3774,7 +3780,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_INT)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<int32_t>(mgh_header, filename));
   }
@@ -3787,7 +3795,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_INT)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_INT << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<int32_t>(mgh_header, is));
   }
@@ -3800,7 +3810,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_SHORT)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_SHORT << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<short>(mgh_header, filename));
   }
@@ -3813,7 +3825,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_SHORT)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_SHORT << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<short>(mgh_header, is));
   }
@@ -3922,7 +3936,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_FLOAT)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<float>(mgh_header, filename));
   }
@@ -3935,7 +3951,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_FLOAT)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_FLOAT << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<float>(mgh_header, is));
   }
@@ -3948,7 +3966,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_UCHAR)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<uint8_t>(mgh_header, filename));
   }
@@ -3961,7 +3981,9 @@ namespace fs
   {
     if (mgh_header->dtype != MRI_UCHAR)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Expected MRI data type " << MRI_UCHAR << ", but found " << mgh_header->dtype << ".\n";
+#endif
     }
     return (_read_mgh_data<uint8_t>(mgh_header, is));
   }
@@ -4249,7 +4271,9 @@ namespace fs
     int32_t num_entries_duplicated = _freadt<int32_t>(*is); // Yes, once more.
     if (num_entries != num_entries_duplicated)
     {
+#ifdef LIBFS_DBG_ERROR
       std::cerr << "Warning: the two num_entries header fields of this annotation do not match. Use with care.\n";
+#endif
     }
 
     colortable->id.reserve(static_cast<size_t>(num_entries));
@@ -4433,7 +4457,9 @@ namespace fs
       }
       if (num_gt_1 > 1)
       {
+#ifdef LIBFS_DBG_ERROR
         std::cerr << "MGH file '" << filename << "' contains more than one non-empty dimension. Returning concatinated data.\n";
+#endif
       }
       return mgh.data.data_mri_float;
     }
@@ -4456,7 +4482,9 @@ namespace fs
       }
       if (num_gt_1 > 1)
       {
+#ifdef LIBFS_DBG_ERROR
         std::cerr << "NIfTI file '" << filename << "' contains more than one non-empty dimension. Returning concatenated data.\n";
+#endif
       }
       return mgh.data.data_mri_float;
     }
@@ -5866,7 +5894,9 @@ namespace fs
     {
       if (surface_num_verts < this->vertex.size())
       { // nonsense, so we warn (but don't throw, maybe the user really wants this).
+#ifdef LIBFS_DBG_ERROR
         std::cerr << "Invalid number of vertices for surface, must be at least " << this->vertex.size() << "\n";
+#endif
       }
       std::vector<bool> is_in = std::vector<bool>(surface_num_verts, false);
 
@@ -5883,7 +5913,9 @@ namespace fs
       size_t num_ent = this->vertex.size();
       if (this->coord_x.size() != num_ent || this->coord_y.size() != num_ent || this->coord_z.size() != num_ent || this->value.size() != num_ent)
       {
+#ifdef LIBFS_DBG_ERROR
         std::cerr << "Inconsistent label: sizes of property vectors do not match.\n";
+#endif
       }
       return (num_ent);
     }
