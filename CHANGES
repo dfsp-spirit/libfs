@@ -4,7 +4,11 @@ libfs Changes
 
 Current WIP
 -----------
-* NEW: Add new features to OBJ reader (quads, relative indices, ...) and improve its security
+* NEW: Add new features to OBJ reader (quads, relative indices, texture coords, ...) and improve its security
+* NEW: Improve security of the OFF and PLY readers
+
+Note that loading texture coordinates from OBJ files and saving them as per-vertex properties requires vertex expansion, as these are stored in the file for each face edge, and one vertex will occur listed several times, as it is part of several face edges. This means that after loading, the mesh will have more vertices than listed in the source mesh file, as typical in computer graphics applications. This ONLY affects meshes with texture coords. All other meshes are still guaranteed to have the vertex listed at position N in the file to be at the respective vertex index in the loaded mesh.
+
 
 v0.5.0 -- NIfTI support and bug fixes
 --------------------------------------
