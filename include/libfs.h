@@ -47,7 +47,7 @@
 ///          file headers.  For programmatic version checks, prefer the
 ///          individual `LIBFS_VERSION_MAJOR`, `LIBFS_VERSION_MINOR`, and
 ///          `LIBFS_VERSION_PATCH` integer macros.
-#define LIBFS_VERSION "0.5.0"
+#define LIBFS_VERSION "0.6.0"
 
 /// @brief Major version number (incompatible API changes).
 /// @details Incremented when the public API changes in a way that breaks
@@ -61,7 +61,7 @@
 /// @details Incremented when new functionality is added without breaking
 ///          existing API contracts.  Together with `LIBFS_VERSION_MAJOR` this
 ///          forms the `MAJOR.MINOR` prefix used in release tags.
-#define LIBFS_VERSION_MINOR 5
+#define LIBFS_VERSION_MINOR 6
 
 /// @brief Patch version number (backward-compatible bug fixes).
 /// @details Incremented for bug-fix releases that do not add new features or
