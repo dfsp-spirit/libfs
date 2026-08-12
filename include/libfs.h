@@ -1672,6 +1672,7 @@ namespace fs
     /// @details This only reads the geometry, optional format extensions like materials are ignored (but files including them should parse fine).
     /// @param mesh pointer to fs:Mesh instance to be filled.
     /// @param is stream holding a text representation of a mesh in Wavefront object format.
+    /// @param preserve_vertex_indices if true, texture coordinates and vertex normals are ignored and not loaded, and the mesh keeps the vertices exactly as listed in the file (same order and count). This guarantees that the vertex at position N in the file stays at index N-1 in the loaded mesh, which is useful for FreeSurfer-style per-vertex indexing.
     /// @see There exists an overloaded version that reads from a file.
     /// @throws std::domain_error if the file format is invalid.
     ///
@@ -1682,7 +1683,7 @@ namespace fs
     /// const std::string in_path = fs::util::fullpath({"/tmp", "mesh.obj"});
     /// fs::Mesh::from_obj(&surface, in_path);
     /// @endcode
-    static void from_obj(Mesh *mesh, std::istream *is)
+    static void from_obj(Mesh *mesh, std::istream *is, const bool preserve_vertex_indices = false)
     {
       // -- Security: null-pointer check (plan #8) --
       if (!mesh)
@@ -1821,7 +1822,7 @@ namespace fs
               vertex_colors.push_back(static_cast<uint8_t>(bi));
             }
           }
-          else if (fs::util::starts_with(line, "vn "))
+          else if (!preserve_vertex_indices && fs::util::starts_with(line, "vn "))
           {
             // -- Feature: parse vertex normals (plan #3) --
             std::string elem_type_identifier;
@@ -1839,7 +1840,7 @@ namespace fs
             raw_normals.push_back(ny);
             raw_normals.push_back(nz);
           }
-          else if (fs::util::starts_with(line, "vt "))
+          else if (!preserve_vertex_indices && fs::util::starts_with(line, "vt "))
           {
             // -- Feature: parse texture coordinates (plan #4) --
             std::string elem_type_identifier;
@@ -1949,34 +1950,40 @@ namespace fs
               raw_indices.push_back(vi);
 
               // Parse optional texcoord index.
-              int vti = 0;
-              if (!vt_part.empty())
+              if (!preserve_vertex_indices)
               {
-                try { vti = std::stoi(vt_part); }
-                catch (const std::invalid_argument &) {
-                  throw std::domain_error("Invalid texcoord index '" + vt_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                int vti = 0;
+                if (!vt_part.empty())
+                {
+                  try { vti = std::stoi(vt_part); }
+                  catch (const std::invalid_argument &) {
+                    throw std::domain_error("Invalid texcoord index '" + vt_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                  }
+                  catch (const std::out_of_range &) {
+                    throw std::domain_error("Texcoord index '" + vt_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                  }
+                  has_any_vt = true;
                 }
-                catch (const std::out_of_range &) {
-                  throw std::domain_error("Texcoord index '" + vt_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
-                }
-                has_any_vt = true;
+                tok_vt_indices.push_back(vti);
               }
-              tok_vt_indices.push_back(vti);
 
               // Parse optional normal index.
-              int vni = 0;
-              if (!vn_part.empty())
+              if (!preserve_vertex_indices)
               {
-                try { vni = std::stoi(vn_part); }
-                catch (const std::invalid_argument &) {
-                  throw std::domain_error("Invalid normal index '" + vn_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                int vni = 0;
+                if (!vn_part.empty())
+                {
+                  try { vni = std::stoi(vn_part); }
+                  catch (const std::invalid_argument &) {
+                    throw std::domain_error("Invalid normal index '" + vn_part + "' on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                  }
+                  catch (const std::out_of_range &) {
+                    throw std::domain_error("Normal index '" + vn_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
+                  }
+                  has_any_vn = true;
                 }
-                catch (const std::out_of_range &) {
-                  throw std::domain_error("Normal index '" + vn_part + "' out of integer range on line " + std::to_string(line_idx + 1) + " of OBJ data.\n");
-                }
-                has_any_vn = true;
+                tok_vn_indices.push_back(vni);
               }
-              tok_vn_indices.push_back(vni);
             }
 
             // -- Feature: fan triangulation for quads and n-gons (plan #1) --
@@ -1989,13 +1996,19 @@ namespace fs
               faces.push_back(raw_indices[ti]);
               faces.push_back(raw_indices[ti + 1]);
               // Parallel texcoord indices
-              face_vt_indices.push_back(tok_vt_indices[0]);
-              face_vt_indices.push_back(tok_vt_indices[ti]);
-              face_vt_indices.push_back(tok_vt_indices[ti + 1]);
+              if (!preserve_vertex_indices)
+              {
+                face_vt_indices.push_back(tok_vt_indices[0]);
+                face_vt_indices.push_back(tok_vt_indices[ti]);
+                face_vt_indices.push_back(tok_vt_indices[ti + 1]);
+              }
               // Parallel normal indices
-              face_vn_indices.push_back(tok_vn_indices[0]);
-              face_vn_indices.push_back(tok_vn_indices[ti]);
-              face_vn_indices.push_back(tok_vn_indices[ti + 1]);
+              if (!preserve_vertex_indices)
+              {
+                face_vn_indices.push_back(tok_vn_indices[0]);
+                face_vn_indices.push_back(tok_vn_indices[ti]);
+                face_vn_indices.push_back(tok_vn_indices[ti + 1]);
+              }
             }
           }
           else
@@ -2065,6 +2078,21 @@ namespace fs
       if (faces.size() % 3 != 0)
       {
         throw std::domain_error("Internal error: parsed face count " + std::to_string(faces.size()) + " is not a multiple of 3.\n");
+      }
+
+      // -- Post-parse: if vertex index preservation was requested, keep the
+      // file's vertex list and resolved 0-based faces as-is (no expansion).
+      if (preserve_vertex_indices)
+      {
+        // faces have already been resolved to 0-based indices above, and
+        // vertices are still in file order, so this gives a 1:1 mapping:
+        // file vertex at position N ends up at mesh index N-1.
+        mesh->vertices = vertices;
+        mesh->faces = faces;
+        mesh->vertex_colors = vertex_colors;
+        mesh->vertex_normals.clear();
+        mesh->vertex_texcoords.clear();
+        return;
       }
 
       // -- Post-parse: vertex deduplication by (position, texcoord, normal) tuple --
@@ -2221,6 +2249,7 @@ namespace fs
     /// @see There exists an overloaded version that reads from a stream.
     /// @param mesh pointer to fs:Mesh instance to be filled.
     /// @param filename path to input wavefront obj mesh to be read.
+    /// @param preserve_vertex_indices if true, texture coordinates and vertex normals are ignored and not loaded, and the mesh keeps the vertices exactly as listed in the file (same order and count). This guarantees that the vertex at position N in the file stays at index N-1 in the loaded mesh, which is useful for FreeSurfer-style per-vertex indexing.
     /// @throws std::runtime_error if the file cannot be read.
     /// @throws std::domain_error if the file format is invalid.
     ///
@@ -2230,7 +2259,7 @@ namespace fs
     /// fs::Mesh surface;
     /// fs::Mesh::from_obj(&surface, "mesh.obj");
     /// @endcode
-    static void from_obj(Mesh *mesh, const std::string &filename)
+    static void from_obj(Mesh *mesh, const std::string &filename, const bool preserve_vertex_indices = false)
     {
 #ifdef LIBFS_DBG_INFO
       std::cout << LIBFS_APPTAG << "Reading brain mesh from Wavefront object format file " << filename << ".\n";
@@ -2246,7 +2275,7 @@ namespace fs
       std::ifstream input(filename, std::fstream::in);
       if (input.is_open())
       {
-        Mesh::from_obj(mesh, &input);
+        Mesh::from_obj(mesh, &input, preserve_vertex_indices);
         input.close();
       }
       else

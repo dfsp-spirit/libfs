@@ -2655,6 +2655,115 @@ TEST_CASE("OBJ loader defaults to no normals/texcoords when not present", "[obj]
     REQUIRE(m.vertex_texcoords.empty());
 }
 
+TEST_CASE("OBJ loader preserve_vertex_indices avoids vertex expansion", "[obj][feature][preserve_vertex_indices]")
+{
+    // Same position (vertex 1) is referenced with two different texture
+    // coordinates across faces, which would normally cause vertex expansion.
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "vt 0 0\n"
+        "vt 1 0\n"
+        "vt 0 1\n"
+        "vt 1 1\n"
+        "f 1/1 2/2 3/3\n"
+        "f 1/4 2/2 3/3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss, true);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE_FALSE(m.has_texcoords());
+    REQUIRE_FALSE(m.has_normals());
+    REQUIRE(m.vertex_texcoords.empty());
+    REQUIRE(m.vertex_normals.empty());
+
+    // Face indices map 1:1 to file vertex positions (1-based -> 0-based).
+    REQUIRE(m.faces.size() == 6);
+    REQUIRE(m.faces[0] == 0);
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 2);
+    REQUIRE(m.faces[3] == 0);
+    REQUIRE(m.faces[4] == 1);
+    REQUIRE(m.faces[5] == 2);
+}
+
+TEST_CASE("OBJ loader preserve_vertex_indices keeps unreferenced vertices", "[obj][feature][preserve_vertex_indices]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "v 9 9 9\n" // never referenced by any face
+        "f 1 2 3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss, true);
+
+    REQUIRE(m.num_vertices() == 4);
+    // The unreferenced 4th vertex stays at index 3 with its file coordinates.
+    REQUIRE(m.vertices[9] == Approx(9.0f));
+    REQUIRE(m.vertices[10] == Approx(9.0f));
+    REQUIRE(m.vertices[11] == Approx(9.0f));
+}
+
+TEST_CASE("OBJ loader preserve_vertex_indices resolves negative indices", "[obj][feature][preserve_vertex_indices]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "f -3 -2 -1\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss, true);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.faces[0] == 0);
+    REQUIRE(m.faces[1] == 1);
+    REQUIRE(m.faces[2] == 2);
+}
+
+TEST_CASE("OBJ loader preserve_vertex_indices keeps per-vertex colors", "[obj][feature][preserve_vertex_indices]")
+{
+    std::string obj_data =
+        "v 0 0 0 1.0 0.0 0.0\n"
+        "v 1 0 0 0.0 1.0 0.0\n"
+        "v 0 1 0 0.0 0.0 1.0\n"
+        "f 1 2 3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss, true);
+
+    REQUIRE(m.num_vertices() == 3);
+    REQUIRE(m.vertex_colors.size() == 9);
+    REQUIRE(m.vertex_colors[0] == 255);
+    REQUIRE(m.vertex_colors[1] == 0);
+    REQUIRE(m.vertex_colors[2] == 0);
+}
+
+TEST_CASE("OBJ loader default expands vertices at texture seams", "[obj][feature]")
+{
+    std::string obj_data =
+        "v 0 0 0\n"
+        "v 1 0 0\n"
+        "v 0 1 0\n"
+        "vt 0 0\n"
+        "vt 1 0\n"
+        "vt 0 1\n"
+        "vt 1 1\n"
+        "f 1/1 2/2 3/3\n"
+        "f 1/4 2/2 3/3\n";
+    std::istringstream iss(obj_data);
+    fs::Mesh m;
+    fs::Mesh::from_obj(&m, &iss);
+
+    // Default behavior still expands: vertex 1 occurs with two different
+    // texture coordinates, producing 4 vertices instead of 3.
+    REQUIRE(m.num_vertices() == 4);
+}
+
 TEST_CASE("PLY loader parses vertex normals", "[ply][feature][normals]")
 {
     std::string ply_data =
