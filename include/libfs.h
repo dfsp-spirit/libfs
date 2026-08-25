@@ -5329,6 +5329,93 @@ namespace fs
     os.write(reinterpret_cast<const char *>(&val), sizeof(T));
   }
 
+  /// @brief Compute the NIfTI-1 quaternion parameters (b, c, d) and qfac from a 3×3 matrix.
+  /// @details The input matrix is the rotation part of a transform with the voxel
+  ///          sizes already divided out.  A negative determinant (a reflection) is
+  ///          encoded using the NIfTI convention: qfac = -1 and the third column is
+  ///          negated before quaternion extraction.  The scalar part `a` is implied
+  ///          as sqrt(1 - b² - c² - d²), so the returned quaternion is normalized
+  ///          with a non-negative scalar part.
+  /// @param m00..m22  Row-major 3×3 matrix elements.
+  /// @param b, c, d   [out] Quaternion parameters.
+  /// @param qfac      [out] +1 or -1 (to be stored in pixdim[0]).
+  /// @private
+  inline void _nifti_mat33_to_quatern(float m00, float m01, float m02,
+                                      float m10, float m11, float m12,
+                                      float m20, float m21, float m22,
+                                      float *b, float *c, float *d, float *qfac)
+  {
+    // Fold any reflection into the third column (NIfTI convention).
+    float det = m00 * (m11 * m22 - m12 * m21) -
+                m01 * (m10 * m22 - m12 * m20) +
+                m02 * (m10 * m21 - m11 * m20);
+    *qfac = (det < 0.0f) ? -1.0f : 1.0f;
+    if (*qfac < 0.0f)
+    {
+      m02 = -m02;
+      m12 = -m12;
+      m22 = -m22;
+    }
+
+    // Extract a unit quaternion (w, x, y, z) using Shepperd's method.
+    float w, x, y, z;
+    float trace = m00 + m11 + m22;
+    if (trace > 0.0f)
+    {
+      float s = std::sqrt(trace + 1.0f) * 2.0f; // s = 4*w
+      w = 0.25f * s;
+      x = (m21 - m12) / s;
+      y = (m02 - m20) / s;
+      z = (m10 - m01) / s;
+    }
+    else if (m00 > m11 && m00 > m22)
+    {
+      float s = std::sqrt(1.0f + m00 - m11 - m22) * 2.0f; // s = 4*x
+      w = (m21 - m12) / s;
+      x = 0.25f * s;
+      y = (m01 + m10) / s;
+      z = (m02 + m20) / s;
+    }
+    else if (m11 > m22)
+    {
+      float s = std::sqrt(1.0f + m11 - m00 - m22) * 2.0f; // s = 4*y
+      w = (m02 - m20) / s;
+      x = (m01 + m10) / s;
+      y = 0.25f * s;
+      z = (m12 + m21) / s;
+    }
+    else
+    {
+      float s = std::sqrt(1.0f + m22 - m00 - m11) * 2.0f; // s = 4*z
+      w = (m10 - m01) / s;
+      x = (m02 + m20) / s;
+      y = (m12 + m21) / s;
+      z = 0.25f * s;
+    }
+
+    // Normalize, and ensure the scalar part is non-negative so that the
+    // implied `a = sqrt(1 - b² - c² - d²)` reproduces the same rotation.
+    float n = std::sqrt(w * w + x * x + y * y + z * z);
+    if (n > 0.0f)
+    {
+      w /= n;
+      x /= n;
+      y /= n;
+      z /= n;
+    }
+    if (w < 0.0f)
+    {
+      w = -w;
+      x = -x;
+      y = -y;
+      z = -z;
+    }
+
+    *b = x;
+    *c = y;
+    *d = z;
+  }
+
   /// @brief Extract RAS spatial metadata from a NIfTI-1 header into an MghHeader.
   /// @details Prefers sform over qform.  Sets ras_good_flag = 1 on success.
   /// @private
@@ -5648,13 +5735,32 @@ namespace fs
       hdr.srow_y[0] = mgh.header.Mdc[3]; hdr.srow_y[1] = mgh.header.Mdc[4]; hdr.srow_y[2] = mgh.header.Mdc[5]; hdr.srow_y[3] = mgh.header.Pxyz_c[1];
       hdr.srow_z[0] = mgh.header.Mdc[6]; hdr.srow_z[1] = mgh.header.Mdc[7]; hdr.srow_z[2] = mgh.header.Mdc[8]; hdr.srow_z[3] = mgh.header.Pxyz_c[2];
 
-      // Set quaternion fields from sform for consistency (optional, but good practice).
-      hdr.quatern_b = 0.0f;
-      hdr.quatern_c = 0.0f;
-      hdr.quatern_d = 0.0f;
-      hdr.qoffset_x = hdr.srow_x[3];
-      hdr.qoffset_y = hdr.srow_y[3];
-      hdr.qoffset_z = hdr.srow_z[3];
+      // Compute the quaternion (and qfac) that reproduces the same 3×3
+      // transform as the sform, so qform stays consistent with sform.
+      float sx = hdr.pixdim[1];
+      float sy = hdr.pixdim[2];
+      float sz = hdr.pixdim[3];
+      float R00 = mgh.header.Mdc[0] / sx;
+      float R01 = mgh.header.Mdc[1] / sy;
+      float R02 = mgh.header.Mdc[2] / sz;
+      float R10 = mgh.header.Mdc[3] / sx;
+      float R11 = mgh.header.Mdc[4] / sy;
+      float R12 = mgh.header.Mdc[5] / sz;
+      float R20 = mgh.header.Mdc[6] / sx;
+      float R21 = mgh.header.Mdc[7] / sy;
+      float R22 = mgh.header.Mdc[8] / sz;
+
+      float qb, qc, qd, qfac;
+      _nifti_mat33_to_quatern(R00, R01, R02, R10, R11, R12, R20, R21, R22,
+                              &qb, &qc, &qd, &qfac);
+
+      hdr.pixdim[0]  = qfac; // qfac sign encodes reflections (NIfTI convention)
+      hdr.quatern_b  = qb;
+      hdr.quatern_c  = qc;
+      hdr.quatern_d  = qd;
+      hdr.qoffset_x  = hdr.srow_x[3];
+      hdr.qoffset_y  = hdr.srow_y[3];
+      hdr.qoffset_z  = hdr.srow_z[3];
     }
     else
     {

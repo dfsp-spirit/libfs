@@ -1838,6 +1838,104 @@ TEST_CASE("NIfTI-1: read NIfTI with sform_code=1 extracts full RAS metadata", "[
     }
 }
 
+TEST_CASE("NIfTI-1: write_nifti emits a quaternion consistent with sform", "[nifti][ras]")
+{
+    // Build a tiny MGH with a chosen direction-cosine matrix and RAS origin.
+    auto make_mgh = [](std::vector<float> mdc, float px, float py, float pz)
+    {
+        fs::Mgh mgh;
+        mgh.header.dim1length = 2;
+        mgh.header.dim2length = 2;
+        mgh.header.dim3length = 2;
+        mgh.header.dim4length = 1;
+        mgh.header.dtype = fs::MRI_FLOAT;
+        mgh.header.xsize = 1.0f;
+        mgh.header.ysize = 1.0f;
+        mgh.header.zsize = 1.0f;
+        mgh.header.ras_good_flag = 1;
+        mgh.header.Mdc = mdc;
+        mgh.header.Pxyz_c = {px, py, pz};
+        mgh.data.data_mri_float.resize(8, 0.0f);
+        return mgh;
+    };
+
+    // Write the NIfTI and parse its (byte-swapped) header back in host order.
+    auto write_and_read_header = [](const fs::Mgh& mgh, const std::string& fn)
+    {
+        fs::write_nifti(mgh, fn);
+        std::ifstream ifs(fn, std::ios::binary);
+        bool bigendian = false;
+        return fs::_read_nifti1_header(ifs, bigendian);
+    };
+
+    // Reconstruct the qform 3×3 from the quaternion fields and require it to
+    // match the sform 3×3 (which is the Mdc matrix).
+    auto check_qform = [](const fs::Nifti1Header& hdr)
+    {
+        float b = hdr.quatern_b, c = hdr.quatern_c, d = hdr.quatern_d;
+        float a = std::sqrt(std::max(0.0f, 1.0f - (b * b + c * c + d * d)));
+        float qfac = (hdr.pixdim[0] < 0.0f) ? -1.0f : 1.0f;
+        float R11 = a * a + b * b - c * c - d * d;
+        float R12 = 2.0f * (b * c - a * d);
+        float R13 = 2.0f * (b * d + a * c);
+        float R21 = 2.0f * (b * c + a * d);
+        float R22 = a * a + c * c - b * b - d * d;
+        float R23 = 2.0f * (c * d - a * b);
+        float R31 = 2.0f * (b * d - a * c);
+        float R32 = 2.0f * (c * d + a * b);
+        float R33 = a * a + d * d - b * b - c * c;
+        float zs  = hdr.pixdim[3] * qfac;
+
+        // Use an explicit tolerance rather than Approx(0.0), which has zero
+        // slack and would reject tiny floating-point residues (e.g. -0.0f).
+        const float tol = 1e-5f;
+        REQUIRE(std::fabs(R11 * hdr.pixdim[1] - hdr.srow_x[0]) < tol);
+        REQUIRE(std::fabs(R12 * hdr.pixdim[2] - hdr.srow_x[1]) < tol);
+        REQUIRE(std::fabs(R13 * zs            - hdr.srow_x[2]) < tol);
+        REQUIRE(std::fabs(R21 * hdr.pixdim[1] - hdr.srow_y[0]) < tol);
+        REQUIRE(std::fabs(R22 * hdr.pixdim[2] - hdr.srow_y[1]) < tol);
+        REQUIRE(std::fabs(R23 * zs            - hdr.srow_y[2]) < tol);
+        REQUIRE(std::fabs(R31 * hdr.pixdim[1] - hdr.srow_z[0]) < tol);
+        REQUIRE(std::fabs(R32 * hdr.pixdim[2] - hdr.srow_z[1]) < tol);
+        REQUIRE(std::fabs(R33 * zs            - hdr.srow_z[2]) < tol);
+    };
+
+    SECTION("90-degree rotation about z produces a non-identity quaternion")
+    {
+        // R = [[0,-1,0],[1,0,0],[0,0,1]]  (proper rotation, det = +1)
+        fs::Mgh mgh = make_mgh({0.0f, -1.0f, 0.0f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f},
+                               10.0f, 20.0f, 30.0f);
+        std::string fn = "libfs_test_qform_rot.nii";
+        fs::Nifti1Header hdr = write_and_read_header(mgh, fn);
+
+        REQUIRE(hdr.sform_code == 1);
+        REQUIRE(hdr.qform_code == 1);
+        REQUIRE(hdr.pixdim[0] > 0.0f);              // proper rotation -> positive qfac
+        REQUIRE(hdr.quatern_b == Approx(0.0f));
+        REQUIRE(hdr.quatern_c == Approx(0.0f));
+        REQUIRE(hdr.quatern_d == Approx(0.70710678f)); // sin(45°) for 90° about z
+        check_qform(hdr);
+
+        std::remove(fn.c_str());
+    }
+
+    SECTION("axis flip (reflection) is encoded via negative qfac")
+    {
+        // R = [[-1,0,0],[0,1,0],[0,0,1]]  (improper rotation, det = -1)
+        fs::Mgh mgh = make_mgh({-1.0f, 0.0f, 0.0f,  0.0f, 1.0f, 0.0f,  0.0f, 0.0f, 1.0f},
+                               -5.0f, 12.0f, 7.0f);
+        std::string fn = "libfs_test_qform_flip.nii";
+        fs::Nifti1Header hdr = write_and_read_header(mgh, fn);
+
+        REQUIRE(hdr.sform_code == 1);
+        REQUIRE(hdr.qform_code == 1);
+        REQUIRE(hdr.pixdim[0] < 0.0f);              // reflection -> negative qfac
+        check_qform(hdr);
+
+        std::remove(fn.c_str());
+    }
+}
+
 
 // ============================================================================
 // OBJ Loader: security and feature tests (plan #1–#14)

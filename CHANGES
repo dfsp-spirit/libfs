@@ -2,6 +2,10 @@ libfs Changes
 ===============
 
 
+Unreleased
+----------
+* FIX: `write_nifti()` no longer emits an identity quaternion in the qform.  The unit quaternion is now computed from the rotation part of the MGH `Mdc` matrix (with reflections encoded via a negative `pixdim[0]`), keeping qform consistent with sform.
+
 v0.6.0 -- Improved generic mesh file readers
 ----------------------------------------------
 * NEW: Add new features to OBJ reader (quads, relative indices, texture coords, ...) and improve its security
