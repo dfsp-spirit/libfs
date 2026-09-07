@@ -1734,9 +1734,12 @@ TEST_CASE("NIfTI-1: reading a qform-only header produces the correct MGH RAS fie
         // axis0 -> (0,1,0), axis1 -> (-1,0,0), axis2 -> (0,0,1).
         REQUIRE(mh.Mdc.size() == 9);
         const float expected[9] = { 0.0f, 1.0f, 0.0f,  -1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f };
+        // The "0.0" components are only zero up to float rounding noise (which is platform-
+        // dependent and can come out as a tiny negative value that prints as "-0.0"), so use a
+        // small absolute tolerance here rather than an exact/relative comparison.
         for (int i = 0; i < 9; i++)
         {
-            REQUIRE(mh.Mdc[i] == Approx(expected[i]));
+            REQUIRE(std::fabs(mh.Mdc[i] - expected[i]) <= 1e-3f);
         }
     }
 
