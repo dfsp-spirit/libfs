@@ -3400,6 +3400,119 @@ namespace fs
     float zsize = 0.0;         ///< size of voxels along 3rd axis (z or s)
     std::vector<float> Mdc;    ///< matrix
     std::vector<float> Pxyz_c; ///< x,y,z coordinates of central vertex
+
+    /// @brief Compute the 4x4 voxel-to-RAS (vox2ras) matrix from the RAS header fields, if available.
+    ///
+    /// The vox2ras matrix maps voxel indices to world (RAS) coordinates: the world coordinate of a
+    /// voxel (i, j, k) is `vox2ras * [i, j, k, 1]`. The linear part (upper left 3x3 block) maps a
+    /// unit step along voxel axis j to a world displacement of `size_j * Mdc_row_j`, i.e. column j
+    /// is scaled by the voxel size of axis j. This is the FreeSurfer convention
+    /// (`vox2ras = Mdc^T * diag(size)`, with the rows of the MGH `Mdc` matrix being the unit
+    /// direction cosines of the 3 volume axes). The translation is the RAS coordinate of voxel
+    /// (0,0,0), derived from the center voxel `Pxyz_c` stored in the header (center index uses
+    /// integer division `dim/2`).
+    ///
+    /// @return the vox2ras matrix as 16 floats in row-major order (entry [i*4+j] = row i, col j),
+    ///     or an empty vector if the header does not carry valid RAS information.
+    std::vector<float> compute_vox2ras() const
+    {
+      if (ras_good_flag != 1 || Mdc.size() < 9 || Pxyz_c.size() < 3)
+      {
+        return {};
+      }
+      const float sizes[3] = { xsize, ysize, zsize };
+      const float c_crs[3] = { (float)(dim1length / 2), (float)(dim2length / 2), (float)(dim3length / 2) };
+
+      std::vector<float> a(16, 0.0f);
+      // Linear part: affine[i][j] = sizes[j] * Mdc[j*3 + i] (row j of Mdc is the unit axis-j direction).
+      for (int i = 0; i < 3; ++i)
+      {
+        for (int j = 0; j < 3; ++j)
+        {
+          a[i * 4 + j] = sizes[j] * Mdc[j * 3 + i];
+        }
+      }
+      // Translation: RAS of voxel (0,0,0) = center voxel RAS (Pxyz_c) - linear part * center index.
+      for (int i = 0; i < 3; ++i)
+      {
+        float sum = 0.0f;
+        for (int j = 0; j < 3; ++j)
+        {
+          sum += a[i * 4 + j] * c_crs[j];
+        }
+        a[i * 4 + 3] = Pxyz_c[i] - sum;
+      }
+      a[15] = 1.0f;
+      return a;
+    }
+
+    /// @brief Set the RAS fields (`xsize`/`ysize`/`zsize`, `Mdc`, `Pxyz_c`) from a voxel-to-RAS
+    ///        affine, and set `ras_good_flag` to 1.
+    ///
+    /// This is the inverse of {@link #compute_vox2ras()}: the voxel sizes are taken to be the norms
+    /// of the columns of the linear part, the rows of `Mdc` are set to the (normalized) column
+    /// directions (i.e. the unit direction cosines of the 3 volume axes), and `Pxyz_c` is set to
+    /// the RAS coordinate of the center voxel (the affine applied to the center voxel index, using
+    /// integer division `dim/2`).
+    ///
+    /// @param a the voxel-to-RAS affine as 16 floats in row-major order (translation in a[i*4+3]).
+    /// @private
+    void set_ras_from_vox2ras(const std::vector<float> &a)
+    {
+      Mdc.clear();
+      Pxyz_c.clear();
+      ras_good_flag = 0;
+      if (a.size() < 16)
+      {
+        return;
+      }
+
+      // Voxel sizes are the norms of the columns of the linear part.
+      float sizes[3] = { 0.0f, 0.0f, 0.0f };
+      for (int j = 0; j < 3; ++j)
+      {
+        float norm = 0.0f;
+        for (int i = 0; i < 3; ++i)
+        {
+          norm += a[i * 4 + j] * a[i * 4 + j];
+        }
+        sizes[j] = std::sqrt(norm);
+      }
+
+      // Mdc row j = direction of voxel axis j = normalized column j of the affine.
+      for (int j = 0; j < 3; ++j)
+      {
+        for (int i = 0; i < 3; ++i)
+        {
+          if (sizes[j] > 0.0f)
+          {
+            Mdc.push_back(a[i * 4 + j] / sizes[j]);
+          }
+          else
+          {
+            // Degenerate column (zero voxel size): use a unit vector along the world axis.
+            Mdc.push_back(i == j ? 1.0f : 0.0f);
+            sizes[j] = 1.0f;
+          }
+        }
+      }
+      xsize = sizes[0];
+      ysize = sizes[1];
+      zsize = sizes[2];
+
+      // Pxyz_c = translation + linear part * center voxel index (integer division).
+      const float c_crs[3] = { (float)(dim1length / 2), (float)(dim2length / 2), (float)(dim3length / 2) };
+      for (int i = 0; i < 3; ++i)
+      {
+        float sum = 0.0f;
+        for (int j = 0; j < 3; ++j)
+        {
+          sum += a[i * 4 + j] * c_crs[j];
+        }
+        Pxyz_c.push_back(a[i * 4 + 3] + sum);
+      }
+      ras_good_flag = 1;
+    }
   };
 
   /// Models the data of an MGH file. Currently these are 1D vectors, but one can compute the 4D array using the dimXlength fields of the respective MghHeader.
@@ -5417,46 +5530,45 @@ namespace fs
   }
 
   /// @brief Extract RAS spatial metadata from a NIfTI-1 header into an MghHeader.
-  /// @details Prefers sform over qform.  Sets ras_good_flag = 1 on success.
+  /// @details Decodes the voxel-to-RAS affine (preferring the sform, falling back to the qform)
+  ///          and stores it in the MGH RAS convention (unit-direction rows in `Mdc`, center voxel
+  ///          `Pxyz_c`) via {@link MghHeader::set_ras_from_vox2ras}. Sets ras_good_flag = 1 on
+  ///          success.
+  ///
+  ///          Note that the NIfTI s-form/q-form translation (and qoffset) is the RAS coordinate
+  ///          of voxel (0,0,0), while the MGH header stores the center voxel. The conversion
+  ///          between the two is handled here, matching FreeSurfer's mri_convert.
   /// @private
   inline void _nifti_extract_ras(const Nifti1Header &hdr, MghHeader *mgh_header)
   {
+    // Decode the voxel-to-RAS affine (16 floats, row-major), translation = RAS of voxel (0,0,0).
+    std::vector<float> affine;
     if (hdr.sform_code > 0)
     {
-      // Use affine (sform) transform.
-      mgh_header->ras_good_flag = 1;
-      mgh_header->xsize = hdr.pixdim[1];
-      mgh_header->ysize = hdr.pixdim[2];
-      mgh_header->zsize = hdr.pixdim[3];
-      mgh_header->Mdc.clear();
-      mgh_header->Pxyz_c.clear();
-      // Mdc: 3×3 rotation/scale part of srow (column-major to row-major, but
-      // MGH stores 9 floats in row-major order: [r11,r12,r13, r21,r22,r23, r31,r32,r33]).
-      // srow_x = [r11, r12, r13, tx], srow_y = [r21, r22, r23, ty], srow_z = [r31, r32, r33, tz].
-      mgh_header->Mdc.push_back(hdr.srow_x[0]); mgh_header->Mdc.push_back(hdr.srow_x[1]); mgh_header->Mdc.push_back(hdr.srow_x[2]);
-      mgh_header->Mdc.push_back(hdr.srow_y[0]); mgh_header->Mdc.push_back(hdr.srow_y[1]); mgh_header->Mdc.push_back(hdr.srow_y[2]);
-      mgh_header->Mdc.push_back(hdr.srow_z[0]); mgh_header->Mdc.push_back(hdr.srow_z[1]); mgh_header->Mdc.push_back(hdr.srow_z[2]);
-      mgh_header->Pxyz_c.push_back(hdr.srow_x[3]);
-      mgh_header->Pxyz_c.push_back(hdr.srow_y[3]);
-      mgh_header->Pxyz_c.push_back(hdr.srow_z[3]);
+      affine.assign(16, 0.0f);
+      affine[0] = hdr.srow_x[0];
+      affine[1] = hdr.srow_x[1];
+      affine[2] = hdr.srow_x[2];
+      affine[3] = hdr.srow_x[3];
+      affine[4] = hdr.srow_y[0];
+      affine[5] = hdr.srow_y[1];
+      affine[6] = hdr.srow_y[2];
+      affine[7] = hdr.srow_y[3];
+      affine[8] = hdr.srow_z[0];
+      affine[9] = hdr.srow_z[1];
+      affine[10] = hdr.srow_z[2];
+      affine[11] = hdr.srow_z[3];
+      affine[15] = 1.0f;
     }
     else if (hdr.qform_code > 0)
     {
-      // Compute rotation from quaternion and store as affine.
+      // Compute the rotation matrix from the quaternion.
       float b = hdr.quatern_b;
       float c = hdr.quatern_c;
       float d = hdr.quatern_d;
       float a = std::sqrt(std::max(0.0f, 1.0f - (b * b + c * c + d * d)));
       float qfac = (hdr.pixdim[0] < 0.0f) ? -1.0f : 1.0f;
 
-      mgh_header->ras_good_flag = 1;
-      mgh_header->xsize = hdr.pixdim[1];
-      mgh_header->ysize = hdr.pixdim[2];
-      mgh_header->zsize = hdr.pixdim[3];
-      mgh_header->Mdc.clear();
-      mgh_header->Pxyz_c.clear();
-
-      // Rotation matrix from unit quaternion.
       float R11 = a * a + b * b - c * c - d * d;
       float R12 = 2.0f * (b * c - a * d);
       float R13 = 2.0f * (b * d + a * c);
@@ -5467,26 +5579,40 @@ namespace fs
       float R32 = 2.0f * (c * d + a * b);
       float R33 = a * a + d * d - b * b - c * c;
 
-      // Apply pixdim scaling and qfac.
-      float sx = hdr.pixdim[1];
-      float sy = hdr.pixdim[2];
-      float sz = hdr.pixdim[3] * qfac;
-
-      mgh_header->Mdc.push_back(R11 * sx); mgh_header->Mdc.push_back(R12 * sy); mgh_header->Mdc.push_back(R13 * sz);
-      mgh_header->Mdc.push_back(R21 * sx); mgh_header->Mdc.push_back(R22 * sy); mgh_header->Mdc.push_back(R23 * sz);
-      mgh_header->Mdc.push_back(R31 * sx); mgh_header->Mdc.push_back(R32 * sy); mgh_header->Mdc.push_back(R33 * sz);
-
-      mgh_header->Pxyz_c.push_back(hdr.qoffset_x);
-      mgh_header->Pxyz_c.push_back(hdr.qoffset_y);
-      mgh_header->Pxyz_c.push_back(hdr.qoffset_z);
+      // Apply qfac (a possible reflection) to the 3rd column, then scale the columns by the voxel
+      // sizes. The translation is the qoffset (RAS of voxel (0,0,0)).
+      float R[3][3] = {
+          { R11, R12, R13 * qfac },
+          { R21, R22, R23 * qfac },
+          { R31, R32, R33 * qfac }
+      };
+      affine.assign(16, 0.0f);
+      for (int i = 0; i < 3; ++i)
+      {
+        for (int j = 0; j < 3; ++j)
+        {
+          affine[i * 4 + j] = R[i][j] * hdr.pixdim[j + 1];
+        }
+      }
+      affine[3] = hdr.qoffset_x;
+      affine[7] = hdr.qoffset_y;
+      affine[11] = hdr.qoffset_z;
+      affine[15] = 1.0f;
     }
-    else
+
+    if (affine.empty())
     {
-      // No valid spatial transform — just store voxel sizes.
+      // No valid spatial transform — just store the voxel sizes.
       mgh_header->ras_good_flag = 0;
       mgh_header->xsize = hdr.pixdim[1];
       mgh_header->ysize = hdr.pixdim[2];
       mgh_header->zsize = hdr.pixdim[3];
+      mgh_header->Mdc.clear();
+      mgh_header->Pxyz_c.clear();
+    }
+    else
+    {
+      mgh_header->set_ras_from_vox2ras(affine);
     }
   }
 
@@ -5727,40 +5853,62 @@ namespace fs
     hdr.scl_slope  = 1.0f;
     hdr.scl_inter  = 0.0f;
 
-    if (mgh.header.ras_good_flag == 1 && mgh.header.Mdc.size() >= 9 && mgh.header.Pxyz_c.size() >= 3)
+    // Compute the voxel-to-RAS affine (vox2ras) from the MGH header, if it carries RAS info.
+    std::vector<float> vox2ras = mgh.header.compute_vox2ras();
+    if (!vox2ras.empty())
     {
+      // s-form: the vox2ras affine itself. Note that the translation (srow*[3]) is the RAS
+      // coordinate of voxel (0,0,0), which is what the NIfTI s-form stores. This is NOT the MGH
+      // center voxel Pxyz_c; converting between the two is handled by compute_vox2ras(). This
+      // matches what FreeSurfer's mri_convert writes.
       hdr.sform_code = 1; // Scanner Anatomical
-      hdr.qform_code = 1;
-      hdr.srow_x[0] = mgh.header.Mdc[0]; hdr.srow_x[1] = mgh.header.Mdc[1]; hdr.srow_x[2] = mgh.header.Mdc[2]; hdr.srow_x[3] = mgh.header.Pxyz_c[0];
-      hdr.srow_y[0] = mgh.header.Mdc[3]; hdr.srow_y[1] = mgh.header.Mdc[4]; hdr.srow_y[2] = mgh.header.Mdc[5]; hdr.srow_y[3] = mgh.header.Pxyz_c[1];
-      hdr.srow_z[0] = mgh.header.Mdc[6]; hdr.srow_z[1] = mgh.header.Mdc[7]; hdr.srow_z[2] = mgh.header.Mdc[8]; hdr.srow_z[3] = mgh.header.Pxyz_c[2];
+      hdr.srow_x[0] = vox2ras[0]; hdr.srow_x[1] = vox2ras[1]; hdr.srow_x[2] = vox2ras[2]; hdr.srow_x[3] = vox2ras[3];
+      hdr.srow_y[0] = vox2ras[4]; hdr.srow_y[1] = vox2ras[5]; hdr.srow_y[2] = vox2ras[6]; hdr.srow_y[3] = vox2ras[7];
+      hdr.srow_z[0] = vox2ras[8]; hdr.srow_z[1] = vox2ras[9]; hdr.srow_z[2] = vox2ras[10]; hdr.srow_z[3] = vox2ras[11];
 
-      // Compute the quaternion (and qfac) that reproduces the same 3×3
-      // transform as the sform, so qform stays consistent with sform.
-      float sx = hdr.pixdim[1];
-      float sy = hdr.pixdim[2];
-      float sz = hdr.pixdim[3];
-      float R00 = mgh.header.Mdc[0] / sx;
-      float R01 = mgh.header.Mdc[1] / sy;
-      float R02 = mgh.header.Mdc[2] / sz;
-      float R10 = mgh.header.Mdc[3] / sx;
-      float R11 = mgh.header.Mdc[4] / sy;
-      float R12 = mgh.header.Mdc[5] / sz;
-      float R20 = mgh.header.Mdc[6] / sx;
-      float R21 = mgh.header.Mdc[7] / sy;
-      float R22 = mgh.header.Mdc[8] / sz;
-
-      float qb, qc, qd, qfac;
-      _nifti_mat33_to_quatern(R00, R01, R02, R10, R11, R12, R20, R21, R22,
-                              &qb, &qc, &qd, &qfac);
-
-      hdr.pixdim[0]  = qfac; // qfac sign encodes reflections (NIfTI convention)
-      hdr.quatern_b  = qb;
-      hdr.quatern_c  = qc;
-      hdr.quatern_d  = qd;
-      hdr.qoffset_x  = hdr.srow_x[3];
-      hdr.qoffset_y  = hdr.srow_y[3];
-      hdr.qoffset_z  = hdr.srow_z[3];
+      // q-form: encode the same affine as a quaternion. Normalize the columns of the linear part
+      // to obtain the (orthonormal) rotation; the q-offset is the affine translation
+      // (voxel-(0,0,0) RAS).
+      bool qform_ok = true;
+      float R[3][3];
+      for (int j = 0; j < 3 && qform_ok; ++j)
+      {
+        float norm = 0.0f;
+        for (int i = 0; i < 3; ++i)
+        {
+          norm += vox2ras[i * 4 + j] * vox2ras[i * 4 + j];
+        }
+        float size = std::sqrt(norm);
+        if (size == 0.0f || !fs::util::is_finite_float(size))
+        {
+          qform_ok = false;
+          break;
+        }
+        for (int i = 0; i < 3; ++i)
+        {
+          R[i][j] = vox2ras[i * 4 + j] / size;
+        }
+      }
+      if (qform_ok)
+      {
+        float qb, qc, qd, qfac;
+        _nifti_mat33_to_quatern(R[0][0], R[0][1], R[0][2],
+                                R[1][0], R[1][1], R[1][2],
+                                R[2][0], R[2][1], R[2][2],
+                                &qb, &qc, &qd, &qfac);
+        hdr.qform_code = 1;
+        hdr.pixdim[0]  = qfac; // qfac sign encodes reflections (NIfTI convention)
+        hdr.quatern_b  = qb;
+        hdr.quatern_c  = qc;
+        hdr.quatern_d  = qd;
+        hdr.qoffset_x  = vox2ras[3];
+        hdr.qoffset_y  = vox2ras[7];
+        hdr.qoffset_z  = vox2ras[11];
+      }
+      else
+      {
+        hdr.qform_code = 0;
+      }
     }
     else
     {

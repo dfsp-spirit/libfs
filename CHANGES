@@ -6,6 +6,30 @@ Unreleased
 ----------
 * FIX: `write_nifti()` no longer emits an identity quaternion in the qform.  The unit quaternion is now computed from the rotation part of the MGH `Mdc` matrix (with reflections encoded via a negative `pixdim[0]`), keeping qform consistent with sform.
 
+* FIX: Correct the voxel-to-RAS (vox2ras) conversion between NIfTI and MGH/MGZ so that NIfTI
+      files written and read by this library describe the same geometry as FreeSurfer's
+      `mri_convert` output. Two problems were fixed:
+        * The `Mdc` <-> s-form mapping was transposed and not normalized: the s-form rows
+          were used directly as `Mdc`, and `Mdc` read from a NIfTI file held the scaled
+          affine instead of the unit direction cosines. Reading a NIfTI file now decomposes
+          the affine into the MGH RAS fields in the FreeSurfer convention (rows of `Mdc` are
+          the unit direction cosines of the 3 volume axes, voxel sizes are the column
+          norms), and writing builds the s-form/q-form from the vox2ras affine.
+        * The NIfTI s-form/q-form translation (and qoffset) is the RAS coordinate of voxel
+          (0,0,0), while the MGH header stores the center voxel (`Pxyz_c`). Reading now
+          re-anchors the stored translation into the MGH center convention, and writing
+          stores the voxel-(0,0,0) RAS. This changes the RAS fields reported when reading a
+          NIfTI file with RAS info (previously they were the raw s-form translation), and
+          makes MGH <-> NIfTI round trips geometry-exact.
+* NEW: `MghHeader::compute_vox2ras()` computes the 4x4 voxel-to-RAS affine from the MGH
+      header fields, and `MghHeader::set_ras_from_vox2ras()` sets the MGH RAS fields from
+      such an affine (the inverse).
+* NEW: Tests that validate NIfTI <-> MGH conversion against the demo volume converted by
+      FreeSurfer's `mri_convert` (`brain.nii` vs `brain.mgh`/`brain.mgz`): both files must
+      read to the same voxel data and the same vox2ras geometry, writing the MGH volume as
+      NIfTI must reproduce the reference geometry, and qform-only headers must decode to the
+      correct MGH RAS fields.
+
 v0.6.0 -- Improved generic mesh file readers
 ----------------------------------------------
 * NEW: Add new features to OBJ reader (quads, relative indices, texture coords, ...) and improve its security

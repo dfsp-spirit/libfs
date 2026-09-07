@@ -1523,6 +1523,240 @@ TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii, uncompressed)", "[nifti]")
     }
 }
 
+TEST_CASE("NIfTI-1: reading brain.nii and brain.mgh gives the same volume and geometry", "[nifti]")
+{
+    // `brain.nii` was created from `brain.mgh` (and `brain.mgz`) with FreeSurfer's mri_convert, so
+    // the two files must describe the same volume: same voxel data and the same voxel-to-RAS
+    // geometry. This is an end-to-end cross-check of the NIfTI reader against an independent
+    // reference (real FreeSurfer output), not just a self-round-trip.
+    std::string mgh_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.mgh"});
+    std::string nii_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.nii"});
+    if (!fs::util::file_exists(mgh_file) || !fs::util::file_exists(nii_file))
+    {
+        std::cerr << "Cannot access test files '" << mgh_file << "' and '" << nii_file << "'." << std::endl;
+    }
+
+    fs::Mgh from_mgh;
+    fs::Mgh from_nii;
+    fs::read_mgh(&from_mgh, mgh_file);
+    fs::read_nifti(&from_nii, nii_file);
+
+    auto close_enough = [](float a, float b) { return std::fabs(a - b) <= 1e-3f; };
+
+    SECTION("Dimensions, data type and RAS flag agree")
+    {
+        REQUIRE(from_nii.header.dim1length == from_mgh.header.dim1length);
+        REQUIRE(from_nii.header.dim2length == from_mgh.header.dim2length);
+        REQUIRE(from_nii.header.dim3length == from_mgh.header.dim3length);
+        REQUIRE(from_nii.header.dim4length == from_mgh.header.dim4length);
+        REQUIRE(from_nii.header.dim1length == 256);
+        REQUIRE(from_nii.header.dtype == fs::MRI_UCHAR);
+        REQUIRE(from_mgh.header.dtype == fs::MRI_UCHAR);
+        REQUIRE(from_mgh.header.ras_good_flag == 1);
+        REQUIRE(from_nii.header.ras_good_flag == 1);
+    }
+
+    SECTION("Voxel data is identical")
+    {
+        REQUIRE(from_nii.data.data_mri_uchar.size() == from_mgh.data.data_mri_uchar.size());
+        bool identical = true;
+        size_t first_diff = 0;
+        for (size_t i = 0; i < from_mgh.data.data_mri_uchar.size(); i++)
+        {
+            if (from_nii.data.data_mri_uchar[i] != from_mgh.data.data_mri_uchar[i])
+            {
+                identical = false;
+                first_diff = i;
+                break;
+            }
+        }
+        INFO("first differing voxel at index " << first_diff);
+        REQUIRE(identical);
+    }
+
+    SECTION("RAS header fields match the reference values (Mdc rows = axis directions, Pxyz_c = center voxel)")
+    {
+        // The known RAS fields of this demo volume (Mdc in the FreeSurfer MGH layout, i.e. rows
+        // are the unit direction cosines of the 3 axes; Pxyz_c is the RAS of the center voxel).
+        const float expected_mdc[9] = { -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f };
+        const float expected_pxyz_c[3] = { -0.49995422f, 29.372742f, -48.90473f };
+        REQUIRE(from_mgh.header.Mdc.size() == 9);
+        REQUIRE(from_nii.header.Mdc.size() == 9);
+        REQUIRE(from_mgh.header.Pxyz_c.size() == 3);
+        REQUIRE(from_nii.header.Pxyz_c.size() == 3);
+        for (int i = 0; i < 9; i++)
+        {
+            REQUIRE(close_enough(from_mgh.header.Mdc[i], expected_mdc[i]));
+            REQUIRE(close_enough(from_nii.header.Mdc[i], expected_mdc[i]));
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE(close_enough(from_mgh.header.Pxyz_c[i], expected_pxyz_c[i]));
+            REQUIRE(close_enough(from_nii.header.Pxyz_c[i], expected_pxyz_c[i]));
+        }
+        REQUIRE(close_enough(from_mgh.header.xsize, 1.0f));
+        REQUIRE(close_enough(from_nii.header.xsize, 1.0f));
+    }
+
+    SECTION("The vox2ras matrices agree and match the FreeSurfer reference")
+    {
+        // vox2ras maps voxel indices to world (RAS) coordinates. Its translation is the RAS of
+        // voxel (0,0,0) (P0 = (127.5, -98.6, 79.1)), which is *not* the MGH center voxel Pxyz_c.
+        std::vector<float> v2r_mgh = from_mgh.header.compute_vox2ras();
+        std::vector<float> v2r_nii = from_nii.header.compute_vox2ras();
+        REQUIRE(v2r_mgh.size() == 16);
+        REQUIRE(v2r_nii.size() == 16);
+        const float expected[16] = {
+            -1.0f, 0.0f, 0.0f, 127.5f,
+            0.0f, 0.0f, 1.0f, -98.6273f,
+            0.0f, -1.0f, 0.0f, 79.0953f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
+        for (int i = 0; i < 16; i++)
+        {
+            REQUIRE(close_enough(v2r_mgh[i], expected[i]));
+            REQUIRE(close_enough(v2r_nii[i], expected[i]));
+        }
+
+        // Anchor handling: the voxel-(0,0,0) RAS (P0, the vox2ras translation) differs from the
+        // center voxel RAS (Pxyz_c) by more than 10 mm in every axis.
+        for (int i = 0; i < 3; i++)
+        {
+            float diff = std::fabs(v2r_nii[3 + 4 * i] - from_nii.header.Pxyz_c[i]);
+            REQUIRE(diff > 10.0f);
+        }
+    }
+}
+
+TEST_CASE("NIfTI-1: writing brain.mgh as NIfTI matches the FreeSurfer reference", "[nifti]")
+{
+    std::string mgh_file = fs::util::fullpath({"examples", "subjects_dir", "subject1", "mri", "brain.mgh"});
+    if (!fs::util::file_exists(mgh_file))
+    {
+        std::cerr << "Cannot access test file '" << mgh_file << "'." << std::endl;
+    }
+
+    fs::Mgh brain;
+    fs::read_mgh(&brain, mgh_file);
+
+    std::string tmp_file = "libfs_test_brain.nii";
+    fs::write_nifti(brain, tmp_file);
+
+    fs::Mgh back;
+    fs::read_nifti(&back, tmp_file);
+    std::remove(tmp_file.c_str());
+
+    auto close_enough = [](float a, float b) { return std::fabs(a - b) <= 1e-3f; };
+
+    SECTION("Voxel data survives the round trip")
+    {
+        REQUIRE(back.data.data_mri_uchar.size() == brain.data.data_mri_uchar.size());
+        bool identical = true;
+        for (size_t i = 0; i < brain.data.data_mri_uchar.size(); i++)
+        {
+            if (back.data.data_mri_uchar[i] != brain.data.data_mri_uchar[i])
+            {
+                identical = false;
+                break;
+            }
+        }
+        REQUIRE(identical);
+    }
+
+    SECTION("RAS fields survive the round trip")
+    {
+        const float expected_mdc[9] = { -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f };
+        const float expected_pxyz_c[3] = { -0.49995422f, 29.372742f, -48.90473f };
+        for (int i = 0; i < 9; i++)
+        {
+            REQUIRE(close_enough(back.header.Mdc[i], expected_mdc[i]));
+        }
+        for (int i = 0; i < 3; i++)
+        {
+            REQUIRE(close_enough(back.header.Pxyz_c[i], expected_pxyz_c[i]));
+        }
+        REQUIRE(close_enough(back.header.xsize, 1.0f));
+    }
+
+    SECTION("The written NIfTI has the same vox2ras as the FreeSurfer reference (voxel-(0,0,0)-anchored)")
+    {
+        // Writing must store the RAS of voxel (0,0,0) as the s-form/q-form translation (P0), not
+        // the MGH center voxel Pxyz_c, matching FreeSurfer's mri_convert.
+        std::vector<float> v2r_back = back.header.compute_vox2ras();
+        REQUIRE(v2r_back.size() == 16);
+        const float expected[16] = {
+            -1.0f, 0.0f, 0.0f, 127.5f,
+            0.0f, 0.0f, 1.0f, -98.6273f,
+            0.0f, -1.0f, 0.0f, 79.0953f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
+        for (int i = 0; i < 16; i++)
+        {
+            REQUIRE(close_enough(v2r_back[i], expected[i]));
+        }
+    }
+}
+
+TEST_CASE("NIfTI-1: reading a qform-only header produces the correct MGH RAS fields", "[nifti][ras]")
+{
+    // A NIfTI header that only carries a q-form (no s-form): 90° rotation about the z axis,
+    // qoffset = (10, 20, 30), voxel sizes 1 mm, dims 2x3x4.
+    fs::Nifti1Header hdr;
+    std::memset(&hdr, 0, sizeof(hdr));
+    hdr.sform_code = 0;
+    hdr.qform_code = 1;
+    hdr.pixdim[0] = 1.0f;
+    hdr.pixdim[1] = 1.0f;
+    hdr.pixdim[2] = 1.0f;
+    hdr.pixdim[3] = 1.0f;
+    hdr.quatern_b = 0.0f;
+    hdr.quatern_c = 0.0f;
+    hdr.quatern_d = 0.70710678f; // sin(45°), i.e. a 90° rotation about z
+    hdr.qoffset_x = 10.0f;
+    hdr.qoffset_y = 20.0f;
+    hdr.qoffset_z = 30.0f;
+
+    fs::MghHeader mh;
+    mh.dim1length = 2;
+    mh.dim2length = 3;
+    mh.dim3length = 4;
+    mh.dim4length = 1;
+    fs::_nifti_extract_ras(hdr, &mh);
+
+    SECTION("ras_good_flag is set")
+    {
+        REQUIRE(mh.ras_good_flag == 1);
+    }
+
+    SECTION("Mdc rows are the unit axis directions (FreeSurfer layout)")
+    {
+        // For a 90° rotation about z, the axis directions (columns of the rotation) are
+        // axis0 -> (0,1,0), axis1 -> (-1,0,0), axis2 -> (0,0,1).
+        REQUIRE(mh.Mdc.size() == 9);
+        const float expected[9] = { 0.0f, 1.0f, 0.0f,  -1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f };
+        for (int i = 0; i < 9; i++)
+        {
+            REQUIRE(mh.Mdc[i] == Approx(expected[i]));
+        }
+    }
+
+    SECTION("Pxyz_c is the center voxel (c_crs = (1, 1, 2))")
+    {
+        // qoffset (10,20,30) + rotation * (1,1,2) = (9, 21, 32).
+        REQUIRE(mh.Pxyz_c.size() == 3);
+        REQUIRE(mh.Pxyz_c[0] == Approx(9.0f));
+        REQUIRE(mh.Pxyz_c[1] == Approx(21.0f));
+        REQUIRE(mh.Pxyz_c[2] == Approx(32.0f));
+    }
+
+    SECTION("Voxel sizes are 1 mm")
+    {
+        REQUIRE(mh.xsize == Approx(1.0f));
+        REQUIRE(mh.ysize == Approx(1.0f));
+        REQUIRE(mh.zsize == Approx(1.0f));
+    }
+}
+
 #ifdef LIBFS_HAS_ZLIB
 TEST_CASE("NIfTI-1: read UINT8 brain volume (.nii.gz)", "[nifti]")
 {
@@ -1675,6 +1909,7 @@ TEST_CASE("NIfTI-1: write rejects oversized dimensions", "[nifti]")
 
     std::string tmp_file = "libfs_test_oversized.nii";
     REQUIRE_THROWS_AS(fs::write_nifti(mgh, tmp_file), std::runtime_error);
+    std::remove(tmp_file.c_str()); // write_nifti creates the file before throwing.
 }
 
 #ifdef LIBFS_HAS_ZLIB
@@ -1813,21 +2048,29 @@ TEST_CASE("NIfTI-1: read NIfTI with sform_code=1 extracts full RAS metadata", "[
         REQUIRE(mgh.header.ras_good_flag == 1);
     }
 
-    SECTION("Mdc matrix is extracted from sform")
+    SECTION("Mdc is extracted from sform as the unit axis directions")
     {
+        // MGH stores Mdc with the unit direction cosines of the 3 axes in the rows, i.e. the
+        // (normalized) columns of the s-form. For this volume that is the same matrix that the
+        // demo brain.mgh file stores.
         REQUIRE(mgh.header.Mdc.size() == 9);
-        // srow_x[0..2] = [-1, 0, 0]
-        REQUIRE(mgh.header.Mdc[0] == Approx(-1.0f));
-        REQUIRE(mgh.header.Mdc[1] == Approx(0.0f));
-        REQUIRE(mgh.header.Mdc[2] == Approx(0.0f));
+        const float expected_mdc[9] = { -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f };
+        for (int i = 0; i < 9; i++)
+        {
+            REQUIRE(mgh.header.Mdc[i] == Approx(expected_mdc[i]));
+        }
     }
 
-    SECTION("Pxyz_c (center) is extracted from sform translation")
+    SECTION("Pxyz_c (center voxel) is re-anchored from the sform translation (voxel-(0,0,0) RAS)")
     {
+        // The s-form translation stored in the NIfTI file is the RAS of voxel (0,0,0)
+        // (P0 = (127.5, -98.6, 79.1)), which is *not* the MGH center voxel. Reading must convert
+        // it into the MGH center convention (Pxyz_c ~ (-0.5, 29.4, -48.9)).
         REQUIRE(mgh.header.Pxyz_c.size() == 3);
-        REQUIRE(mgh.header.Pxyz_c[0] == Approx(127.5f));
-        REQUIRE(mgh.header.Pxyz_c[1] == Approx(-98.6273f));
-        REQUIRE(mgh.header.Pxyz_c[2] == Approx(79.0953f));
+        REQUIRE(mgh.header.Pxyz_c[0] == Approx(-0.49995422f));
+        REQUIRE(mgh.header.Pxyz_c[1] == Approx(29.372742f));
+        REQUIRE(mgh.header.Pxyz_c[2] == Approx(-48.90473f));
+        REQUIRE(mgh.header.compute_vox2ras().size() == 16);
     }
 
     SECTION("Voxel sizes are read from pixdim")
@@ -1902,7 +2145,8 @@ TEST_CASE("NIfTI-1: write_nifti emits a quaternion consistent with sform", "[nif
 
     SECTION("90-degree rotation about z produces a non-identity quaternion")
     {
-        // R = [[0,-1,0],[1,0,0],[0,0,1]]  (proper rotation, det = +1)
+        // Mdc (rows = unit axis directions, the FreeSurfer/MGH layout) for a proper 90° rotation
+        // about the z axis (det = +1).
         fs::Mgh mgh = make_mgh({0.0f, -1.0f, 0.0f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f, 1.0f},
                                10.0f, 20.0f, 30.0f);
         std::string fn = "libfs_test_qform_rot.nii";
@@ -1913,7 +2157,8 @@ TEST_CASE("NIfTI-1: write_nifti emits a quaternion consistent with sform", "[nif
         REQUIRE(hdr.pixdim[0] > 0.0f);              // proper rotation -> positive qfac
         REQUIRE(hdr.quatern_b == Approx(0.0f));
         REQUIRE(hdr.quatern_c == Approx(0.0f));
-        REQUIRE(hdr.quatern_d == Approx(0.70710678f)); // sin(45°) for 90° about z
+        // sin(45°) for 90° about z; the sign is arbitrary (q and -q encode the same rotation).
+        REQUIRE(std::fabs(hdr.quatern_d) == Approx(0.70710678f));
         check_qform(hdr);
 
         std::remove(fn.c_str());
