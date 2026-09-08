@@ -48,7 +48,7 @@
 ///          file headers.  For programmatic version checks, prefer the
 ///          individual `LIBFS_VERSION_MAJOR`, `LIBFS_VERSION_MINOR`, and
 ///          `LIBFS_VERSION_PATCH` integer macros.
-#define LIBFS_VERSION "0.6.0"
+#define LIBFS_VERSION "0.6.1"
 
 /// @brief Major version number (incompatible API changes).
 /// @details Incremented when the public API changes in a way that breaks
@@ -68,7 +68,7 @@
 /// @details Incremented for bug-fix releases that do not add new features or
 ///          change the public API.  The full version string is
 ///          `LIBFS_VERSION_MAJOR.LIBFS_VERSION_MINOR.LIBFS_VERSION_PATCH`.
-#define LIBFS_VERSION_PATCH 0
+#define LIBFS_VERSION_PATCH 1
 
 // -- Security / defensive hardening configuration -------------------------------------
 // Users can #define any of these BEFORE including libfs.h to override the defaults.

@@ -2,10 +2,9 @@ libfs Changes
 ===============
 
 
-Unreleased
-----------
+v0.6.1 -- Volume header fixes
+------------------------------
 * FIX: `write_nifti()` no longer emits an identity quaternion in the qform.  The unit quaternion is now computed from the rotation part of the MGH `Mdc` matrix (with reflections encoded via a negative `pixdim[0]`), keeping qform consistent with sform.
-
 * FIX: Correct the voxel-to-RAS (vox2ras) conversion between NIfTI and MGH/MGZ so that NIfTI
       files written and read by this library describe the same geometry as FreeSurfer's
       `mri_convert` output. Two problems were fixed:
@@ -29,6 +28,7 @@ Unreleased
       read to the same voxel data and the same vox2ras geometry, writing the MGH volume as
       NIfTI must reproduce the reference geometry, and qform-only headers must decode to the
       correct MGH RAS fields.
+
 
 v0.6.0 -- Improved generic mesh file readers
 ----------------------------------------------
