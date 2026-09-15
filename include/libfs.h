@@ -284,7 +284,7 @@ namespace fs
     /// @brief  Cross-platform wrapper for localtime_r and localtime_s.
     /// @param time the time to convert to an std::tm struct.
     /// @return the std::tm struct.
-    tm _localtime(const std::time_t &time)
+    inline tm _localtime(const std::time_t &time)
     {
       std::tm tm_snapshot;
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
@@ -303,7 +303,7 @@ namespace fs
     /// @code
     /// std::string time_rep = fs::util::time_tag(std::chrono::system_clock::now());
     /// @endcode
-    std::string time_tag(std::chrono::system_clock::time_point t)
+    inline std::string time_tag(std::chrono::system_clock::time_point t)
     {
       auto as_time_t = std::chrono::system_clock::to_time_t(t);
       struct tm tm;
@@ -580,7 +580,7 @@ namespace fs
     /// std::string p = fs::util::fullpath({"/path", "to", "file.txt"});
     /// // Gives: "/path/to/file.txt"
     /// @endcode
-    std::string fullpath(std::initializer_list<std::string> path_components, std::string path_sep = std::string("/"))
+    inline std::string fullpath(std::initializer_list<std::string> path_components, std::string path_sep = std::string("/"))
     {
       std::string fp;
       if (path_components.size() == 0)
@@ -627,7 +627,7 @@ namespace fs
     /// @code
     /// fs::util::str_to_file("thoughts.txt", "blah, blah, blah");
     /// @endcode
-    void str_to_file(const std::string &filename, const std::string rep)
+    inline void str_to_file(const std::string &filename, const std::string rep)
     {
       std::ofstream ofs;
       ofs.open(filename, std::ofstream::out);
@@ -683,7 +683,7 @@ namespace fs
     /// std::vector<uint8_t> col3 = fs::util::viridis(data, NAN, NAN, 0, 0, 0);
     /// surface.to_ply_file("lh.thickness_black_nan.ply", col3);
     /// @endcode
-    std::vector<uint8_t> viridis(const std::vector<float> &data, float vmin = NAN, float vmax = NAN, uint8_t nan_r = 255, uint8_t nan_g = 255, uint8_t nan_b = 255)
+    inline std::vector<uint8_t> viridis(const std::vector<float> &data, float vmin = NAN, float vmax = NAN, uint8_t nan_r = 255, uint8_t nan_g = 255, uint8_t nan_b = 255)
     {
       std::vector<uint8_t> colors;
       if (data.empty())
@@ -3667,7 +3667,7 @@ namespace fs
   /// fs::Mgh mgh;
   /// fs::read_mgh(&mgh, "somebrain.mgh");
   /// @endcode
-  void read_mgh(Mgh *mgh, const std::string &filename)
+  inline void read_mgh(Mgh *mgh, const std::string &filename)
   {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, filename);
@@ -3717,7 +3717,7 @@ namespace fs
   /// @code
   /// std::vector<std::string> subjects = fs::read_subjectsfile("subjects.txt");
   /// @endcode
-  std::vector<std::string> read_subjectsfile(const std::string &filename)
+  inline std::vector<std::string> read_subjectsfile(const std::string &filename)
   {
     std::vector<std::string> subjects;
     std::ifstream input(filename, std::fstream::in);
@@ -3746,7 +3746,7 @@ namespace fs
   /// std::vector<std::string> subjects = {"subject1", "subject2"};
   /// fs::write_subjectsfile("subjects.txt", subjects);
   /// @endcode
-  void write_subjectsfile(const std::string &filename, const std::vector<std::string> &subjects)
+  inline void write_subjectsfile(const std::string &filename, const std::vector<std::string> &subjects)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out);
@@ -3769,7 +3769,7 @@ namespace fs
   /// @param is Pointer to an open istream from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a file.
   /// @throws runtime_error if the file uses an unsupported MRI data type.
-  void read_mgh(Mgh *mgh, std::istream *is)
+  inline void read_mgh(Mgh *mgh, std::istream *is)
   {
     MghHeader mgh_header;
     read_mgh_header(&mgh_header, is);
@@ -3805,7 +3805,7 @@ namespace fs
   /// @param is Pointer to an open istream from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a file.
   /// @throws runtime_error if the file uses an unsupported MRI file format version. Only version 1 is supported (the only existing version to my knowledge).
-  void read_mgh_header(MghHeader *mgh_header, std::istream *is)
+  inline void read_mgh_header(MghHeader *mgh_header, std::istream *is)
   {
     const int MGH_VERSION = 1;
 
@@ -3918,7 +3918,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<int32_t> _read_mgh_data_int(MghHeader *mgh_header, const std::string &filename)
+  inline std::vector<int32_t> _read_mgh_data_int(MghHeader *mgh_header, const std::string &filename)
   {
     if (mgh_header->dtype != MRI_INT)
     {
@@ -3933,7 +3933,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<int32_t> _read_mgh_data_int(MghHeader *mgh_header, std::istream *is)
+  inline std::vector<int32_t> _read_mgh_data_int(MghHeader *mgh_header, std::istream *is)
   {
     if (mgh_header->dtype != MRI_INT)
     {
@@ -3948,7 +3948,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<short> _read_mgh_data_short(MghHeader *mgh_header, const std::string &filename)
+  inline std::vector<short> _read_mgh_data_short(MghHeader *mgh_header, const std::string &filename)
   {
     if (mgh_header->dtype != MRI_SHORT)
     {
@@ -3963,7 +3963,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<short> _read_mgh_data_short(MghHeader *mgh_header, std::istream *is)
+  inline std::vector<short> _read_mgh_data_short(MghHeader *mgh_header, std::istream *is)
   {
     if (mgh_header->dtype != MRI_SHORT)
     {
@@ -3980,7 +3980,7 @@ namespace fs
   /// @param filename Path to the file from which to read the MGH data.
   /// @see There exists an overloaded version that reads from a stream.
   /// @throws runtime_error if the file cannot be opened
-  void read_mgh_header(MghHeader *mgh_header, const std::string &filename)
+  inline void read_mgh_header(MghHeader *mgh_header, const std::string &filename)
   {
     std::ifstream ifs;
     ifs.open(filename, std::ios_base::in | std::ios::binary);
@@ -4074,7 +4074,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<float> _read_mgh_data_float(MghHeader *mgh_header, const std::string &filename)
+  inline std::vector<float> _read_mgh_data_float(MghHeader *mgh_header, const std::string &filename)
   {
     if (mgh_header->dtype != MRI_FLOAT)
     {
@@ -4089,7 +4089,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<float> _read_mgh_data_float(MghHeader *mgh_header, std::istream *is)
+  inline std::vector<float> _read_mgh_data_float(MghHeader *mgh_header, std::istream *is)
   {
     if (mgh_header->dtype != MRI_FLOAT)
     {
@@ -4104,7 +4104,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader *mgh_header, const std::string &filename)
+  inline std::vector<uint8_t> _read_mgh_data_uchar(MghHeader *mgh_header, const std::string &filename)
   {
     if (mgh_header->dtype != MRI_UCHAR)
     {
@@ -4119,7 +4119,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::vector<uint8_t> _read_mgh_data_uchar(MghHeader *mgh_header, std::istream *is)
+  inline std::vector<uint8_t> _read_mgh_data_uchar(MghHeader *mgh_header, std::istream *is)
   {
     if (mgh_header->dtype != MRI_UCHAR)
     {
@@ -4143,7 +4143,7 @@ namespace fs
   /// fs::Mesh surface;
   /// fs::read_surf(&surface, "lh.white");
   /// @endcode
-  void read_surf(Mesh *surface, const std::string &filename)
+  inline void read_surf(Mesh *surface, const std::string &filename)
   {
     const int SURF_TRIS_MAGIC = 16777214;
     std::ifstream is;
@@ -4249,7 +4249,7 @@ namespace fs
   /// fs::mesh surface;
   /// fs::read_mesh(&surface, "subject1/surf/lh.thickness");
   /// @endcode
-  void read_mesh(Mesh *surface, const std::string &filename)
+  inline void read_mesh(Mesh *surface, const std::string &filename)
   {
     if (fs::util::ends_with(filename, ".obj"))
     {
@@ -4274,7 +4274,7 @@ namespace fs
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @return boolean, whether the current system is big endian.
   /// @private
-  bool _is_bigendian()
+  inline bool _is_bigendian()
   {
     const short int number = 0x1;
     const char *numPtr = reinterpret_cast<const char *>(&number);
@@ -4290,7 +4290,7 @@ namespace fs
   ///        exception messages to help identify which file caused the error.
   ///        Leave empty (the default) to omit the filename from diagnostics.
   /// @throws domain_error if the curv file magic mismatches or the curv file header claims that the file contains more than 1 value per vertex.
-  void read_curv(Curv *curv, std::istream *is, const std::string &source_filename = "")
+  inline void read_curv(Curv *curv, std::istream *is, const std::string &source_filename = "")
   {
     const std::string msg_source_file_part = source_filename.empty() ? "" : "'" + source_filename + "' ";
     const int CURV_MAGIC = 16777215;
@@ -4368,7 +4368,7 @@ namespace fs
   /// fs::Curv curv;
   /// fs::read_curv(&curv, "examples/read_curv/lh.thickness");
   /// @endcode
-  void read_curv(Curv *curv, const std::string &filename)
+  inline void read_curv(Curv *curv, const std::string &filename)
   {
     std::ifstream is(filename, std::fstream::in | std::fstream::binary);
     if (is.is_open())
@@ -4384,7 +4384,7 @@ namespace fs
 
   /// Read an Annot Colortable from a stream.
   /// @private
-  void _read_annot_colortable(Colortable *colortable, std::istream *is, int32_t num_entries)
+  inline void _read_annot_colortable(Colortable *colortable, std::istream *is, int32_t num_entries)
   {
     // Validate num_entries against a reasonable cap.
     if (num_entries < 0 || static_cast<size_t>(num_entries) > LIBFS_MAX_COLORTABLE_ENTRIES)
@@ -4443,7 +4443,7 @@ namespace fs
 
   /// Compute the vector index for treating a vector of length n*m as a matrix with n rows and m columns.
   /// @private
-  size_t _vidx_2d(size_t row, size_t column, size_t row_length = 3)
+  inline size_t _vidx_2d(size_t row, size_t column, size_t row_length = 3)
   {
     return (row + 1) * row_length - row_length + column;
   }
@@ -4453,7 +4453,7 @@ namespace fs
   /// @param annot An Annot instance to be filled.
   /// @param is An open istream from which to read the annot data.
   /// @throws domain_error if the file format version is not supported or the file is missing the color table.
-  void read_annot(Annot *annot, std::istream *is)
+  inline void read_annot(Annot *annot, std::istream *is)
   {
 
     int32_t num_vertices = _freadt<int32_t>(*is);
@@ -4533,7 +4533,7 @@ namespace fs
   /// fs::Annot annot;
   /// fs::read_annot(&annot, annot_fname);
   /// @endcode
-  void read_annot(Annot *annot, const std::string &filename)
+  inline void read_annot(Annot *annot, const std::string &filename)
   {
     std::ifstream is(filename, std::fstream::in | std::fstream::binary);
     if (is.is_open())
@@ -4559,7 +4559,7 @@ namespace fs
   /// std::string curv_fname = "lh.thickness";
   /// std::vector<float> data = fs::read_curv_data(curv_fname);
   /// @endcode
-  std::vector<float> read_curv_data(const std::string &filename)
+  inline std::vector<float> read_curv_data(const std::string &filename)
   {
     Curv curv;
     read_curv(&curv, filename);
@@ -4692,7 +4692,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  int _fread3(std::istream &is)
+  inline int _fread3(std::istream &is)
   {
     uint32_t i = 0;
     is.read(reinterpret_cast<char *>(&i), 3);
@@ -4730,7 +4730,7 @@ namespace fs
   //
   // THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  void _fwritei3(std::ostream &os, uint32_t i)
+  inline void _fwritei3(std::ostream &os, uint32_t i)
   {
     unsigned char b1 = (i >> 16) & 255;
     unsigned char b2 = (i >> 8) & 255;
@@ -4746,7 +4746,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  void _fwritefixedlengthstring(std::ostream &os, const std::string &str, size_t len)
+  inline void _fwritefixedlengthstring(std::ostream &os, const std::string &str, size_t len)
   {
     std::string buf(len, '\0');
     size_t copy_len = str.size() < len ? str.size() : len;
@@ -4758,7 +4758,7 @@ namespace fs
   ///
   /// THIS FUNCTION IS INTERNAL AND SHOULD NOT BE CALLED BY API CLIENTS.
   /// @private
-  std::string _freadstringnewline(std::istream &is)
+  inline std::string _freadstringnewline(std::istream &is)
   {
     std::string s;
     std::getline(is, s, '\n');
@@ -4769,7 +4769,7 @@ namespace fs
   /// @throws std::domain_error if length is zero or exceeds max_length.
   /// @throws std::runtime_error if a short read occurs.
   /// @private
-  std::string _freadfixedlengthstring(std::istream &is, size_t length, bool strip_last_char = true, size_t max_length = LIBFS_MAX_STRING_LENGTH)
+  inline std::string _freadfixedlengthstring(std::istream &is, size_t length, bool strip_last_char = true, size_t max_length = LIBFS_MAX_STRING_LENGTH)
   {
     if (length == 0)
     {
@@ -4802,7 +4802,7 @@ namespace fs
   /// @param os An open output stream (binary mode).
   /// @see There exists an overload to write to a file.
   /// @throws std::domain_error if the annot or colortable data is inconsistent.
-  void write_annot(const Annot &annot, std::ostream &os)
+  inline void write_annot(const Annot &annot, std::ostream &os)
   {
     int32_t num_vertices = static_cast<int32_t>(annot.num_vertices());
     _fwritet<int32_t>(os, num_vertices);
@@ -4858,7 +4858,7 @@ namespace fs
   /// // modify annot here …
   /// fs::write_annot(annot, "lh.aparc.modified.annot");
   /// @endcode
-  void write_annot(const Annot &annot, const std::string &filename)
+  inline void write_annot(const Annot &annot, const std::string &filename)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -4878,7 +4878,7 @@ namespace fs
   /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   /// @param curv_data the data to write.
   /// @param num_faces the value for the header field `num_faces`. This is not needed afaik and typically ignored.
-  void write_curv(std::ostream &os, std::vector<float> curv_data, int32_t num_faces = 100000)
+  inline void write_curv(std::ostream &os, std::vector<float> curv_data, int32_t num_faces = 100000)
   {
     const uint32_t CURV_MAGIC = 16777215;
     _fwritei3(os, CURV_MAGIC);
@@ -4905,7 +4905,7 @@ namespace fs
   /// // Do something with 'data' here, maybe?
   /// fs::write_curv("output.curv", data);
   /// @endcode
-  void write_curv(const std::string &filename, std::vector<float> curv_data, const int32_t num_faces = 100000)
+  inline void write_curv(const std::string &filename, std::vector<float> curv_data, const int32_t num_faces = 100000)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -4925,7 +4925,7 @@ namespace fs
   /// @param mgh An Mgh instance that should be written.
   /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   /// @throws std::logic_error if the mgh header and data are inconsistent, std::domain_error if the given MRI data type is unknown or unsupported.
-  void write_mgh(const Mgh &mgh, std::ostream &os)
+  inline void write_mgh(const Mgh &mgh, std::ostream &os)
   {
     _fwritet<int32_t>(os, 1); // MGH file format version
     _fwritet<int32_t>(os, mgh.header.dim1length);
@@ -5035,7 +5035,7 @@ namespace fs
   /// // Do something with 'mgh' here, maybe?
   /// fs::write_mgh(mgh, "output.mgh");
   /// @endcode
-  void write_mgh(const Mgh &mgh, const std::string &filename)
+  inline void write_mgh(const Mgh &mgh, const std::string &filename)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -6210,7 +6210,7 @@ namespace fs
   /// @param faces vector of int, length 3n for n faces. The 3 vertex indices for each face, typically from `<Mesh_instance>.faces`.
   /// @param os An output stream to which to write the data. The stream must be open, and this function will not close it after writing to it.
   /// @throws std::runtime_error if the file cannot be opened.
-  void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, std::ostream &os)
+  inline void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, std::ostream &os)
   {
     const uint32_t SURF_TRIS_MAGIC = 16777214;
     _fwritei3(os, SURF_TRIS_MAGIC);
@@ -6241,7 +6241,7 @@ namespace fs
   /// fs::Mesh surface = fs::Mesh::construct_cube();
   /// fs::write_surf(surface.vertices, surface.faces, "lh.cube");
   /// @endcode
-  void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, const std::string &filename)
+  inline void write_surf(std::vector<float> vertices, std::vector<int32_t> faces, const std::string &filename)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -6268,7 +6268,7 @@ namespace fs
   /// fs::Mesh surface = fs::Mesh::construct_cube();
   /// fs::write_surf(surface, "lh.cube");
   /// @endcode
-  void write_surf(const Mesh &mesh, const std::string &filename)
+  inline void write_surf(const Mesh &mesh, const std::string &filename)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out | std::ofstream::binary);
@@ -6289,7 +6289,7 @@ namespace fs
   /// @param is An open std::istream or derived class stream from which to read the data, e.g., std::ifstream or std::istringstream.
   /// @see There exists an overload to read from a file instead.
   /// @throws std::domain_error if the label data format is incorrect
-  void read_label(Label *label, std::istream *is)
+  inline void read_label(Label *label, std::istream *is)
   {
     std::string line;
     int line_idx = -1;
@@ -6352,7 +6352,7 @@ namespace fs
   /// fs::Label label;
   /// fs::read_label(&label, "subject1/label/lh.cortex.label");
   /// @endcode
-  void read_label(Label *label, const std::string &filename)
+  inline void read_label(Label *label, const std::string &filename)
   {
     std::ifstream infile(filename, std::fstream::in);
     if (infile.is_open())
@@ -6370,7 +6370,7 @@ namespace fs
   /// @param label The label to write.
   /// @param os An open output stream.
   /// @see There exists an onverload of this function to write a label to a file.
-  void write_label(const Label &label, std::ostream &os)
+  inline void write_label(const Label &label, std::ostream &os)
   {
     const size_t num_entries = label.num_entries();
     os << "#!ascii label from subject anonymous\n"
@@ -6394,7 +6394,7 @@ namespace fs
   /// fs::read_label(&label, "subject1/label/lh.cortex.label");
   /// fs::write_label(label, "out.label");
   /// @endcode
-  void write_label(const Label &label, const std::string &filename)
+  inline void write_label(const Label &label, const std::string &filename)
   {
     std::ofstream ofs;
     ofs.open(filename, std::ofstream::out);
@@ -6424,7 +6424,7 @@ namespace fs
   /// fs::write_mesh(surface, "cube.obj");
   /// fs::write_mesh(surface, "cube");  // writes FS surf format.
   /// @endcode
-  void write_mesh(const Mesh &mesh, const std::string &filename)
+  inline void write_mesh(const Mesh &mesh, const std::string &filename)
   {
     if (fs::util::ends_with(filename, {".ply", ".PLY"}))
     {
@@ -6457,7 +6457,7 @@ namespace fs
   /// fs::Mesh surface = fs::Mesh::construct_cube();
   /// fs::write_mesh(surface, "cube.ply", surface.vertex_colors);
   /// @endcode
-  void write_mesh(const Mesh &mesh, const std::string &filename, const std::vector<uint8_t> col)
+  inline void write_mesh(const Mesh &mesh, const std::string &filename, const std::vector<uint8_t> col)
   {
     if (fs::util::ends_with(filename, {".ply", ".PLY"}))
     {

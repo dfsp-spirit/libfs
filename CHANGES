@@ -2,6 +2,20 @@ libfs Changes
 ===============
 
 
+Current WIP
+--------------
+
+* FIX: the free functions of the single-header library are now marked
+  `inline` (49 functions: readers/writers for mgh, mgz, nifti, surface,
+  curv, annot, label, subjectsfile, plus the `util::` helpers).  As a
+  header-only library, libfs could previously only be included from a
+  single translation unit of a program: including `libfs.h` twice (for
+  example a program that also links a static library which contains
+  libfs) failed to link with "multiple definition of `fs::...'" errors.
+  The NIfTI/MGZ functions already used `inline`, this makes the rest of
+  the API consistent.  No behaviour change.
+
+
 v0.6.1 -- Volume header fixes
 ------------------------------
 * FIX: `write_nifti()` no longer emits an identity quaternion in the qform.  The unit quaternion is now computed from the rotation part of the MGH `Mdc` matrix (with reflections encoded via a negative `pixdim[0]`), keeping qform consistent with sform.
